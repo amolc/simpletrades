@@ -1,4 +1,4 @@
-// SimpleTrades Landing Page JavaScript
+// SimpleIncome Landing Page JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize the page
@@ -133,7 +133,7 @@ function initForms() {
             }
             
             // Simulate registration process
-            showNotification('Registration successful! Welcome to SimpleTrades!', 'success');
+            showNotification('Registration successful! Welcome to SimpleIncome!', 'success');
             setTimeout(() => {
                 bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
                 // Redirect to dashboard would go here
@@ -306,6 +306,6 @@ document.head.appendChild(rippleStyle);
 // Auto-redirect after successful login/registration (for demo purposes)
 setTimeout(() => {
     if (window.location.pathname.includes('userpanel')) {
-        console.log('SimpleTrades landing page loaded successfully');
+        console.log('SimpleIncome landing page loaded successfully');
     }
 }, 1000);

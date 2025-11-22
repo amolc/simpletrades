@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signals - StockAgent</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="dashboard.html">StockAgent Dashboard</a>
+            <div class="ms-auto">
+                <button id="logoutButton" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Layout -->
+    <div class="d-flex flex-row h-100 mt-2">
+        <!-- Left Sidebar -->
+        <div class="col-md-2 bg-light border-end p-3">
+            <h6 class="fw-bold mb-3">Navigation</h6>
+            <ul class="list-group list-group-flush">
+                <li class="list-group-item bg-transparent">
+                    <a href="dashboard.html" class="text-decoration-none text-dark">Dashboard</a>
+                </li>
+                <li class="list-group-item bg-transparent">
+                    <a href="signals.html" class="text-decoration-none text-dark">Signals</a>
+                </li>
+                <li class="list-group-item bg-transparent">
+                    <a href="subscriptions.html" class="text-decoration-none text-dark">My Subscriptions</a>
+                </li>
+                <li class="list-group-item bg-transparent">
+                    <a href="#" class="text-decoration-none text-dark">Settings</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="col-md-10 p-4">
+            <h1>Stock Signals</h1>
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Signal History</h5>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-chart-bar me-1"></i>Stock</th>
+                                <th><i class="fas fa-dollar-sign me-1"></i>Entry</th>
+                                <th><i class="fas fa-target me-1"></i>Target</th>
+                                <th><i class="fas fa-shield-alt me-1"></i>Stop Loss</th>
+                                <th><i class="fas fa-tag me-1"></i>Type</th>
+                                <th><i class="fas fa-sticky-note me-1"></i>Notes</th>
+                                <th><i class="fas fa-clock me-1"></i>Time</th>
+                                <th><i class="fas fa-cog me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Signals will be dynamically populated here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) {
+                logoutButton.addEventListener('click', () => {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                });
+            }
+        });
+    </script>
+    <script src="signals.js"></script>
+</body>
+</html>

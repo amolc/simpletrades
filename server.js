@@ -9,14 +9,19 @@ const db = require('./models');
 app.use(express.json());
 
 const userRoutes = require('./api/user')(db);
-const subscriptionRoutes = require('./api/subscription');
+const subscriptionRoutes = require('./api/subscription')(db);
+const signalsRoutes = require('./api/signals')(db);
+const adminRoutes = require('./api/admin')(db);
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from the static directory
 app.use('/', express.static(path.join(__dirname, 'userpanel')));
+app.use('/admin', express.static(path.join(__dirname, 'adminpanel')));
 
-app.use('/api/users', userRoutes);
+app.use('/api/user', userRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api/signals', signalsRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 // Start the server

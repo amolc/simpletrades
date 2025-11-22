@@ -1,6 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../models');
+const jwt = require('jsonwebtoken');
+
+// Middleware to authenticate JWT token
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+        return res.status(401).json({ message: 'Access token required' });
+    }
+    
+    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: 'Invalid or expired token' });
+        }
+        req.user = user;
+        next();
+    });
+};
 
 
 router.post('/', async (req, res) => {
@@ -81,5 +100,22 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+
+// Protected route for users to fetch their own subscriptions
+router.get('/my-subscriptions', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.userId; // Extract userId from JWT token
+        
+        const subscriptions = await db.Subscription.findAll({
+            where: { userId: userId },
+            order: [['createdAt', 'DESC']]
+        });
+        
+        res.status(200).json(subscriptions);
+    } catch (error) {
+        console.error('Error retrieving user subscriptions:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
 
 module.exports = router;
