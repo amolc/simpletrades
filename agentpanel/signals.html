@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signals - Professional Trading Dashboard</title>
+
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<!-- Font Awesome for icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Custom White Theme CSS -->
+<link rel="stylesheet" href="styles-white.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header-section">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col">
+        <h1><i class="fas fa-chart-line me-2"></i>Trading Signals</h1>
+        <p class="text-muted mb-0">Professional signal management dashboard</p>
+      </div>
+      <div class="col-auto">
+        <div class="stats-card">
+          <span class="number" id="total">0</span>
+          <span class="label">Total Signals</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="container">
+  <!-- New Signal Form -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Signal</h5>
+        </div>
+        <div class="card-body">
+          <form id="signalForm">
+            <div class="row g-3">
+              <div class="col-md-3">
+                <label for="stock" class="form-label">Stock Symbol</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-chart-bar"></i></span>
+                  <input type="text" class="form-control" id="stock" name="stock" placeholder="e.g., AAPL" required>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label for="price" class="form-label">Entry Price</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                  <input type="number" class="form-control" id="price" name="price" step="0.01" placeholder="0.00" required>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label for="target" class="form-label">Target Price</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-target"></i></span>
+                  <input type="number" class="form-control" id="target" name="target" step="0.01" placeholder="0.00" required>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label for="stop" class="form-label">Stop Loss</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-shield-alt"></i></span>
+                  <input type="number" class="form-control" id="stop" name="stop" step="0.01" placeholder="0.00" required>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <label for="type" class="form-label">Type</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                  <select class="form-select" id="type" name="type" required>
+                    <option value="">Select Type</option>
+                    <option value="stocks">Stocks</option>
+                    <option value="fno">F&O</option>
+                    <option value="index">Index</option>
+                    <option value="commodity">Commodity</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-12">
+                <label for="notes" class="form-label">Special Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Optional analysis notes, market conditions, etc..."></textarea>
+              </div>
+              <div class="col-12">
+                <button type="submit" class="btn btn-primary btn-lg">
+                  <i class="fas fa-paper-plane me-2"></i>Send Signal
+                </button>
+                <button type="reset" class="btn btn-outline-secondary btn-lg ms-2">
+                  <i class="fas fa-redo me-2"></i>Reset
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal History -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-history me-2"></i>Signal History</h5>
+          <div>
+            <button class="btn btn-outline-secondary btn-sm" id="exportBtn">
+              <i class="fas fa-download me-1"></i>Export
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="clearBtn">
+              <i class="fas fa-trash me-1"></i>Clear All
+            </button>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="signalsTable">
+              <thead>
+                <tr>
+                  <th><i class="fas fa-chart-bar me-1"></i>Stock</th>
+                  <th><i class="fas fa-dollar-sign me-1"></i>Entry</th>
+                  <th><i class="fas fa-target me-1"></i>Target</th>
+                  <th><i class="fas fa-shield-alt me-1"></i>Stop Loss</th>
+                  <th><i class="fas fa-tag me-1"></i>Type</th>
+                  <th><i class="fas fa-sticky-note me-1"></i>Notes</th>
+                  <th><i class="fas fa-clock me-1"></i>Time</th>
+                  <th><i class="fas fa-cog me-1"></i>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="signalsBody">
+                <!-- Signals will be populated here -->
+              </tbody>
+            </table>
+          </div>
+          <div id="emptyState" class="empty-state" style="display: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-inbox" viewBox="0 0 16 16">
+              <path d="M4.98 4a.5.5 0 0 0-.39.188L1.54 8H6a.5.5 0 0 1 .5.5 1.5 1.5 0 1 0 3 0A.5.5 0 0 1 10 8h4.46l-3.05-3.812A.5.5 0 0 0 11.02 4H4.98zm9.954 5H10.45a2.5 2.5 0 0 1-4.9 0H1.066l.32 2.562a.5.5 0 0 0 .49.438h11.4a.5.5 0 0 0 .49-.438L14.934 9z"/>
+            </svg>
+            <h4>No signals yet</h4>
+            <p>Create your first signal above to see it here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Footer -->
+<footer class="mt-5 py-4">
+  <div class="container text-center text-muted">
+    <small>Trading Signals Dashboard &copy; 2024 | Professional Signal Management</small>
+  </div>
+</footer>
+
+<!-- Bootstrap 5 JS Bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Custom JavaScript -->
+<script src="script.js"></script>
+</body>
+</html>

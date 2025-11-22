@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe to SimpleTrades</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .pricing-card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            background-color: var(--bg-white);
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+        }
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        .pricing-card.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(var(--primary-rgb), .25);
+        }
+        .pricing-card .price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        .pricing-card .duration {
+            font-size: 1rem;
+            color: var(--text-muted);
+        }
+        .pricing-card .features {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+        .pricing-card .features li {
+            margin-bottom: 0.75rem;
+            color: var(--text-dark);
+        }
+        .pricing-card .features li i {
+            color: var(--success-color);
+            margin-right: 0.5rem;
+        }
+        .qr-code-section {
+            background-color: var(--bg-light);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: var(--shadow-md);
+        }
+        .qr-code-section img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 1rem;
+        }
+        .form-card {
+            background-color: var(--bg-light);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="index.html">
+                <i class="fas fa-chart-line me-2"></i>SimpleTrades
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="stocks.html">Stocks</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Index Options</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Options</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Commodities</a>
+                    </li>
+                    <li class="nav-item ms-3">
+                        <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#registerModal">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <section class="py-5" style="margin-top: 80px;">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold text-dark mb-3">Choose Your Subscription Plan</h2>
+                <p class="lead text-muted">Unlock premium features and expert trading signals</p>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="pricing-card selected" data-plan="trial">
+                        <h4 class="fw-bold text-dark">Trial</h4>
+                        <p class="text-muted">Perfect for getting started</p>
+                        <div class="price-block my-4">
+                            <span class="price">₹0</span><span class="duration">/7 days</span>
+                        </div>
+                        <ul class="features">
+                            <li><i class="fas fa-check-circle text-success"></i> Access to basic signals</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Email support</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Limited features</li>
+                        </ul>
+                        <button class="btn btn-primary w-100">Selected</button>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="pricing-card" data-plan="monthly">
+                        <h4 class="fw-bold text-dark">Monthly</h4>
+                        <p class="text-muted">Ideal for short-term commitment</p>
+                        <div class="price-block my-4">
+                            <span class="price">₹2,999</span><span class="duration">/month</span>
+                        </div>
+                        <ul class="features">
+                            <li><i class="fas fa-check-circle text-success"></i> All Trial features</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Full access to signals</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Priority email support</li>
+                        </ul>
+                        <button class="btn btn-outline-primary w-100">Choose Plan</button>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="pricing-card" data-plan="quarterly">
+                        <h4 class="fw-bold text-dark">Quarterly</h4>
+                        <p class="text-muted">Save more with a 3-month plan</p>
+                        <div class="price-block my-4">
+                            <span class="price">₹7,999</span><span class="duration">/3 months</span>
+                        </div>
+                        <ul class="features">
+                            <li><i class="fas fa-check-circle text-success"></i> All Monthly features</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Dedicated chat support</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Exclusive webinars</li>
+                        </ul>
+                        <button class="btn btn-outline-primary w-100">Choose Plan</button>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="pricing-card" data-plan="annual">
+                        <h4 class="fw-bold text-dark">Annual</h4>
+                        <p class="text-muted">Best value for long-term traders</p>
+                        <div class="price-block my-4">
+                            <span class="price">₹29,999</span><span class="duration">/year</span>
+                        </div>
+                        <ul class="features">
+                            <li><i class="fas fa-check-circle text-success"></i> All Quarterly features</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Personal account manager</li>
+                            <li><i class="fas fa-check-circle text-success"></i> Advanced analytics</li>
+                        </ul>
+                        <button class="btn btn-outline-primary w-100">Choose Plan</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-5">
+                <div class="col-lg-6">
+                    <div class="form-card">
+                        <h3 class="fw-bold text-dark mb-4">Your Details</h3>
+                        <form>
+                            <div class="mb-3">
+                                <label for="fullName" class="form-label">Full Name</label>
+                                <input type="text" class="form-control" id="fullName" placeholder="Enter your full name" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="phoneNumber" class="form-label">Mobile Phone Number</label>
+                                <input type="tel" class="form-control" id="phoneNumber" placeholder="Enter your mobile phone number" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email address</label>
+                                <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" placeholder="Choose a password" required>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <div class="form-card">
+                        <h3 class="fw-bold text-dark mb-4">Alerts</h3>
+                        <form>
+                            <div class="mb-3">
+                                <label for="telegramId" class="form-label">Telegram ID</label>
+                                <input type="text" class="form-control" id="telegramId" placeholder="Enter your Telegram ID">
+                            </div>
+                            <div class="mb-3">
+                                <label for="whatsappNumber" class="form-label">WhatsApp Number</label>
+                                <input type="tel" class="form-control" id="whatsappNumber" placeholder="Enter your WhatsApp number">
+                            </div>
+                            <div class="mb-3">
+                                <label for="preferredAlertMethod" class="form-label">Preferred Alert Method</label>
+                                <select class="form-select" id="preferredAlertMethod">
+                                    <option value="email">Email</option>
+                                    <option value="telegram">Telegram</option>
+                                    <option value="whatsapp">WhatsApp</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                                    <label class="form-check-label" for="termsCheck">
+                                        I agree to the <a href="#" class="text-primary">Terms and Conditions</a>
+                                    </label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-lg-12">
+                    <button type="submit" class="btn btn-primary w-100">Register and Subscribe</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-5">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <h5 class="fw-bold mb-3">
+                        <i class="fas fa-chart-line me-2"></i>SimpleTrades
+                    </h5>
+                    <p class="text-muted">
+                        Professional trading platform offering comprehensive solutions for modern investors.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="text-muted me-3"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="text-muted me-3"><i class="fab fa-twitter"></i></a>
+                        <a href="#" class="text-muted me-3"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="text-muted"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                    <h6 class="fw-bold mb-3">Services</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-muted text-decoration-none">Stocks</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Options</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Commodities</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Index Trading</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h6 class="fw-bold mb-3">Support</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-muted text-decoration-none">Help Center</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Contact Us</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">FAQs</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Tutorials</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h6 class="fw-bold mb-3">Company</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-muted text-decoration-none">About Us</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Careers</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Press</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Legal</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h6 class="fw-bold mb-3">Legal</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="#" class="text-muted text-decoration-none">Privacy Policy</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Terms of Service</a></li>
+                        <li><a href="#" class="text-muted text-decoration-none">Disclaimer</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4 border-secondary">
+            <div class="text-center">
+                <p class="text-muted mb-0">&copy; 2024 SimpleTrades. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modals (Login/Register) - from index.html -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginModalLabel">Login to SimpleTrades</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email address</label>
+                            <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="Password">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Login</button>
+                    </form>
+                </div>
+                <div class="modal-footer text-center d-block">
+                    <p class="text-muted mb-0">Don't have an account? <a href="#" data-bs-toggle="modal" data-bs-target="#registerModal" data-bs-dismiss="modal">Register here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="registerModal" tabindex="-1" aria-labelledby="registerModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="registerModalLabel">Register for SimpleTrades</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="mb-3">
+                            <label for="registerFirstName" class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="registerFirstName" placeholder="John">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerLastName" class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="registerLastName" placeholder="Doe">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerEmail" class="form-label">Email address</label>
+                            <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPhone" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="registerPhone" placeholder="+91 98765 43210">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="registerPassword" placeholder="Password">
+                        </div>
+                        <div class="mb-3">
+                            <label for="registerConfirmPassword" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="registerConfirmPassword" placeholder="Confirm Password">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Register</button>
+                    </form>
+                </div>
+                <div class="modal-footer text-center d-block">
+                    <p class="text-muted mb-0">Already have an account? <a href="#" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="modal">Login here</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="script.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const registerButton = document.querySelector('.row.mt-3 .btn-primary');
+
+            if (registerButton) {
+                registerButton.addEventListener('click', async (event) => {
+                    event.preventDefault();
+
+                    const fullName = document.getElementById('fullName').value;
+                    const phoneNumber = document.getElementById('phoneNumber').value;
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    const telegramId = document.getElementById('telegramId').value;
+                    const whatsappNumber = document.getElementById('whatsappNumber').value;
+                    const preferredAlertMethod = document.getElementById('preferredAlertMethod').value;
+                    const termsCheck = document.getElementById('termsCheck').checked;
+
+                    if (!termsCheck) {
+                        alert('Please agree to the Terms and Conditions');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/users', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ phoneNumber, email, password }),
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            alert(data.message + '. User ID: ' + data.userId);
+                            // Clear both forms
+                            document.querySelector('.col-lg-6:first-child form').reset();
+                            document.querySelector('.col-lg-6:last-child form').reset();
+                            // Optionally redirect or update UI
+                        } else {
+                            alert('Registration failed: ' + data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error during registration:', error);
+                        alert('An error occurred during registration.');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
