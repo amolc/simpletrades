@@ -74,13 +74,41 @@
 
             <!-- Product Boxes Section -->
             <div class="row mt-4">
+                <!-- Subscription Status Card -->
+                <div class="col-md-12 mb-4" id="subscriptionStatus" style="display: none;">
+                    <div class="card" id="subscriptionCard">
+                        <div class="card-header" id="subscriptionHeader">
+                            <h5 class="mb-0">Current Subscription</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <p><strong>Plan:</strong> <span id="currentPlan"></span></p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p><strong>Start Date:</strong> <span id="startDate"></span></p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p><strong>End Date:</strong> <span id="endDate"></span></p>
+                                </div>
+                                <div class="col-md-3">
+                                    <p><strong>Status:</strong> <span id="subscriptionStatusText"></span></p>
+                                </div>
+                            </div>
+                            <div class="progress mt-3">
+                                <div id="subscriptionProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Stocks Product Box -->
                 <div class="col-md-3 mb-3">
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">Stocks</h5>
-                            <p class="card-text"><strong>Status:</strong> Pending</p>
-                            <p class="card-text small">Start Date - End Date</p>
+                            <p class="card-text"><strong>Status:</strong> <span class="product-status">Pending</span></p>
+                            <p class="card-text small product-dates">Start Date - End Date</p>
                             <a href="plans.html" class="btn btn-primary mt-2">Make Payment</a>
                         </div>
                     </div>
@@ -90,8 +118,8 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">Options</h5>
-                            <p class="card-text"><strong>Status:</strong> Pending</p>
-                            <p class="card-text small">Start Date - End Date</p>
+                            <p class="card-text"><strong>Status:</strong> <span class="product-status">Pending</span></p>
+                            <p class="card-text small product-dates">Start Date - End Date</p>
                             <a href="plans.html" class="btn btn-primary mt-2">Make Payment</a>
                         </div>
                     </div>
@@ -101,8 +129,8 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">Crypto</h5>
-                            <p class="card-text"><strong>Status:</strong> Pending</p>
-                            <p class="card-text small">Start Date - End Date</p>
+                            <p class="card-text"><strong>Status:</strong> <span class="product-status">Pending</span></p>
+                            <p class="card-text small product-dates">Start Date - End Date</p>
                             <a href="plans.html" class="btn btn-primary mt-2">Make Payment</a>
                         </div>
                     </div>
@@ -112,8 +140,8 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <h5 class="card-title">Commodity</h5>
-                            <p class="card-text"><strong>Status:</strong> Pending</p>
-                            <p class="card-text small">Start Date - End Date</p>
+                            <p class="card-text"><strong>Status:</strong> <span class="product-status">Pending</span></p>
+                            <p class="card-text small product-dates">Start Date - End Date</p>
                             <a href="plans.html" class="btn btn-primary mt-2">Make Payment</a>
                         </div>
                     </div>
@@ -145,6 +173,60 @@
                     const data = await response.json();
                     document.getElementById('userPhoneNumber').textContent = data.user.phoneNumber;
                     document.getElementById('userEmail').textContent = data.user.email;
+
+                    // Display subscription information if available
+                    if (data.subscription) {
+                        document.getElementById('subscriptionStatus').style.display = 'block';
+                        document.getElementById('currentPlan').textContent = data.subscription.plan.charAt(0).toUpperCase() + data.subscription.plan.slice(1) + ' Plan';
+                        document.getElementById('startDate').textContent = new Date(data.subscription.startDate).toLocaleDateString();
+                        document.getElementById('endDate').textContent = new Date(data.subscription.endDate).toLocaleDateString();
+                        document.getElementById('subscriptionStatusText').textContent = data.subscription.status.charAt(0).toUpperCase() + data.subscription.status.slice(1);
+                        
+                        // Apply styling based on subscription status
+                        const subscriptionCard = document.getElementById('subscriptionCard');
+                        const subscriptionHeader = document.getElementById('subscriptionHeader');
+                        const subscriptionProgress = document.getElementById('subscriptionProgress');
+                        
+                        if (data.subscription.status === 'pending') {
+                            // Pending status styling
+                            subscriptionCard.className = 'card border-warning';
+                            subscriptionHeader.className = 'card-header bg-warning text-dark';
+                            subscriptionProgress.className = 'progress-bar bg-warning';
+                            subscriptionProgress.style.width = '100%';
+                            subscriptionProgress.textContent = 'Pending Verification';
+                        } else if (data.subscription.status === 'active') {
+                            // Active status styling
+                            subscriptionCard.className = 'card border-success';
+                            subscriptionHeader.className = 'card-header bg-success text-white';
+                            
+                            // Calculate subscription progress for active subscriptions
+                            const startDate = new Date(data.subscription.startDate);
+                            const endDate = new Date(data.subscription.endDate);
+                            const today = new Date();
+                            const totalDays = (endDate - startDate) / (1000 * 60 * 60 * 24);
+                            const daysPassed = (today - startDate) / (1000 * 60 * 60 * 24);
+                            const progress = Math.min(Math.max((daysPassed / totalDays) * 100, 0), 100);
+                            
+                            subscriptionProgress.style.width = progress + '%';
+                            subscriptionProgress.textContent = Math.round(progress) + '%';
+                        }
+
+                        // Update product statuses based on subscription status
+                        const productStatuses = document.querySelectorAll('.product-status');
+                        const productDates = document.querySelectorAll('.product-dates');
+                        productStatuses.forEach(status => {
+                            if (data.subscription.status === 'pending') {
+                                status.textContent = 'Pending Verification';
+                                status.classList.add('text-warning');
+                            } else if (data.subscription.status === 'active') {
+                                status.textContent = 'Active';
+                                status.classList.add('text-success');
+                            }
+                        });
+                        productDates.forEach(dates => {
+                            dates.textContent = `${new Date(data.subscription.startDate).toLocaleDateString()} - ${new Date(data.subscription.endDate).toLocaleDateString()}`;
+                        });
+                    }
                 } else if (response.status === 401 || response.status === 403) {
                     // Token expired or invalid, redirect to login
                     localStorage.removeItem('token');

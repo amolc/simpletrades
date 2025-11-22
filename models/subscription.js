@@ -15,9 +15,19 @@ module.exports = (sequelize, DataTypes) => {
   }
   Subscription.init({
     userId: DataTypes.INTEGER,
-    productName: DataTypes.STRING,
+    plan: DataTypes.STRING,
+    amount: DataTypes.DECIMAL(10, 2),
+    referenceNumber: DataTypes.STRING,
     startDate: DataTypes.DATE,
-    endDate: DataTypes.DATE
+    endDate: DataTypes.DATE,
+    status: {
+      type: DataTypes.ENUM('active', 'expired', 'cancelled'),
+      defaultValue: 'active'
+    },
+    paymentStatus: {
+      type: DataTypes.ENUM('pending', 'completed', 'failed'),
+      defaultValue: 'pending'
+    }
   }, {
     sequelize,
     modelName: 'Subscription',

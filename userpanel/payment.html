@@ -100,6 +100,14 @@
                             <p><strong>Notes:</strong> StockAgent Subscription Payment</p>
                         </div>
 
+                        <div class="mt-4">
+                            <h6>Payment Reference Number:</h6>
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="referenceNumber" placeholder="Enter payment reference number (UTR/Transaction ID)" required>
+                            </div>
+                            <small class="text-muted">You can find this in your UPI app after successful payment</small>
+                        </div>
+
                         <div class="text-center mt-4">
                             <button id="confirmPayment" class="btn btn-success btn-lg me-3">
                                 I Have Completed Payment
@@ -164,10 +172,92 @@
                 });
             }
 
+        // Validate reference number format
+        function validateReferenceNumber(referenceNumber) {
+            // Basic validation - check if it's not empty and has reasonable length
+            if (!referenceNumber || referenceNumber.trim().length < 5) {
+                return false;
+            }
+            // Check if it contains only alphanumeric characters and common separators
+            return /^[a-zA-Z0-9-_.]+$/.test(referenceNumber.trim());
+        }
+
             // Confirm payment button
-            document.getElementById('confirmPayment').addEventListener('click', () => {
-                alert('Payment confirmation received! Your subscription will be activated shortly.');
-                window.location.href = 'dashboard.html';
+            document.getElementById('confirmPayment').addEventListener('click', async () => {
+                const referenceNumber = document.getElementById('referenceNumber').value.trim();
+                
+                if (!referenceNumber) {
+                    alert('Please enter your payment reference number first');
+                    return;
+                }
+
+                // Validate reference number format
+                if (!validateReferenceNumber(referenceNumber)) {
+                    alert('Please enter a valid reference number. It should be at least 5 characters long and contain only letters, numbers, and common separators.');
+                    return;
+                }
+
+                // Show loading state
+                const confirmButton = document.getElementById('confirmPayment');
+                const originalText = confirmButton.textContent;
+                confirmButton.textContent = 'Processing...';
+                confirmButton.disabled = true;
+
+                try {
+                    const token = localStorage.getItem('token');
+                    
+                    // First verify the reference number
+                    const verifyResponse = await fetch('/api/verify-payment', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            referenceNumber: referenceNumber,
+                            plan: planType,
+                            amount: amount
+                        })
+                    });
+
+                    if (!verifyResponse.ok) {
+                        const verifyData = await verifyResponse.json();
+                        alert(verifyData.message || 'Reference number verification failed');
+                        confirmButton.textContent = originalText;
+                        confirmButton.disabled = false;
+                        return;
+                    }
+
+                    // If verification passes, activate subscription
+                    const activateResponse = await fetch('/api/activate-subscription', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            referenceNumber: referenceNumber,
+                            plan: planType,
+                            amount: amount
+                        })
+                    });
+
+                    const activateData = await activateResponse.json();
+                    
+                    if (activateResponse.ok) {
+                        alert('Payment confirmed! Your subscription is pending verification. Redirecting to dashboard...');
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        alert(activateData.message || 'Payment activation failed. Please try again.');
+                        confirmButton.textContent = originalText;
+                        confirmButton.disabled = false;
+                    }
+                } catch (error) {
+                    console.error('Payment confirmation error:', error);
+                    alert('Payment confirmation failed. Please try again.');
+                    confirmButton.textContent = originalText;
+                    confirmButton.disabled = false;
+                }
             });
         });
     </script>

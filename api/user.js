@@ -156,9 +156,119 @@ router.get('/dashboard', authenticateToken, async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        res.status(200).json({ user });
+        // Get user's latest subscription (including pending and active)
+        const activeSubscription = await db.Subscription.findOne({
+            where: { 
+                userId: req.user.userId,
+                status: ['pending', 'active']
+            },
+            order: [['createdAt', 'DESC']]
+        });
+
+        res.status(200).json({ 
+            user,
+            subscription: activeSubscription
+        });
     } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Payment verification endpoint
+router.post('/verify-payment', authenticateToken, async (req, res) => {
+    const { referenceNumber, plan, amount } = req.body;
+
+    if (!referenceNumber || !plan || !amount) {
+        return res.status(400).json({ message: 'Reference number, plan, and amount are required' });
+    }
+
+    try {
+        // Check if reference number already exists
+        const existingPayment = await db.Subscription.findOne({
+            where: { referenceNumber: referenceNumber }
+        });
+
+        if (existingPayment) {
+            return res.status(409).json({ message: 'This reference number has already been used' });
+        }
+
+        // Basic validation - in a real implementation, you would verify with payment gateway
+        if (referenceNumber.length < 5) {
+            return res.status(400).json({ message: 'Invalid reference number format' });
+        }
+
+        res.status(200).json({ message: 'Reference number verified successfully' });
+    } catch (error) {
+        console.error('Error verifying payment:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
+// Subscription activation endpoint
+router.post('/activate-subscription', authenticateToken, async (req, res) => {
+    const { referenceNumber, plan, amount } = req.body;
+
+    if (!referenceNumber || !plan || !amount) {
+        return res.status(400).json({ message: 'Reference number, plan, and amount are required' });
+    }
+
+    try {
+        const userId = req.user.userId;
+
+        // Check if reference number already exists
+        const existingPayment = await db.Subscription.findOne({
+            where: { referenceNumber: referenceNumber }
+        });
+
+        if (existingPayment) {
+            return res.status(409).json({ message: 'This reference number has already been used' });
+        }
+
+        // Calculate start and end dates based on plan type
+        const startDate = new Date();
+        let endDate = new Date();
+        
+        switch (plan) {
+            case 'monthly':
+                endDate.setMonth(endDate.getMonth() + 1);
+                break;
+            case 'quarterly':
+                endDate.setMonth(endDate.getMonth() + 3);
+                break;
+            case 'annual':
+                endDate.setFullYear(endDate.getFullYear() + 1);
+                break;
+            default:
+                return res.status(400).json({ message: 'Invalid plan type' });
+        }
+
+        // Create subscription record with pending status for manual verification
+        const subscription = await db.Subscription.create({
+            userId: userId,
+            plan: plan,
+            amount: parseFloat(amount),
+            referenceNumber: referenceNumber,
+            startDate: startDate,
+            endDate: endDate,
+            status: 'pending',
+            paymentStatus: 'pending'
+        });
+
+        res.status(200).json({ 
+            message: 'Subscription request submitted successfully. Pending manual verification.',
+            subscription: {
+                id: subscription.id,
+                plan: subscription.plan,
+                amount: subscription.amount,
+                startDate: subscription.startDate,
+                endDate: subscription.endDate,
+                status: subscription.status
+            }
+        });
+
+    } catch (error) {
+        console.error('Error activating subscription:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
 });
