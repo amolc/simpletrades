@@ -1,7 +1,8 @@
 const express = require('express');
-const router = express.Router();
-const db = require('../models');
 const jwt = require('jsonwebtoken');
+
+module.exports = (db) => {
+    const router = express.Router();
 
 // Middleware to authenticate JWT token
 const authenticateToken = (req, res, next) => {
@@ -118,4 +119,5 @@ router.get('/my-subscriptions', authenticateToken, async (req, res) => {
     }
 });
 
-module.exports = router;
+    return router;
+};
