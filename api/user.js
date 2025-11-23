@@ -1,8 +1,48 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 module.exports = (db) => {
     const router = express.Router();
+
+    // User Login
+    router.post('/login', async (req, res) => {
+        const { phoneNumber, password } = req.body;
+
+        if (!phoneNumber || !password) {
+            return res.status(400).json({ message: 'Phone number and password are required' });
+        }
+
+        try {
+            const user = await db.User.findOne({ where: { phoneNumber } });
+
+            if (!user) {
+                return res.status(401).json({ message: 'Invalid credentials' });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+
+            if (!isMatch) {
+                return res.status(401).json({ message: 'Invalid credentials' });
+            }
+
+            const token = jwt.sign({ id: user.id, role: user.role || 'user' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+
+            res.json({ 
+                token,
+                message: 'Login successful',
+                user: {
+                    id: user.id,
+                    fullName: user.fullName,
+                    email: user.email,
+                    phoneNumber: user.phoneNumber
+                }
+            });
+        } catch (error) {
+            console.error('User login error:', error);
+            res.status(500).json({ message: 'Server error' });
+        }
+    });
 
     const authenticate = (req, res, next) => {
         const authHeader = req.headers.authorization;
@@ -23,12 +63,21 @@ module.exports = (db) => {
     router.get('/profile', authenticate, async (req, res) => {
         try {
             const user = await db.User.findByPk(req.user.id, {
-                attributes: ['fullName', 'email']
+                attributes: ['email', 'phoneNumber']
             });
             if (!user) {
                 return res.status(404).json({ message: 'User not found' });
             }
-            res.json(user);
+            // Also fetch subscription data
+            const subscription = await db.Subscription.findOne({ 
+                where: { userId: req.user.id },
+                order: [['createdAt', 'DESC']]
+            });
+
+            res.json({ 
+                user: user,
+                subscription: subscription
+            });
         } catch (error) {
             console.error('Error fetching user profile:', error);
             res.status(500).json({ message: 'Server error' });
