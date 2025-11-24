@@ -1,0 +1,61 @@
+name: Deploy to Quantbotsco Online
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to Ubuntu Server
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOSTNAME: simpleincome.co
+          USER_NAME: ubuntu
+
+        run: |
+          # -------------------------------
+          # Setup SSH
+          # -------------------------------
+          mkdir -p ~/.ssh
+          echo "${PRIVATE_KEY}" | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H ${HOSTNAME} >> ~/.ssh/known_hosts
+          
+          # -------------------------------
+          # Remote deployment
+          # -------------------------------
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no ${USER_NAME}@${HOSTNAME} << 'EOF'
+            set -e  # exit on first error
+
+            echo "🚀 Starting deployment on server..."
+
+            # Navigate to repository directory
+            cd /home/ubuntu/repos/simpletrades
+
+            echo "📥 Pulling latest code..."
+            git fetch origin
+            git checkout main
+            git pull origin main
+
+            echo "🔍 Latest commit:"
+            git log -1 --oneline
+
+            # Sync code to application directory
+            echo "📂 Updating project files..."
+            rsync -av \
+              --exclude='.git/' \
+              --exclude='venv/' \
+              --exclude='logs/' \
+              --exclude='__pycache__/' \
+              --exclude='*.pyc' \
+              /home/ubuntu/repos/simpletrades/ /home/ubuntu/simpletrades/
+
+            # Restart services
+            echo "🔄 Restarting services..."
+            pm2 restart server || echo "⚠️ Failed to restart runcelery"
+
+            echo "✅ Deployment completed successfully!"
+          EOF
