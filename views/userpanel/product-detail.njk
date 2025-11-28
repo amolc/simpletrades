@@ -1,0 +1,237 @@
+{% extends "layout.njk" %}
+
+{% block title %}{{ product.name }} Trading Signals - SimpleIncome{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section" style="padding-top: 100px;">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-12 text-center">
+                <div class="py-4">
+                    <h1 class="mb-3 section-title">{{ product.name }} Trading Signals</h1>
+                    <p class="lead mb-4 text-muted">{{ product.description }}</p>
+                    
+                    <div class="row text-center mb-4">
+                        {% for feature in product.keyFeatures %}
+                        <div class="col-md-{{ 12 // product.keyFeatures.length }}">
+                            <div class="mb-2">
+                                <i class="fas fa-chart-line fa-2x text-primary"></i>
+                            </div>
+                            <h5 class="text-dark">{{ feature | replace("• ", "") | trim }}</h5>
+                            <p class="small text-muted">Professional {{ product.name | lower }} trading guidance</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="pricing-cards mt-5">
+                        <div class="row justify-content-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="card pricing-card h-100">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Trial</h5>
+                                        <div class="price">
+                                            <span class="currency">₹</span>
+                                            <span class="amount">{{ product.pricing.trial }}</span>
+                                        </div>
+                                        <p class="period">7 days</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                            Start Trial
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card pricing-card h-100 featured">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Monthly</h5>
+                                        <div class="price">
+                                            <span class="currency">₹</span>
+                                            <span class="amount">{{ product.pricing.monthly }}</span>
+                                        </div>
+                                        <p class="period">per month</p>
+                                        <button class="btn btn-primary btn-sm" onclick="window.location.href='/register'">
+                                            Subscribe Now
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card pricing-card h-100">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Quarterly</h5>
+                                        <div class="price">
+                                            <span class="currency">₹</span>
+                                            <span class="amount">{{ product.pricing.quarterly }}</span>
+                                        </div>
+                                        <p class="period">per quarter</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                            Save 33%
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card pricing-card h-100">
+                                    <div class="card-body text-center">
+                                        <h5 class="card-title">Yearly</h5>
+                                        <div class="price">
+                                            <span class="currency">₹</span>
+                                            <span class="amount">{{ product.pricing.yearly }}</span>
+                                        </div>
+                                        <p class="period">per year</p>
+                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                            Best Value
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="small mt-3 mb-0 text-muted">✓ 7-day free trial ✓ Cancel anytime ✓ 30-day money back guarantee</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Target Audience Section -->
+<section class="py-5 bg-light">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h2 class="section-title mb-4">Perfect For</h2>
+                <p class="lead">{{ product.targetAudience }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-12">
+                <h2 class="section-title text-center mb-5">What You Get</h2>
+                <div class="row">
+                    {% for feature in product.keyFeatures %}
+                    <div class="col-md-6 mb-4">
+                        <div class="feature-card d-flex align-items-start">
+                            <div class="feature-icon me-3">
+                                <i class="fas fa-check-circle text-success"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h5>{{ feature | replace("• ", "") | trim }}</h5>
+                                <p class="text-muted">Professional {{ product.name | lower }} trading feature to enhance your strategy</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-5 bg-primary text-white">
+    <div class="container text-center">
+        <h2 class="mb-4">Ready to Start Trading {{ product.name }}?</h2>
+        <p class="lead mb-4">Join thousands of traders who trust our {{ product.name | lower }} signals</p>
+        <button class="btn btn-light btn-lg px-5" onclick="window.location.href='/register'">
+            <i class="fas fa-rocket me-2"></i>Get Started Today
+        </button>
+    </div>
+</section>
+
+<style>
+.pricing-cards {
+    margin-top: 2rem;
+}
+
+.pricing-card {
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.pricing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.pricing-card.featured {
+    border-color: #007bff;
+    border-width: 2px;
+    transform: scale(1.05);
+}
+
+.pricing-card.featured::before {
+    content: "MOST POPULAR";
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #007bff;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.pricing-card .price {
+    margin: 1rem 0;
+}
+
+.pricing-card .currency {
+    font-size: 1.5rem;
+    vertical-align: top;
+}
+
+.pricing-card .amount {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #007bff;
+}
+
+.pricing-card .period {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.feature-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    height: 100%;
+}
+
+.feature-icon {
+    font-size: 1.5rem;
+}
+
+.feature-content h5 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.section-title {
+    font-weight: 700;
+    color: #333;
+}
+
+@media (max-width: 768px) {
+    .pricing-card.featured {
+        transform: scale(1);
+    }
+    
+    .pricing-cards .col-md-3 {
+        margin-bottom: 1rem;
+    }
+}
+</style>
+{% endblock %}

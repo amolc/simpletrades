@@ -1,0 +1,47 @@
+{% extends "layout.njk" %}
+
+{% block title %}Contact - SimpleIncome{% endblock %}
+
+{% block content %}
+<section class="contact-section py-5" style="padding-top: 100px;">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="fw-bold mb-3">Get in Touch</h5>
+            <form id="contactForm">
+              <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="name" required>
+              </div>
+              <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="email" required>
+              </div>
+              <div class="mb-3">
+                <label for="message" class="form-label">Message</label>
+                <textarea class="form-control" id="message" rows="5" required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary">Send Message</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="fw-bold mb-3">Contact Details</h5>
+            <p class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i> {{ supportEmail or 'support@simpleincome.in' }}</p>
+            <p class="mb-2"><i class="fas fa-phone me-2 text-primary"></i> {{ supportPhone or '+91-90000-00000' }}</p>
+            <p class="mb-2"><i class="fas fa-map-marker-alt me-2 text-primary"></i> Pune, India</p>
+            <hr>
+            <h6 class="fw-semibold">Business Hours</h6>
+            <p class="text-muted mb-0">Mon–Fri: 9:00 AM – 6:00 PM IST</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

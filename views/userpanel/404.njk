@@ -1,0 +1,46 @@
+{% extends "layout.njk" %}
+
+{% block title %}Product Not Found - SimpleIncome{% endblock %}
+
+{% block content %}
+<section class="py-5" style="padding-top: 100px;">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <div class="error-page">
+                    <div class="error-icon mb-4">
+                        <i class="fas fa-exclamation-triangle fa-5x text-warning"></i>
+                    </div>
+                    <h1 class="display-4 mb-3">Product Not Found</h1>
+                    <p class="lead mb-4">Sorry, the product you're looking for doesn't exist or may have been removed.</p>
+                    <div class="mb-4">
+                        <a href="/" class="btn btn-primary btn-lg me-3">
+                            <i class="fas fa-home me-2"></i>Go Home
+                        </a>
+                        <a href="/api/products" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-list me-2"></i>View All Products
+                        </a>
+                    </div>
+                    <p class="text-muted">If you believe this is an error, please contact our support team.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+.error-page {
+    padding: 3rem 0;
+}
+
+.error-icon {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}

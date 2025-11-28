@@ -1,0 +1,26 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/assets/admin/css/styles.css">
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mt-4">Pending Subscriptions</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Plan</th>
+        <th>Reference Number</th>
+        <th>Subscription Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="subscriptionsTableBody"></tbody>
+  </table>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/admin/js/script.js"></script>
+<script src="/assets/admin/js/dashboard.js"></script>
+{% endblock %}

@@ -1,0 +1,440 @@
+{% extends "layout.njk" %}
+{% block title %}Trading Signals - SimpleIncome{% endblock %}
+{% block head %}
+    <style>
+        .signals-section {
+            padding: 60px 0;
+            background: var(--bg-light);
+            min-height: 100vh;
+        }
+        
+        .stats-card {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stats-number {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stats-total { color: var(--primary-color); }
+        .stats-active { color: var(--success-color); }
+        .stats-pending { color: var(--warning-color); }
+        .stats-winrate { color: var(--info-color); }
+        .stats-profit { color: var(--success-color); }
+        .stats-loss { color: var(--danger-color); }
+        
+        .signals-table {
+            background: var(--bg-white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+        
+        .table thead th {
+            background: var(--bg-light);
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+            color: var(--text-dark);
+            padding: 1rem;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 0.5px;
+        }
+        
+        .table tbody td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        
+        .signal-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+        
+        .status-pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+        }
+        
+        .status-closed {
+            background: rgba(107, 114, 128, 0.1);
+            color: var(--text-muted);
+        }
+        
+        .signal-type-buy {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+        
+        .signal-type-sell {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
+        
+        .profit-positive {
+            color: var(--success-color);
+            font-weight: 600;
+        }
+        
+        .profit-negative {
+            color: var(--danger-color);
+            font-weight: 600;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+        
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 3rem;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .loading-spinner {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-number {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+            
+            .signal-badge {
+                font-size: 0.75rem;
+                padding: 0.4rem 0.8rem;
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+{% endblock %}
+
+    <!-- Hero Section -->
+    <section class="hero-section text-center text-white" style="background: linear-gradient(135deg, var(--primary-color), var(--primary-hover)); padding: 120px 0 80px;">
+        <div class="container">
+            <h1 class="display-4 fw-bold mb-4 fade-in">
+                <i class="fas fa-signal me-3"></i>Trading Signals Dashboard
+            </h1>
+            <p class="lead mb-0 fade-in">
+                Monitor your trading performance with real-time signal tracking and comprehensive analytics
+            </p>
+        </div>
+    </section>
+
+    <!-- Signals Statistics -->
+    <section class="signals-section">
+        <div class="container">
+            <div class="row mb-5">
+                <div class="col-12 text-center">
+                    <h2 class="section-title">Signal Performance</h2>
+                    <p class="section-subtitle">Track your trading signals and analyze performance metrics</p>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row mb-5 g-4" id="signalStats">
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-total" id="totalSignals">0</div>
+                        <div class="stats-label">Total Signals</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-active" id="activeSignals">0</div>
+                        <div class="stats-label">Active</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-pending" id="pendingSignals">0</div>
+                        <div class="stats-label">Pending</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-winrate" id="winRate">0%</div>
+                        <div class="stats-label">Win Rate</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-profit" id="totalProfit">₹0.00</div>
+                        <div class="stats-label">Total Profit</div>
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-4 col-6">
+                    <div class="stats-card fade-in">
+                        <div class="stats-number stats-loss" id="totalLoss">₹0.00</div>
+                        <div class="stats-label">Total Loss</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signals Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="signals-table fade-in">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0" id="signalsTable">
+                                <thead>
+                                    <tr>
+                                        <th><i class="fas fa-chart-bar me-2"></i>Stock</th>
+                                        <th><i class="fas fa-arrow-right me-2"></i>Type</th>
+                                        <th><i class="fas fa-sign-in-alt me-2"></i>Entry</th>
+                                        <th><i class="fas fa-bullseye me-2"></i>Target</th>
+                                        <th><i class="fas fa-shield-alt me-2"></i>Stop Loss</th>
+                                        <th><i class="fas fa-sign-out-alt me-2"></i>Exit</th>
+                                        <th><i class="fas fa-chart-line me-2"></i>P&L</th>
+                                        <th><i class="fas fa-info-circle me-2"></i>Status</th>
+                                        <th><i class="fas fa-calendar me-2"></i>Entry DateTime</th>
+                                        <th><i class="fas fa-clock me-2"></i>Duration</th>
+                                        <th><i class="fas fa-sticky-note me-2"></i>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="signalsTableBody">
+                                    <tr>
+                                        <td colspan="11" class="text-center">
+                                            <div class="loading-spinner">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="visually-hidden">Loading signals...</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            
+                            <div id="emptyState" class="empty-state" style="display: none;">
+                                <i class="fas fa-chart-line"></i>
+                                <h5>No Signals Found</h5>
+                                <p>Start creating trading signals to see them here.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Load signals data
+        async function loadSignals() {
+            try {
+                const response = await fetch('/api/signals');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    displaySignals(result.data);
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Error loading signals:', error);
+                showErrorState();
+            }
+        }
+        
+        // Load signal statistics
+        async function loadSignalStats() {
+            try {
+                const response = await fetch('/api/signals/stats');
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    displayStats(result.data);
+                }
+            } catch (error) {
+                console.error('Error loading signal stats:', error);
+            }
+        }
+        
+        // Display signal statistics
+        function displayStats(stats) {
+            document.getElementById('totalSignals').textContent = stats.totalSignals || 0;
+            document.getElementById('activeSignals').textContent = stats.activeSignals || 0;
+            document.getElementById('pendingSignals').textContent = stats.pendingSignals || 0;
+            document.getElementById('winRate').textContent = (stats.winRate || 0) + '%';
+            document.getElementById('totalProfit').textContent = '₹' + (stats.totalProfit || 0).toFixed(2);
+            document.getElementById('totalLoss').textContent = '₹' + (stats.totalLoss || 0).toFixed(2);
+        }
+        
+        // Display signals in table
+        function displaySignals(signals) {
+            const tbody = document.getElementById('signalsTableBody');
+            
+            if (!signals || signals.length === 0) {
+                showEmptyState();
+                return;
+            }
+            
+            tbody.innerHTML = signals.map(signal => `
+                <tr class="fade-in">
+                    <td>
+                        <div class="fw-bold">${signal.stock}</div>
+                        <small class="text-muted">${signal.symbol || ''}</small>
+                    </td>
+                    <td>
+                        <span class="signal-badge signal-type-${signal.signalType.toLowerCase()}">
+                            <i class="fas fa-arrow-${signal.signalType === 'BUY' ? 'up' : 'down'} me-1"></i>
+                            ${signal.signalType}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="fw-bold">₹${signal.entry}</span>
+                    </td>
+                    <td>
+                        <span class="text-success fw-bold">₹${signal.target}</span>
+                    </td>
+                    <td>
+                        <span class="text-danger">₹${signal.stopLoss}</span>
+                    </td>
+                    <td>
+                        ${signal.exitPrice ? `<span class="fw-bold">₹${signal.exitPrice}</span>` : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        ${signal.profitLoss !== null ? 
+                            `<span class="${signal.profitLoss >= 0 ? 'profit-positive' : 'profit-negative'}">
+                                ${signal.profitLoss >= 0 ? '+' : ''}₹${signal.profitLoss}
+                            </span>` : 
+                            '<span class="text-muted">-</span>'
+                        }
+                    </td>
+                    <td>
+                        <span class="signal-badge status-${signal.status.toLowerCase()}">
+                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                            ${signal.status}
+                        </span>
+                    </td>
+                    <td>
+                        <small>${signal.entryDateTime ? new Date(signal.entryDateTime).toLocaleString() : '-'}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-info">${signal.duration || '-'}</span>
+                    </td>
+                    <td>
+                        ${signal.notes ? 
+                            `<small class="text-muted" title="${signal.notes}">
+                                ${signal.notes.length > 30 ? signal.notes.substring(0, 30) + '...' : signal.notes}
+                            </small>` : 
+                            '<span class="text-muted">-</span>'
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // Show empty state
+        function showEmptyState() {
+            const tbody = document.getElementById('signalsTableBody');
+            tbody.innerHTML = '';
+            document.getElementById('emptyState').style.display = 'block';
+        }
+        
+        // Show error state
+        function showErrorState() {
+            const tbody = document.getElementById('signalsTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="text-center text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading signals. Please try again later.
+                    </td>
+                </tr>
+            `;
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSignalStats();
+            loadSignals();
+            
+            // Refresh data every 30 seconds
+            setInterval(() => {
+                loadSignalStats();
+                loadSignals();
+            }, 30000);
+        });
+    </script>
+{% endblock %}

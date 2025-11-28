@@ -1,0 +1,33 @@
+{% extends "layout.njk" %}
+
+{% block title %}Plans - SimpleIncome{% endblock %}
+
+{% block content %}
+<section class="py-5" style="padding-top: 100px;">
+  <div class="container">
+    <h2 class="mb-4">Available Plans</h2>
+    <div class="row">
+      {% if plans and plans.length %}
+        {% for plan in plans %}
+        <div class="col-md-4 mb-3">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">{{ plan.planName }}</h5>
+              <p class="card-text">{{ plan.planDescription }}</p>
+              <p class="mb-1"><strong>Duration:</strong> {{ plan.numberOfDays }} days</p>
+              <p class="mb-1"><strong>Cost:</strong> {{ plan.cost }} {{ plan.currency }}</p>
+              <p class="mb-2"><strong>Product:</strong> {{ plan.productName }}</p>
+              <a href="/product/{{ plan.productName }}" class="btn btn-outline-primary btn-sm">View Product</a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="col-12">
+          <div class="alert alert-info">No active plans available.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+}</section>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends "layout.njk" %}
+{% block title %}My Dashboard - SimpleIncome{% endblock %}
+{% block content %}
+<section class="py-5" style="padding-top: 100px;">
+  <div class="container">
+    <div class="row mb-4">
+      <div class="col-12">
+        <h2 class="fw-bold">Welcome Back</h2>
+        <p class="text-muted" id="userSummary">Loading your profile...</p>
+      </div>
+    </div>
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">My Subscriptions</h5>
+            <a href="/products" class="btn btn-outline-primary btn-sm">Browse Products</a>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0" id="subsTable">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Plan</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="subsBody"></tbody>
+              </table>
+            </div>
+            <div id="subsEmpty" class="p-4 text-center text-muted" style="display:none;">No subscriptions yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/js/dashboard.js"></script>
+{% endblock %}

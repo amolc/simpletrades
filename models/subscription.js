@@ -15,6 +15,13 @@ module.exports = (sequelize, DataTypes) => {
   }
   Subscription.init({
     userId: DataTypes.INTEGER,
+    planId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'Plans', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL'
+    },
     plan: DataTypes.STRING,
     amount: DataTypes.DECIMAL(10, 2),
     referenceNumber: DataTypes.STRING,

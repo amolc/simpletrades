@@ -1,0 +1,33 @@
+{% extends "layout.njk" %}
+{% block title %}Products - SimpleIncome{% endblock %}
+{% block content %}
+<section class="services-section py-5">
+  <div class="container">
+    <div class="row mb-5">
+      <div class="col-12 text-center">
+        <h2 class="display-5 fw-bold text-dark mb-3">Our Products</h2>
+        <p class="lead text-muted">Explore our active trading products</p>
+      </div>
+    </div>
+    <div class="row g-4">
+      {% for product in products %}
+      <div class="col-lg-3 col-md-6">
+        <div class="service-card h-100">
+          <div class="service-icon"><i class="fas fa-chart-bar"></i></div>
+          <h4 class="service-title">{{ product.name }}</h4>
+          <p class="service-description">{{ product.description }}</p>
+          <div class="pricing-info mb-3">
+            <small class="text-muted d-block mb-1">Pricing:</small>
+            <div class="d-flex justify-content-between">
+              <span class="badge bg-success">Trial: ₹{{ product.pricing.trial }}</span>
+              <span class="badge bg-primary">Monthly: ₹{{ product.pricing.monthly }}</span>
+            </div>
+          </div>
+          <a href="/product/{{ product.name | lower }}" class="btn btn-outline-primary w-100">Learn More</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

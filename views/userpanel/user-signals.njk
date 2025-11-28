@@ -1,0 +1,33 @@
+{% extends "layout.njk" %}
+{% block title %}My Signals - SimpleIncome{% endblock %}
+{% block content %}
+<section class="py-5" style="padding-top: 100px;">
+  <div class="container">
+    <h3 class="mb-3">Signals for <span id="sigProduct"></span></h3>
+    <p class="text-muted">From start date: <span id="sigStart"></span></p>
+    <div class="card">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" id="signalsTable">
+            <thead>
+              <tr>
+                <th>Stock</th>
+                <th>Type</th>
+                <th>Entry</th>
+                <th>Target</th>
+                <th>Stop</th>
+                <th>Status</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody id="signalsBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/js/user-signals.js"></script>
+{% endblock %}

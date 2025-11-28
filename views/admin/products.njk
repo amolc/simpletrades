@@ -1,0 +1,127 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Admin Products{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/assets/admin/css/styles.css">
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+      <h2 class="mt-4 text-start">Product Management</h2>
+      <ul class="nav nav-pills mb-4" id="productTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="view-products-tab" data-bs-toggle="pill" data-bs-target="#view-products" type="button" role="tab">View Products</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="create-product-tab" data-bs-toggle="pill" data-bs-target="#create-product" type="button" role="tab">Create Product</button>
+        </li>
+      </ul>
+      <div class="tab-content" id="productTabContent">
+        <div class="tab-pane fade show active" id="view-products" role="tabpanel">
+          <div class="row">
+            <div class="col-12">
+              <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                  <h5 class="mb-0">Product Catalog</h5>
+                </div>
+                <div class="card-body">
+                  <div id="productList"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="create-product" role="tabpanel">
+          <div class="row mb-4">
+            <div class="col-12">
+              <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                  <h5 class="mb-0">Create New Product</h5>
+                </div>
+                <div class="card-body">
+                  <form id="productForm">
+                    <div class="mb-4">
+                      <div class="col-12 mb-3">
+                        <label for="productName" class="form-label fw-semibold text-start">Product Name</label>
+                        <input type="text" class="form-control form-control-lg" id="productName" name="productName" required>
+                      </div>
+                      <div class="col-12 mb-3">
+                        <label for="productCategory" class="form-label fw-semibold text-start">Product Category</label>
+                        <select class="form-select" id="productCategory" name="productCategory">
+                          <option value="">Select a category</option>
+                          <option value="trading-signals">Trading Signals</option>
+                          <option value="educational">Educational Content</option>
+                          <option value="analysis-tools">Analysis Tools</option>
+                          <option value="consulting">Consulting Services</option>
+                          <option value="software">Software/Tools</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div class="col-12 mb-3">
+                        <label for="productDescription" class="form-label fw-semibold text-start">Product Description</label>
+                        <textarea class="form-control" id="productDescription" name="productDescription" rows="4"></textarea>
+                      </div>
+                    </div>
+                    <div class="mb-4">
+                      <div class="col-12 mb-3">
+                        <label for="keyFeatures" class="form-label fw-semibold text-start">Key Features</label>
+                        <textarea class="form-control" id="keyFeatures" name="keyFeatures" rows="4"></textarea>
+                      </div>
+                      <div class="col-12 mb-3">
+                        <label for="targetAudience" class="form-label fw-semibold text-start">Target Audience</label>
+                        <input type="text" class="form-control" id="targetAudience" name="targetAudience">
+                      </div>
+                    </div>
+                    <div class="mb-4">
+                      <div class="row">
+                        <div class="col-md-4 mb-3">
+                          <label for="trialPrice" class="form-label fw-semibold mb-1 text-start">Trial Period Pricing</label>
+                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="trialPrice" name="trialPrice" step="0.01" value="0.00" min="0"></div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="monthlyPrice" class="form-label fw-semibold mb-1 text-start">Monthly Subscription</label>
+                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="monthlyPrice" name="monthlyPrice" step="0.01" min="0" required></div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                          <label for="quarterlyPrice" class="form-label fw-semibold mb-1 text-start">Quarterly Subscription</label>
+                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="quarterlyPrice" name="quarterlyPrice" step="0.01" min="0" required></div>
+                        </div>
+                        <div class="col-md-4 mb-4">
+                          <label for="yearlyPrice" class="form-label fw-semibold mb-1 text-start">Yearly Subscription</label>
+                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="yearlyPrice" name="yearlyPrice" step="0.01" min="0" required></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mb-4">
+                      <div class="row">
+                        <div class="col-md-6 mb-3">
+                          <label for="productStatus" class="form-label fw-semibold text-start">Product Status</label>
+                          <select class="form-select" id="productStatus" name="productStatus">
+                            <option value="active">Active</option>
+                            <option value="draft">Draft</option>
+                            <option value="archived">Archived</option>
+                          </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                          <label for="sortOrder" class="form-label fw-semibold text-start">Display Order</label>
+                          <input type="number" class="form-control" id="sortOrder" name="sortOrder" value="0" min="0">
+                        </div>
+                      </div>
+                    </div>
+                    <div class="d-flex gap-3 pt-3 border-top">
+                      <button type="submit" class="btn btn-primary btn-lg px-4">Create Product</button>
+                      <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="previewProduct()">Preview</button>
+                      <button type="reset" class="btn btn-outline-danger btn-lg px-4">Reset</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <button class="btn btn-primary btn-lg rounded-circle shadow-lg position-fixed" style="bottom: 30px; right: 30px; width: 60px; height: 60px; z-index: 1050;" onclick="switchToCreateTab()" title="Add New Product"><i class="fas fa-plus"></i></button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/admin/js/script.js"></script>
+{% endblock %}

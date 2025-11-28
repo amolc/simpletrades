@@ -14,11 +14,82 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Signal.init({
-    stock: DataTypes.STRING,
-    entryPrice: DataTypes.DECIMAL,
-    targetPrice: DataTypes.DECIMAL,
-    stopLoss: DataTypes.DECIMAL,
-    userId: DataTypes.INTEGER
+    stock: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    symbol: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    signalType: {
+      type: DataTypes.ENUM('BUY', 'SELL'),
+      allowNull: false,
+      defaultValue: 'BUY'
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    entry: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    target: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    stopLoss: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false
+    },
+    exitPrice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true
+    },
+    profitLoss: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true
+    },
+    status: {
+      type: DataTypes.ENUM('PENDING', 'ACTIVE', 'CLOSED'),
+      allowNull: false,
+      defaultValue: 'PENDING'
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    date: {
+      type: DataTypes.DATEONLY,
+      allowNull: false
+    },
+    time: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    entryDateTime: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    exitDateTime: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    duration: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Users',
+        key: 'id'
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
+      allowNull: true
+    }
   }, {
     sequelize,
     modelName: 'Signal',

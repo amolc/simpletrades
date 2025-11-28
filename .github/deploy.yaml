@@ -33,7 +33,7 @@ jobs:
             echo "🚀 Starting deployment on server..."
 
             # Navigate to repository directory
-            cd /home/ubuntu/repos/tvtrades
+            cd /home/ubuntu/repos/simpletrades
 
             echo "📥 Pulling latest code..."
             git fetch origin
@@ -51,13 +51,11 @@ jobs:
               --exclude='logs/' \
               --exclude='__pycache__/' \
               --exclude='*.pyc' \
-              /home/ubuntu/repos/tvtrades/ /home/ubuntu/tvtrades/
+              /home/ubuntu/repos/simpletrades/ /home/ubuntu/simpletrades/
 
             # Restart services
             echo "🔄 Restarting services..."
-            pm2 restart runcelery || echo "⚠️ Failed to restart runcelery"
-            pm2 restart runbeat || echo "⚠️ Failed to restart runbeat"
-            pm2 restart runuvicorn || echo "⚠️ Failed to restart uvicorn"
+            pm2 restart server || echo "⚠️ Failed to restart runcelery"
 
             echo "✅ Deployment completed successfully!"
           EOF

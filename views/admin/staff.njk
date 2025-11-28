@@ -1,0 +1,88 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Staff - Admin{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+    <h2 class="mb-0">Staff Management</h2>
+    <button class="btn btn-primary" id="addStaffBtn">Add Staff</button>
+  </div>
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="staffTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staffBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="staffModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Staff</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="staffForm">
+          <input type="hidden" id="staffId">
+          <div class="mb-3">
+            <label class="form-label" for="staffFullName">Full Name</label>
+            <input class="form-control" id="staffFullName" type="text">
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="staffEmail">Email</label>
+            <input class="form-control" id="staffEmail" type="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="staffPhone">Phone Number</label>
+            <input class="form-control" id="staffPhone" type="text" required>
+          </div>
+          <div class="mb-3" id="staffPasswordGroup">
+            <label class="form-label" for="staffPassword">Password</label>
+            <input class="form-control" id="staffPassword" type="password" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="staffStatus">Status</label>
+            <select class="form-select" id="staffStatus">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveStaffBtn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Staff Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="userDetailsBody"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/admin/js/staff.js"></script>
+{% endblock %}

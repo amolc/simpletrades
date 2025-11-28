@@ -14,10 +14,40 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   User.init({
-    phoneNumber: DataTypes.STRING,
-    email: DataTypes.STRING,
-    password: DataTypes.STRING,
-    role: DataTypes.STRING,
+    phoneNumber: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true
+    },
+    email: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      unique: true,
+      validate: {
+        isEmail: true
+      }
+    },
+    password: {
+      type: DataTypes.STRING,
+      allowNull: false
+    },
+    fullName: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    userType: {
+      type: DataTypes.ENUM('customer', 'staff'),
+      defaultValue: 'customer',
+      allowNull: false
+    },
+    role: {
+      type: DataTypes.STRING,
+      defaultValue: 'user'
+    },
+    status: {
+      type: DataTypes.ENUM('active', 'inactive', 'suspended'),
+      defaultValue: 'active'
+    },
     telegramId: {
       type: DataTypes.STRING,
       allowNull: true

@@ -1,0 +1,59 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Admin Signals{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/assets/admin/css/styles.css">
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="mt-4 mb-3">
+    <h2 class="mb-1">Signal Management Dashboard</h2>
+    <small class="text-muted">Key metrics and products overview</small>
+  </div>
+
+  <div class="row g-3 mb-4" id="metricsRow">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted">Active Clients</div>
+            <div class="h4 mb-0" id="metricClients">0</div>
+          </div>
+          <i class="fas fa-users text-primary fs-3"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted">Win/Loss</div>
+            <div class="h4 mb-0" id="metricWinLoss">0%</div>
+          </div>
+          <i class="fas fa-chart-line text-success fs-3"></i>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <div class="text-muted">Total Profit</div>
+            <div class="h4 mb-0" id="metricProfit">₹0.00</div>
+          </div>
+          <i class="fas fa-rupee-sign text-warning fs-3"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Products</h5>
+    </div>
+    <div class="card-body" id="productsList"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="/assets/admin/js/signals-dashboard.js"></script>
+{% endblock %}
