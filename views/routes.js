@@ -22,13 +22,57 @@ router.get('/', async (req, res) => {
 
 router.get('/product/:name', async (req, res) => {
   try {
-    const products = await getProducts({ status: 'active' })
-    const product = products.find(p => p.name.toLowerCase() === req.params.name.toLowerCase())
+    const name = req.params.name
+    // Prefer DB Product, fall back to JSON products
+    let productRow = await db.Product.findOne({ where: { name: name } })
+    let product
+    if (!productRow) {
+      const products = await getProducts({ status: 'active' })
+      product = products.find(p => p.name.toLowerCase() === name.toLowerCase())
+    } else {
+      product = {
+        name: productRow.name,
+        description: productRow.description,
+        category: productRow.category,
+        targetAudience: productRow.targetAudience,
+        keyFeatures: typeof productRow.keyFeatures === 'string' ? JSON.parse(productRow.keyFeatures) : (productRow.keyFeatures || []),
+        pricing: {
+          trial: Number(productRow.pricingTrial||0),
+          monthly: Number(productRow.pricingMonthly||0),
+          quarterly: Number(productRow.pricingQuarterly||0),
+          yearly: Number(productRow.pricingYearly||0)
+        }
+      }
+    }
     if (!product) {
       return res.status(404).render('userpanel/404.njk', { title: 'Product Not Found' })
     }
+    // Plans from DB if available
+    let plans = []
+    try {
+      const prodDb = productRow || await db.Product.findOne({ where: { name: product.name } })
+      if (prodDb) {
+        plans = await db.Plan.findAll({ where: { productId: prodDb.id, isActive: true }, order: [['sortOrder','ASC']] })
+      } else {
+        plans = await db.Plan.findAll({ where: { productName: product.name, isActive: true }, order: [['sortOrder','ASC']] })
+      }
+    } catch (e) {}
+    const planCost = (label) => {
+      const p = plans.find(pl => pl.planName === `${product.name} ${label}`)
+      if (p) return Number(p.cost)
+      const key = label.toLowerCase()
+      return Number(product.pricing && product.pricing[key] ? product.pricing[key] : 0)
+    }
+    const pricingResolved = {
+      trial: planCost('Trial'),
+      monthly: planCost('Monthly'),
+      quarterly: planCost('Quarterly'),
+      yearly: planCost('Yearly')
+    }
     res.render('userpanel/product-detail.njk', {
       product,
+      plans,
+      pricingResolved,
       title: `${product.name} Trading Signals - SimpleIncome`
     })
   } catch (error) {

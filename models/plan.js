@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Plan.hasMany(models.Subscription, { foreignKey: 'planId' });
-      Plan.belongsTo(models.Product, { foreignKey: 'productId' });
+      Plan.belongsTo(models.Product, { foreignKey: 'productId', as: 'Product' });
     }
   }
   Plan.init({
@@ -28,8 +28,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     planName: {
       type: DataTypes.STRING,
-      allowNull: false,
-      unique: true
+      allowNull: false
     },
     planDescription: {
       type: DataTypes.TEXT,
@@ -97,6 +96,10 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['sortOrder']
+      },
+      {
+        unique: true,
+        fields: ['planName', 'productId']
       }
     ]
   });

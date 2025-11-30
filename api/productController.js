@@ -1,8 +1,15 @@
 const db = require('../models')
 
 async function getAllProducts() {
-  const rows = await db.Product.findAll({ order: [['sortOrder','ASC'], ['name','ASC']] })
-  return rows.map(row => toDto(row))
+  console.log('getAllProducts: Starting to fetch products from database...')
+  const rows = await db.Product.findAll({ 
+    include: [{ model: db.Plan, as: 'plans' }],
+    order: [['sortOrder','ASC'], ['name','ASC']] 
+  })
+  console.log(`getAllProducts: Found ${rows.length} products in database`)
+  const products = rows.map(row => toDto(row))
+  console.log(`getAllProducts: Returning ${products.length} products after DTO conversion`)
+  return products
 }
 
 async function getProducts(options = {}) {
@@ -46,8 +53,32 @@ async function createProduct(productData) {
   }
   const existing = await db.Product.findOne({ where: { name: productData.name } })
   if (existing) throw new Error('Product with this name already exists')
+  
+  // Create the product first
   const row = await db.Product.create(fromDto(productData))
-  return toDto(row)
+  
+  // Create plans if provided
+  if (productData.plans && productData.plans.length > 0) {
+    const plansData = productData.plans.map(plan => ({
+      productId: row.id,
+      planName: plan.planName,
+      planDescription: plan.planDescription || '',
+      numberOfDays: plan.numberOfDays,
+      cost: plan.cost,
+      isActive: plan.isActive !== false, // Default to true
+      currency: plan.currency || 'INR'
+    }))
+    
+    await db.Plan.bulkCreate(plansData)
+  }
+  
+  // Return the product with plans
+  const productWithPlans = await db.Product.findOne({ 
+    where: { id: row.id },
+    include: [{ model: db.Plan, as: 'plans' }]
+  })
+  
+  return toDto(productWithPlans)
 }
 
 async function updateProduct(name, updateData) {
@@ -73,13 +104,21 @@ function toDto(row){
     status: row.status,
     sortOrder: row.sortOrder,
     targetAudience: row.targetAudience,
-    keyFeatures: row.keyFeatures || [],
+    keyFeatures: typeof row.keyFeatures === 'string' ? JSON.parse(row.keyFeatures) : (row.keyFeatures || []),
     pricing: {
       trial: Number(row.pricingTrial||0),
       monthly: Number(row.pricingMonthly||0),
       quarterly: Number(row.pricingQuarterly||0),
       yearly: Number(row.pricingYearly||0)
-    }
+    },
+    plans: row.plans ? row.plans.map(p => ({
+      id: p.id,
+      name: p.planName,
+      description: p.planDescription,
+      cost: p.cost,
+      days: p.numberOfDays,
+      isActive: p.isActive
+    })) : []
   }
 }
 

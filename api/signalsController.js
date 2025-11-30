@@ -76,7 +76,7 @@ const createSignal = async (signalData) => {
     stopLoss: signalData.stopLoss,
     exitPrice: signalData.exitPrice || null,
     profitLoss: signalData.profitLoss || null,
-    status: signalData.status || 'PENDING',
+    status: signalData.status || 'IN_PROGRESS',
     notes: signalData.notes || '',
     date: signalData.date || dateOnly,
     time: signalData.time || timeString,
@@ -111,6 +111,16 @@ const createSignal = async (signalData) => {
 const updateSignal = async (id, updateData) => {
   const signal = await db.Signal.findByPk(id)
   if (!signal) return null
+  
+  // Validate status transitions
+  if (updateData.status !== undefined) {
+    // Only allow transitions from IN_PROGRESS to PROFIT/LOSS
+    if (signal.status !== 'IN_PROGRESS' && ['PROFIT', 'LOSS'].includes(updateData.status)) {
+      throw new Error('Only IN_PROGRESS signals can be transitioned to PROFIT or LOSS')
+    }
+    signal.status = updateData.status
+  }
+  
   if (updateData.stock !== undefined) signal.stock = updateData.stock
   if (updateData.symbol !== undefined) signal.symbol = updateData.symbol
   if (updateData.signalType !== undefined) signal.signalType = updateData.signalType
@@ -120,21 +130,25 @@ const updateSignal = async (id, updateData) => {
   if (updateData.stopLoss !== undefined) signal.stopLoss = updateData.stopLoss
   if (updateData.exitPrice !== undefined) signal.exitPrice = updateData.exitPrice
   if (updateData.profitLoss !== undefined) signal.profitLoss = updateData.profitLoss
-  if (updateData.status !== undefined) signal.status = updateData.status
   if (updateData.notes !== undefined) signal.notes = updateData.notes
   if (updateData.date !== undefined) signal.date = updateData.date
   if (updateData.time !== undefined) signal.time = updateData.time
   if (updateData.entryDateTime !== undefined) signal.entryDateTime = updateData.entryDateTime
   if (updateData.exitDateTime !== undefined) signal.exitDateTime = updateData.exitDateTime
-  if (updateData.status === 'CLOSED' && signal.entryDateTime && !signal.exitDateTime) {
+  
+  // Auto-set exitDateTime when transitioning to PROFIT/LOSS
+  if (['PROFIT', 'LOSS'].includes(signal.status) && signal.entryDateTime && !signal.exitDateTime) {
     signal.exitDateTime = new Date()
   }
+  
+  // Calculate duration if both times are available
   if (signal.entryDateTime && signal.exitDateTime) {
     const durationMs = new Date(signal.exitDateTime) - new Date(signal.entryDateTime)
     const durationHours = Math.floor(durationMs / (1000 * 60 * 60))
     const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
     signal.duration = `${durationHours}h ${durationMinutes}m`
   }
+  
   await signal.save()
   return {
     id: signal.id,
@@ -164,20 +178,151 @@ const deleteSignal = async (id) => {
   return result > 0
 }
 
+const activateSignal = async (id) => {
+  const signal = await db.Signal.findByPk(id)
+  if (!signal) return null
+  
+  // Since we only have IN_PROGRESS, PROFIT, LOSS statuses now,
+  // and signals are created as IN_PROGRESS by default,
+  // this function is mainly for setting entry time if not already set
+  if (!signal.entryDateTime) {
+    signal.entryDateTime = new Date()
+  }
+  
+  // Ensure status is IN_PROGRESS (should already be)
+  if (signal.status !== 'IN_PROGRESS') {
+    signal.status = 'IN_PROGRESS'
+  }
+  
+  await signal.save()
+  
+  return {
+    id: signal.id,
+    stock: signal.stock,
+    symbol: signal.symbol,
+    signalType: signal.signalType,
+    type: signal.type,
+    entry: parseFloat(signal.entry),
+    target: parseFloat(signal.target),
+    stopLoss: parseFloat(signal.stopLoss),
+    exitPrice: signal.exitPrice ? parseFloat(signal.exitPrice) : null,
+    profitLoss: signal.profitLoss ? parseFloat(signal.profitLoss) : null,
+    status: signal.status,
+    notes: signal.notes,
+    date: signal.date,
+    time: signal.time,
+    entryDateTime: signal.entryDateTime,
+    exitDateTime: signal.exitDateTime,
+    duration: signal.duration,
+    createdAt: signal.createdAt,
+    updatedAt: signal.updatedAt
+  }
+}
+
+const closeSignal = async (id, exitPrice = null) => {
+  const signal = await db.Signal.findByPk(id)
+  if (!signal) return null
+  
+  // Validate signal can be closed (must be IN_PROGRESS)
+  if (signal.status !== 'IN_PROGRESS') {
+    throw new Error('Only IN_PROGRESS signals can be closed')
+  }
+  
+  // Set exit price - use provided price or target as fallback
+  const finalExitPrice = exitPrice !== null ? exitPrice : signal.target
+  signal.exitPrice = finalExitPrice
+  signal.exitDateTime = new Date()
+  
+  // Calculate profit/loss based on signal type
+  let profitLoss = 0
+  let status = 'LOSS' // default to loss
+  
+  if (signal.signalType === 'BUY') {
+    // For BUY signals: profit when exit price > entry price
+    profitLoss = finalExitPrice - signal.entry
+    if (finalExitPrice > signal.entry) {
+      status = 'PROFIT'
+    } else if (finalExitPrice === signal.entry) {
+      status = 'LOSS' // breakeven considered as loss
+    }
+  } else if (signal.signalType === 'SELL') {
+    // For SELL signals: profit when exit price < entry price
+    profitLoss = signal.entry - finalExitPrice
+    if (finalExitPrice < signal.entry) {
+      status = 'PROFIT'
+    } else if (finalExitPrice === signal.entry) {
+      status = 'LOSS' // breakeven considered as loss
+    }
+  }
+  
+  signal.profitLoss = profitLoss
+  signal.status = status
+  
+  // Calculate duration
+  if (signal.entryDateTime && signal.exitDateTime) {
+    const durationMs = new Date(signal.exitDateTime) - new Date(signal.entryDateTime)
+    const durationHours = Math.floor(durationMs / (1000 * 60 * 60))
+    const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60))
+    signal.duration = `${durationHours}h ${durationMinutes}m`
+  }
+  
+  await signal.save()
+  
+  return {
+    id: signal.id,
+    stock: signal.stock,
+    symbol: signal.symbol,
+    signalType: signal.signalType,
+    type: signal.type,
+    entry: parseFloat(signal.entry),
+    target: parseFloat(signal.target),
+    stopLoss: parseFloat(signal.stopLoss),
+    exitPrice: signal.exitPrice ? parseFloat(signal.exitPrice) : null,
+    profitLoss: signal.profitLoss ? parseFloat(signal.profitLoss) : null,
+    status: signal.status,
+    notes: signal.notes,
+    date: signal.date,
+    time: signal.time,
+    entryDateTime: signal.entryDateTime,
+    exitDateTime: signal.exitDateTime,
+    duration: signal.duration,
+    createdAt: signal.createdAt,
+    updatedAt: signal.updatedAt
+  }
+}
+
 const getSignalStats = async () => {
   const totalSignals = await db.Signal.count()
-  const activeSignals = await db.Signal.count({ where: { status: 'ACTIVE' } })
-  const closedSignals = await db.Signal.count({ where: { status: 'CLOSED' } })
-  const pendingSignals = await db.Signal.count({ where: { status: 'PENDING' } })
-  const profitableSignals = await db.Signal.count({ where: { status: 'CLOSED', profitLoss: { [Op.gt]: 0 } } })
-  const losingSignals = await db.Signal.count({ where: { status: 'CLOSED', profitLoss: { [Op.lt]: 0 } } })
-  const winRate = closedSignals > 0 ? Math.round((profitableSignals / closedSignals) * 100) : 0
-  const profitResult = await db.Signal.findOne({ attributes: [[db.sequelize.fn('SUM', db.sequelize.col('profitLoss')), 'totalProfit']], where: { status: 'CLOSED', profitLoss: { [Op.gt]: 0 } } })
-  const lossResult = await db.Signal.findOne({ attributes: [[db.sequelize.fn('SUM', db.sequelize.literal('ABS("profitLoss")')), 'totalLoss']], where: { status: 'CLOSED', profitLoss: { [Op.lt]: 0 } } })
+  const inProgressSignals = await db.Signal.count({ where: { status: 'IN_PROGRESS' } })
+  const profitSignals = await db.Signal.count({ where: { status: 'PROFIT' } })
+  const lossSignals = await db.Signal.count({ where: { status: 'LOSS' } })
+  const completedSignals = profitSignals + lossSignals
+  const winRate = completedSignals > 0 ? Math.round((profitSignals / completedSignals) * 100) : 0
+  
+  const profitResult = await db.Signal.findOne({ 
+    attributes: [[db.sequelize.fn('SUM', db.sequelize.col('profitLoss')), 'totalProfit']], 
+    where: { status: 'PROFIT' } 
+  })
+  const lossResult = await db.Signal.findOne({ 
+    attributes: [[db.sequelize.fn('SUM', db.sequelize.literal('ABS("profitLoss")')), 'totalLoss']], 
+    where: { status: 'LOSS' } 
+  })
+  
   const totalProfit = profitResult?.dataValues?.totalProfit || 0
   const totalLoss = lossResult?.dataValues?.totalLoss || 0
   const netProfit = totalProfit - totalLoss
-  return { totalSignals, activeSignals, closedSignals, pendingSignals, profitableSignals, losingSignals, winRate, totalProfit: parseFloat(totalProfit), totalLoss: parseFloat(totalLoss), netProfit: parseFloat(netProfit) }
+  
+  return { 
+    totalSignals, 
+    inProgressSignals, 
+    profitSignals, 
+    lossSignals, 
+    completedSignals,
+    winRate, 
+    totalProfit: parseFloat(totalProfit), 
+    totalLoss: parseFloat(totalLoss), 
+    netProfit: parseFloat(netProfit) 
+  }
 }
 
 const signalsController = {
@@ -244,6 +389,29 @@ const signalsController = {
         return res.status(404).json({ success: false, error: 'Signal not found' })
       }
       res.json({ success: true, message: 'Signal deleted successfully' })
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message })
+    }
+  },
+  async activateSignal(req, res) {
+    try {
+      const signal = await activateSignal(req.params.id)
+      if (!signal) {
+        return res.status(404).json({ success: false, error: 'Signal not found' })
+      }
+      res.json({ success: true, data: signal, message: 'Signal activated successfully' })
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message })
+    }
+  },
+  async closeSignal(req, res) {
+    try {
+      const { exitPrice } = req.body
+      const signal = await closeSignal(req.params.id, exitPrice)
+      if (!signal) {
+        return res.status(404).json({ success: false, error: 'Signal not found' })
+      }
+      res.json({ success: true, data: signal, message: `Signal closed as ${signal.status}` })
     } catch (error) {
       res.status(500).json({ success: false, error: error.message })
     }

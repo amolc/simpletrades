@@ -1,59 +1,239 @@
 const jwt = require('jsonwebtoken')
 const db = require('../models')
+const { Op } = require('sequelize')
 
 const JWT_SECRET = process.env.JWT_SECRET
 
 async function createSubscription(req, res) {
   try {
-    const { userId, productName, startDate, endDate, plan } = req.body
-    if (!userId || !productName || !startDate || !endDate) {
-      return res.status(400).json({ message: 'All fields are required' })
+    const { 
+      userId, 
+      planId, 
+      startDate, 
+      endDate, 
+      amount,
+      referenceNumber,
+      status = 'active',
+      paymentStatus = 'pending'
+    } = req.body
+
+    // Validate required fields
+    if (!userId || !planId || !startDate || !endDate) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'userId, planId, startDate, and endDate are required'
+      })
     }
-    const subscription = await db.Subscription.create({ userId, productName, startDate, endDate, plan, status: 'pending' })
-    res.status(201).json({ message: 'Subscription created successfully', subscriptionId: subscription.id })
+
+    // Get plan details
+    const plan = await db.Plan.findByPk(planId, {
+      include: [{
+        model: db.Product,
+        as: 'Product',
+        attributes: ['id', 'name', 'category']
+      }]
+    })
+
+    if (!plan) {
+      return res.status(404).json({
+        success: false,
+        message: 'Plan not found'
+      })
+    }
+
+    // Generate reference number if not provided
+    const finalReferenceNumber = referenceNumber || `SUB_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
+    const subscription = await db.Subscription.create({
+      userId,
+      planId,
+      plan: plan.planName,
+      amount: amount || plan.cost,
+      referenceNumber: finalReferenceNumber,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      status,
+      paymentStatus
+    })
+
+    res.status(201).json({
+      success: true,
+      message: 'Subscription created successfully',
+      data: subscription
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error creating subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
-async function getSubscriptions(req, res) {
+async function getAllSubscriptions(req, res) {
   try {
-    const { userId, status } = req.query
+    console.log('DEBUG: getAllSubscriptions called with query:', req.query)
+    const { 
+      page = 1, 
+      limit = 50, 
+      userId, 
+      status, 
+      paymentStatus,
+      planId,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC'
+    } = req.query
+
+    const offset = (page - 1) * limit
     const whereClause = {}
+
+    // Apply filters
     if (userId) whereClause.userId = userId
     if (status) whereClause.status = status
-    const subscriptions = await db.Subscription.findAll({ where: whereClause, include: [{ model: db.User, attributes: ['id', 'username', 'email'] }] })
-    res.status(200).json(subscriptions)
+    if (paymentStatus) whereClause.paymentStatus = paymentStatus
+    if (planId) whereClause.planId = planId
+
+    console.log('DEBUG: About to query subscriptions with whereClause:', whereClause)
+    const { count, rows } = await db.Subscription.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: db.User,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber']
+        },
+        {
+          model: db.Plan,
+          as: 'plan',
+          attributes: ['id', 'planName', 'planDescription', 'cost'],
+          include: [{
+            model: db.Product,
+            as: 'Product',
+            attributes: ['id', 'name', 'category']
+          }]
+        }
+      ],
+      order: [[sortBy, sortOrder]],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    })
+
+    console.log('DEBUG: Found', count, 'subscriptions, returning', rows.length, 'rows')
+    res.status(200).json({
+      success: true,
+      data: {
+        subscriptions: rows,
+        pagination: {
+          total: count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(count / limit)
+        }
+      }
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error fetching subscriptions:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
 async function getSubscriptionById(req, res) {
   try {
     const { id } = req.params
-    const subscription = await db.Subscription.findByPk(id, { include: [{ model: db.User, attributes: ['id', 'username', 'email'] }] })
+    
+    const subscription = await db.Subscription.findByPk(id, {
+      include: [
+        {
+          model: db.User,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber']
+        },
+        {
+          model: db.Plan,
+          as: 'plan',
+          attributes: ['id', 'planName', 'planDescription', 'cost', 'numberOfDays'],
+          include: [{
+            model: db.Product,
+            as: 'Product',
+            attributes: ['id', 'name', 'category', 'description']
+          }]
+        },
+        {
+          model: db.Transaction,
+          as: 'transactions',
+          attributes: ['id', 'amount', 'paymentMethod', 'paymentStatus', 'createdAt']
+        }
+      ]
+    })
+
     if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' })
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      })
     }
-    res.status(200).json(subscription)
+
+    res.status(200).json({
+      success: true,
+      data: subscription
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error fetching subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
 async function updateSubscription(req, res) {
   try {
     const { id } = req.params
-    const { userId, productName, startDate, endDate, plan, status } = req.body
-    const [updatedRows] = await db.Subscription.update({ userId, productName, startDate, endDate, plan, status }, { where: { id } })
-    if (updatedRows === 0) {
-      return res.status(404).json({ message: 'Subscription not found' })
+    const { 
+      planId,
+      startDate,
+      endDate,
+      amount,
+      status,
+      paymentStatus,
+      referenceNumber
+    } = req.body
+
+    const subscription = await db.Subscription.findByPk(id)
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      })
     }
-    const updatedSubscription = await db.Subscription.findByPk(id)
-    res.status(200).json({ message: 'Subscription updated successfully', subscription: updatedSubscription })
+
+    const updateData = {}
+    if (planId !== undefined) updateData.planId = planId
+    if (startDate !== undefined) updateData.startDate = new Date(startDate)
+    if (endDate !== undefined) updateData.endDate = new Date(endDate)
+    if (amount !== undefined) updateData.amount = amount
+    if (status !== undefined) updateData.status = status
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
+    if (referenceNumber !== undefined) updateData.referenceNumber = referenceNumber
+
+    await subscription.update(updateData)
+
+    res.status(200).json({
+      success: true,
+      message: 'Subscription updated successfully',
+      data: subscription
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error updating subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
@@ -61,12 +241,68 @@ async function deleteSubscription(req, res) {
   try {
     const { id } = req.params
     const deleted = await db.Subscription.destroy({ where: { id } })
+    
     if (deleted === 0) {
-      return res.status(404).json({ message: 'Subscription not found' })
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      })
     }
-    res.status(204).send()
+
+    res.status(200).json({
+      success: true,
+      message: 'Subscription deleted successfully'
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error deleting subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
+  }
+}
+
+async function getSubscriptionStats(req, res) {
+  try {
+    const { startDate, endDate } = req.query
+    
+    const whereClause = {}
+    if (startDate || endDate) {
+      whereClause.createdAt = {}
+      if (startDate) whereClause.createdAt[Op.gte] = new Date(startDate)
+      if (endDate) whereClause.createdAt[Op.lte] = new Date(endDate)
+    }
+
+    const stats = await db.Subscription.findAll({
+      where: whereClause,
+      attributes: [
+        'status',
+        [db.sequelize.fn('COUNT', db.sequelize.col('status')), 'count'],
+        [db.sequelize.fn('SUM', db.sequelize.col('amount')), 'totalAmount']
+      ],
+      group: ['status'],
+      raw: true
+    })
+
+    const totalSubscriptions = await db.Subscription.count({ where: whereClause })
+    const totalRevenue = await db.Subscription.sum('amount', { where: whereClause })
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalSubscriptions,
+        totalRevenue: totalRevenue || 0,
+        statusBreakdown: stats
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching subscription stats:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
@@ -74,80 +310,244 @@ async function getMySubscriptions(req, res) {
   try {
     const authHeader = req.headers['authorization']
     const token = authHeader && authHeader.split(' ')[1]
+    
     if (!token) {
-      return res.status(401).json({ message: 'Access token required' })
+      return res.status(401).json({
+        success: false,
+        message: 'Access token required'
+      })
     }
+
     jwt.verify(token, JWT_SECRET, async (err, user) => {
       if (err) {
-        return res.status(403).json({ message: 'Invalid or expired token' })
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid or expired token'
+        })
       }
-      const subscriptions = await db.Subscription.findAll({ where: { userId: user.id }, order: [['createdAt', 'DESC']] })
-      res.status(200).json(subscriptions)
+
+      const subscriptions = await db.Subscription.findAll({
+        where: { userId: user.id },
+        include: [
+          {
+            model: db.Plan,
+            as: 'plan',
+            attributes: ['id', 'planName', 'planDescription', 'cost'],
+            include: [{
+              model: db.Product,
+              as: 'Product',
+              attributes: ['id', 'name', 'category']
+            }]
+          }
+        ],
+        order: [['createdAt', 'DESC']]
+      })
+
+      res.status(200).json({
+        success: true,
+        data: subscriptions
+      })
     })
   } catch (error) {
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Error fetching user subscriptions:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
 async function getPendingSubscriptions(req, res) {
   try {
-    const subscriptions = await db.Subscription.findAll({ where: { status: 'pending' }, include: [{ model: db.User, attributes: ['email'] }] })
-    res.json(subscriptions)
+    const subscriptions = await db.Subscription.findAll({
+      where: { status: 'pending' },
+      include: [
+        {
+          model: db.User,
+          attributes: ['id', 'fullName', 'email']
+        },
+        {
+          model: db.Plan,
+          as: 'plan',
+          attributes: ['id', 'planName', 'cost'],
+          include: [{
+            model: db.Product,
+            as: 'Product',
+            attributes: ['id', 'name']
+          }]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    })
+
+    res.status(200).json({
+      success: true,
+      data: subscriptions
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error fetching pending subscriptions:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
 async function approveSubscription(req, res) {
   try {
-    const subscription = await db.Subscription.findByPk(req.params.id)
+    const subscription = await db.Subscription.findByPk(req.params.id, {
+      include: [{
+        model: db.Plan,
+        as: 'plan',
+        attributes: ['numberOfDays']
+      }]
+    })
+
     if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' })
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      })
     }
+
     subscription.status = 'active'
     subscription.startDate = new Date()
-    let endDate = new Date()
-    if (subscription.plan === 'monthly') {
-      endDate.setMonth(endDate.getMonth() + 1)
-    } else if (subscription.plan === 'quarterly') {
-      endDate.setMonth(endDate.getMonth() + 3)
-    } else if (subscription.plan === 'annual') {
-      endDate.setFullYear(endDate.getFullYear() + 1)
+    
+    // Calculate end date based on plan duration
+    const endDate = new Date()
+    if (subscription.plan && subscription.plan.numberOfDays) {
+      endDate.setDate(endDate.getDate() + subscription.plan.numberOfDays)
     } else {
+      // Default to 30 days if no plan duration
       endDate.setDate(endDate.getDate() + 30)
     }
+    
     subscription.endDate = endDate
     await subscription.save()
-    res.json(subscription)
+
+    res.status(200).json({
+      success: true,
+      message: 'Subscription approved successfully',
+      data: subscription
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error approving subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
   }
 }
 
 async function rejectSubscription(req, res) {
   try {
     const subscription = await db.Subscription.findByPk(req.params.id)
+    
     if (!subscription) {
-      return res.status(404).json({ message: 'Subscription not found' })
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      })
     }
-    subscription.status = 'rejected'
+
+    subscription.status = 'cancelled'
     await subscription.save()
-    res.json(subscription)
+
+    res.status(200).json({
+      success: true,
+      message: 'Subscription rejected successfully',
+      data: subscription
+    })
   } catch (error) {
-    res.status(500).json({ message: 'Server error' })
+    console.error('Error rejecting subscription:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
+  }
+}
+
+async function generatePaymentQrCode(req, res) {
+  try {
+    const { id } = req.params;
+
+    const subscription = await db.Subscription.findByPk(id, {
+      include: [
+        {
+          model: db.Plan,
+          as: 'plan',
+          attributes: ['cost']
+        }
+      ]
+    });
+
+    if (!subscription) {
+      return res.status(404).json({
+        success: false,
+        message: 'Subscription not found'
+      });
+    }
+
+    if (!subscription.plan || !subscription.plan.cost) {
+      console.error('DEBUG (backend): Subscription plan or cost not found for subscription ID:', id);
+      return res.status(400).json({ success: false, message: 'Subscription plan or cost not found' });
+    }
+
+    console.log('DEBUG (backend): Raw subscription.plan.cost:', subscription.plan.cost, 'type:', typeof subscription.plan.cost);
+
+    let amountValue = parseFloat(subscription.plan.cost);
+
+    if (isNaN(amountValue)) {
+      console.error('DEBUG (backend): parseFloat resulted in NaN for cost:', subscription.plan.cost);
+      return res.status(400).json({ success: false, message: 'Invalid plan cost received (NaN after parseFloat)' });
+    }
+
+    if (typeof amountValue !== 'number') {
+      console.error('DEBUG (backend): amountValue is not a number before toFixed. Value:', amountValue, 'Type:', typeof amountValue);
+      return res.status(500).json({ success: false, message: 'Internal server error: Amount value is not a number.' });
+    }
+
+    const amount = amountValue.toFixed(2);
+
+    console.log('DEBUG (backend): Final amount for UPI link:', amount);
+    const upiLink = `upi://pay?pa=pay@examplebank&pn=StockAgent&am=${amount}&cu=INR&mc=0000&tid=${subscription.id}`;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        subscriptionId: subscription.id,
+        amount: amount,
+        paymentUrl: upiLink
+      }
+    });
+
+  } catch (error) {
+    console.error('Error generating payment QR code:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message,
+      stack: error.stack // Add stack trace for more detailed debugging
+    });
   }
 }
 
 const subscriptionController = {
   createSubscription,
-  getSubscriptions,
+  getAllSubscriptions,
   getSubscriptionById,
   updateSubscription,
   deleteSubscription,
+  getSubscriptionStats,
   getMySubscriptions,
   getPendingSubscriptions,
   approveSubscription,
-  rejectSubscription
+  rejectSubscription,
+  generatePaymentQrCode
 }
 
 module.exports = { subscriptionController }

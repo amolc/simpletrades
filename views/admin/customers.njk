@@ -19,7 +19,35 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="customersBody"></tbody>
+          <tbody id="customersBody">
+            {% if customers and customers.length > 0 %}
+              {% for user in customers %}
+                <tr>
+                  <td>{{ user.fullName or 'N/A' }}</td>
+                  <td>{{ user.phoneNumber }}</td>
+                  <td>{{ user.email or 'N/A' }}</td>
+                  <td>
+                    {% if user.status == 'active' %}
+                      <span class="badge bg-success">{{ user.status }}</span>
+                    {% elif user.status == 'inactive' %}
+                      <span class="badge bg-warning">{{ user.status }}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{{ user.status or 'active' }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary view-user" data-user-id="{{ user.id }}">View</button>
+                    <button class="btn btn-sm btn-outline-secondary edit-customer" data-user-id="{{ user.id }}" data-full-name="{{ user.fullName }}" data-email="{{ user.email }}" data-phone="{{ user.phoneNumber }}" data-status="{{ user.status }}">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger delete-customer" data-user-id="{{ user.id }}">Delete</button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">No customers found</td>
+              </tr>
+            {% endif %}
+          </tbody>
         </table>
       </div>
     </div>

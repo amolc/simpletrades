@@ -115,7 +115,7 @@ const userController = {
       console.error('User registration error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error during registration'
+        error: error.message || 'Internal server error during registration'
       });
     }
   },
@@ -202,10 +202,12 @@ const userController = {
 
   async loginAdmin(req, res) {
     try {
-      const { email, password } = req.body
+      let { email, password } = req.body
       if (!email || !password) {
         return res.status(400).json({ message: 'Email and password are required' })
       }
+      email = String(email).trim().toLowerCase()
+      if (email === 'admin') email = 'admin@demo.com'
       const user = await db.User.findOne({ where: { email } })
       if (!user || user.role !== 'admin') {
         return res.status(401).json({ message: 'Invalid credentials' })
@@ -249,7 +251,7 @@ const userController = {
       console.error('Get all users error:', error);
       res.status(500).json({
         success: false,
-        error: 'Internal server error while fetching users'
+        error: error.message || 'Internal server error while fetching users'
       });
     }
   },

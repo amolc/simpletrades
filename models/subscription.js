@@ -11,6 +11,8 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Subscription.belongsTo(models.User, { foreignKey: 'userId' });
+      Subscription.belongsTo(models.Plan, { foreignKey: 'planId', as: 'plan' });
+      Subscription.hasMany(models.Transaction, { foreignKey: 'subscriptionId', as: 'transactions' });
     }
   }
   Subscription.init({
@@ -22,7 +24,6 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL'
     },
-    plan: DataTypes.STRING,
     amount: DataTypes.DECIMAL(10, 2),
     referenceNumber: DataTypes.STRING,
     startDate: DataTypes.DATE,

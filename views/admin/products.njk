@@ -23,7 +23,119 @@
                   <h5 class="mb-0">Product Catalog</h5>
                 </div>
                 <div class="card-body">
-                  <div id="productList"></div>
+                  <div id="productList">
+                    {% if products and products.length > 0 %}
+                      {% for p in products %}
+                      <div class="card mb-3 shadow-sm product-card" data-product-name="{{ p.name }}" style="cursor: pointer;">
+                        <div class="card-body">
+                          <div class="row align-items-center">
+                            <div class="col-md-8">
+                              <div class="d-flex align-items-center mb-2">
+                                <h5 class="card-title mb-0 me-3">{{ p.name }}</h5>
+                                {% if p.category %}
+                                  <span class="badge bg-secondary">{{ p.category | replace('-', ' ') | title }}</span>
+                                {% endif %}
+                                <span class="badge bg-{{ 'success' if p.status == 'active' else ('warning' if p.status == 'draft' else 'secondary') }} ms-2">{{ p.status | title }}</span>
+                              </div>
+                              <p class="card-text text-muted mb-2">{{ p.description or 'No description provided' }}</p>
+                              {% if p.targetAudience %}
+                                <small class="text-muted"><i class="fas fa-users me-1"></i> {{ p.targetAudience }}</small>
+                              {% endif %}
+                              {% if p.keyFeatures and p.keyFeatures.length > 0 %}
+                                <div class="mt-2">
+                                  <small class="text-muted">
+                                    <i class="fas fa-check-circle me-1"></i>{{ p.keyFeatures.length }} key features
+                                  </small>
+                                </div>
+                              {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                              <div class="d-flex flex-column gap-2">
+                                {% if p.plans and p.plans.length > 0 %}
+                                  {% for plan in p.plans %}
+                                  <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">{{ plan.name }}:</small>
+                                    <span class="badge bg-primary">${{ plan.cost }} / {{ plan.days }}d</span>
+                                  </div>
+                                  {% endfor %}
+                                {% else %}
+                                  <div class="text-center text-muted">
+                                    <small>No plans added</small>
+                                  </div>
+                                {% endif %}
+                              </div>
+                            </div>
+                          </div>
+                          <div class="product-details mt-3" style="display: none; border-top: 1px solid #e9ecef; padding-top: 1rem;">
+                            {% if p.keyFeatures and p.keyFeatures.length > 0 %}
+                              <div class="mb-3">
+                                <h6 class="text-muted mb-2"><i class="fas fa-star me-1"></i>Key Features</h6>
+                                <ul class="list-unstyled">
+                                  {% for f in p.keyFeatures %}
+                                    <li><i class="fas fa-check text-success me-2"></i>{{ f }}</li>
+                                  {% endfor %}
+                                </ul>
+                              </div>
+                            {% endif %}
+                            <div class="row">
+                              <div class="col-md-6">
+                                <h6 class="text-muted mb-2"><i class="fas fa-chart-line me-1"></i>Plans</h6>
+                                <div class="table-responsive">
+                                  <table class="table table-sm">
+                                    <thead>
+                                      <tr>
+                                        <th>Plan</th>
+                                        <th>Duration</th>
+                                        <th>Cost</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {% if p.plans and p.plans.length > 0 %}
+                                        {% for plan in p.plans %}
+                                        <tr>
+                                          <td>{{ plan.name }}</td>
+                                          <td>{{ plan.days }} days</td>
+                                          <td>${{ plan.cost }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                      {% else %}
+                                        <tr><td colspan="3" class="text-center text-muted">No plans configured</td></tr>
+                                      {% endif %}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                              <div class="col-md-6">
+                                <h6 class="text-muted mb-2"><i class="fas fa-info-circle me-1"></i>Product Info</h6>
+                                <p><strong>Status:</strong> <span class="badge bg-{{ 'success' if p.status == 'active' else ('warning' if p.status == 'draft' else 'secondary') }}">{{ p.status | title }}</span></p>
+                                <p><strong>Category:</strong> {{ p.category | replace('-', ' ') | title if p.category else 'N/A' }}</p>
+                                {% if p.targetAudience %}
+                                  <p><strong>Target Audience:</strong> {{ p.targetAudience }}</p>
+                                {% endif %}
+                                <!-- Created date handling if available -->
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="card-footer bg-light">
+                          <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted"><i class="fas fa-calendar me-1"></i> Created: Now</small>
+                            <div class="btn-group btn-group-sm">
+                              <button class="btn btn-outline-success" onclick="event.stopPropagation(); addPlan('{{ p.name }}')"><i class="fas fa-plus"></i> Add Plan</button>
+                              <button class="btn btn-outline-primary" onclick="event.stopPropagation(); editProduct('{{ p.name }}')"><i class="fas fa-edit"></i> Edit</button>
+                              <button class="btn btn-outline-danger" onclick="event.stopPropagation(); deleteProduct('{{ p.name }}')"><i class="fas fa-trash"></i> Delete</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    {% else %}
+                      <div class="text-center text-muted py-4">
+                        <i class="fas fa-box fa-3x mb-3"></i>
+                        <p>No products created yet. <a href="#" onclick="switchToCreateTab(); return false;" class="text-primary">Click here</a> to add your first product.</p>
+                      </div>
+                    {% endif %}
+                  </div>
                 </div>
               </div>
             </div>
@@ -31,21 +143,36 @@
         </div>
         <div class="tab-pane fade" id="create-product" role="tabpanel">
           <div class="row mb-4">
-            <div class="col-12">
-              <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                  <h5 class="mb-0">Create New Product</h5>
-                </div>
-                <div class="card-body">
+            <div class="col-lg-6 mx-auto">
+              <div class="card shadow-sm border-0 text-start">
+                <div class="card-body p-0">
                   <form id="productForm">
-                    <div class="mb-4">
-                      <div class="col-12 mb-3">
-                        <label for="productName" class="form-label fw-semibold text-start">Product Name</label>
-                        <input type="text" class="form-control form-control-lg" id="productName" name="productName" required>
+                    <!-- Header -->
+                    <div class="p-4 border-bottom text-center">
+                      <h4 class="mb-1 fw-bold">Create New Product</h4>
+                      <p class="text-muted mb-0">Add a new product to your catalog with detailed information.</p>
+                    </div>
+
+                    <div class="p-4">
+                      <!-- Product Name -->
+                      <div class="mb-4">
+                        <label for="productName" class="form-label fw-bold text-dark text-uppercase small">Product Name <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                          <span class="input-group-text bg-white border-end-0"><i class="fas fa-tag text-muted"></i></span>
+                          <input type="text" class="form-control border-start-0 ps-0" id="productName" name="productName" required placeholder="e.g. Premium Signals">
+                        </div>
                       </div>
-                      <div class="col-12 mb-3">
-                        <label for="productCategory" class="form-label fw-semibold text-start">Product Category</label>
-                        <select class="form-select" id="productCategory" name="productCategory">
+
+                      <!-- Description -->
+                      <div class="mb-4">
+                        <label for="productDescription" class="form-label fw-bold text-dark text-uppercase small">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="productDescription" name="productDescription" rows="4" required placeholder="Describe your product in detail..."></textarea>
+                      </div>
+
+                      <!-- Category -->
+                      <div class="mb-4">
+                        <label for="productCategory" class="form-label fw-bold text-dark text-uppercase small">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="productCategory" name="productCategory" required>
                           <option value="">Select a category</option>
                           <option value="trading-signals">Trading Signals</option>
                           <option value="educational">Educational Content</option>
@@ -55,61 +182,61 @@
                           <option value="other">Other</option>
                         </select>
                       </div>
-                      <div class="col-12 mb-3">
-                        <label for="productDescription" class="form-label fw-semibold text-start">Product Description</label>
-                        <textarea class="form-control" id="productDescription" name="productDescription" rows="4"></textarea>
-                      </div>
-                    </div>
-                    <div class="mb-4">
-                      <div class="col-12 mb-3">
-                        <label for="keyFeatures" class="form-label fw-semibold text-start">Key Features</label>
-                        <textarea class="form-control" id="keyFeatures" name="keyFeatures" rows="4"></textarea>
-                      </div>
-                      <div class="col-12 mb-3">
-                        <label for="targetAudience" class="form-label fw-semibold text-start">Target Audience</label>
-                        <input type="text" class="form-control" id="targetAudience" name="targetAudience">
-                      </div>
-                    </div>
-                    <div class="mb-4">
-                      <div class="row">
-                        <div class="col-md-4 mb-3">
-                          <label for="trialPrice" class="form-label fw-semibold mb-1 text-start">Trial Period Pricing</label>
-                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="trialPrice" name="trialPrice" step="0.01" value="0.00" min="0"></div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                          <label for="monthlyPrice" class="form-label fw-semibold mb-1 text-start">Monthly Subscription</label>
-                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="monthlyPrice" name="monthlyPrice" step="0.01" min="0" required></div>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                          <label for="quarterlyPrice" class="form-label fw-semibold mb-1 text-start">Quarterly Subscription</label>
-                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="quarterlyPrice" name="quarterlyPrice" step="0.01" min="0" required></div>
-                        </div>
-                        <div class="col-md-4 mb-4">
-                          <label for="yearlyPrice" class="form-label fw-semibold mb-1 text-start">Yearly Subscription</label>
-                          <div class="input-group"><span class="input-group-text">$</span><input type="number" class="form-control" id="yearlyPrice" name="yearlyPrice" step="0.01" min="0" required></div>
+
+                      <!-- Target Audience -->
+                      <div class="mb-4">
+                        <label for="targetAudience" class="form-label fw-bold text-dark text-uppercase small">Target Audience</label>
+                        <div class="input-group">
+                          <span class="input-group-text bg-white border-end-0"><i class="fas fa-users text-muted"></i></span>
+                          <input type="text" class="form-control border-start-0 ps-0" id="targetAudience" name="targetAudience" placeholder="e.g., Beginner traders">
                         </div>
                       </div>
-                    </div>
-                    <div class="mb-4">
-                      <div class="row">
-                        <div class="col-md-6 mb-3">
-                          <label for="productStatus" class="form-label fw-semibold text-start">Product Status</label>
-                          <select class="form-select" id="productStatus" name="productStatus">
-                            <option value="active">Active</option>
+
+                      <!-- Features -->
+                      <div class="mb-4">
+                        <label for="keyFeatures" class="form-label fw-bold text-dark text-uppercase small">Features List</label>
+                        <textarea class="form-control" id="keyFeatures" name="keyFeatures" rows="3" placeholder="• Real-time alerts&#10;• Daily analysis&#10;• 24/7 Support"></textarea>
+                        <div class="form-text">Enter each feature on a new line. Bullet points will be added automatically.</div>
+                      </div>
+
+                      <!-- Custom Plans -->
+                      <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                           <label class="form-label fw-bold text-dark text-uppercase small mb-0">Product Plans</label>
+                           <button type="button" class="btn btn-outline-primary btn-sm" onclick="addPlanToCreateForm()">
+                              <i class="fas fa-plus me-1"></i> Add Plan
+                           </button>
+                        </div>
+                        <div id="createProductPlans">
+                          <!-- Dynamic content loaded by JS -->
+                          <div class="text-center py-4 border rounded bg-light">
+                              <i class="fas fa-layer-group text-muted mb-2"></i>
+                              <p class="text-muted mb-0 small">No plans added yet.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Settings -->
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <label for="productStatus" class="form-label fw-bold text-dark text-uppercase small">Status</label>
+                          <select class="form-select" id="productStatus" name="productStatus" required>
+                            <option value="active" selected>Active</option>
                             <option value="draft">Draft</option>
                             <option value="archived">Archived</option>
                           </select>
                         </div>
-                        <div class="col-md-6 mb-3">
-                          <label for="sortOrder" class="form-label fw-semibold text-start">Display Order</label>
+                        <div class="col-md-6">
+                          <label for="sortOrder" class="form-label fw-bold text-dark text-uppercase small">Display Order</label>
                           <input type="number" class="form-control" id="sortOrder" name="sortOrder" value="0" min="0">
                         </div>
                       </div>
                     </div>
-                    <div class="d-flex gap-3 pt-3 border-top">
-                      <button type="submit" class="btn btn-primary btn-lg px-4">Create Product</button>
-                      <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="previewProduct()">Preview</button>
-                      <button type="reset" class="btn btn-outline-danger btn-lg px-4">Reset</button>
+
+                    <!-- Footer -->
+                    <div class="p-4 bg-light border-top d-flex justify-content-end gap-2 rounded-bottom">
+                      <button type="reset" class="btn btn-white border px-4">Reset</button>
+                      <button type="submit" class="btn btn-primary px-4">Create Product</button>
                     </div>
                   </form>
                 </div>
@@ -120,6 +247,105 @@
       </div>
     </div>
   <button class="btn btn-primary btn-lg rounded-circle shadow-lg position-fixed" style="bottom: 30px; right: 30px; width: 60px; height: 60px; z-index: 1050;" onclick="switchToCreateTab()" title="Add New Product"><i class="fas fa-plus"></i></button>
+</div>
+<div class="modal fade" id="addPlanModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Plan to <span id="planProductName"></span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addPlanForm">
+          <input type="hidden" id="planProduct" name="productName">
+          <div class="mb-3">
+            <label for="planName" class="form-label">Plan Name</label>
+            <input type="text" class="form-control" id="planName" name="planName" required placeholder="e.g., Gold Plan">
+          </div>
+          <div class="mb-3">
+            <label for="planDescription" class="form-label">Description</label>
+            <textarea class="form-control" id="planDescription" name="planDescription" rows="2"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-6 mb-3">
+              <label for="planDays" class="form-label">Duration (Days)</label>
+              <input type="number" class="form-control" id="planDays" name="numberOfDays" required min="1" value="30">
+            </div>
+            <div class="col-6 mb-3">
+              <label for="planCost" class="form-label">Cost</label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="planCost" name="cost" required min="0" step="0.01">
+              </div>
+            </div>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="planActive" name="isActive" checked>
+            <label class="form-check-label" for="planActive">Active</label>
+          </div>
+          <div class="d-flex justify-content-end">
+            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Plan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Plan Modal for Create Product Form -->
+<div class="modal fade" id="addCreatePlanModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-gradient-primary text-white border-0">
+        <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>Add Plan to New Product</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="addCreatePlanForm">
+          <div class="mb-3">
+            <label for="createPlanName" class="form-label fw-semibold">Plan Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="createPlanName" name="planName" required placeholder="e.g., Basic Plan">
+            <div class="form-text">Choose a descriptive name for your plan</div>
+          </div>
+          <div class="mb-3">
+            <label for="createPlanDescription" class="form-label fw-semibold">Description</label>
+            <textarea class="form-control" id="createPlanDescription" name="planDescription" rows="2" placeholder="Brief description of what this plan includes..."></textarea>
+          </div>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="createPlanDays" class="form-label fw-semibold">Duration (Days) <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="createPlanDays" name="numberOfDays" required min="1" value="30" placeholder="30">
+              <div class="form-text">Number of days this plan is valid</div>
+            </div>
+            <div class="col-md-6">
+              <label for="createPlanCost" class="form-label fw-semibold">Cost <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" class="form-control" id="createPlanCost" name="cost" required min="0" step="0.01" placeholder="0.00">
+              </div>
+              <div class="form-text">Price for this plan</div>
+            </div>
+          </div>
+          <div class="mb-4">
+            <div class="form-check">
+              <input type="checkbox" class="form-check-input" id="createPlanActive" name="isActive" checked>
+              <label class="form-check-label fw-semibold" for="createPlanActive">Active Plan</label>
+              <div class="form-text">Inactive plans won't be visible to customers</div>
+            </div>
+          </div>
+          <div class="d-flex justify-content-end gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+              <i class="fas fa-times me-2"></i>Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-plus me-2"></i>Add Plan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 {% block scripts %}

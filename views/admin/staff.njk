@@ -19,7 +19,35 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="staffBody"></tbody>
+          <tbody id="staffBody">
+            {% if staff and staff.length > 0 %}
+              {% for user in staff %}
+                <tr>
+                  <td>{{ user.fullName or 'N/A' }}</td>
+                  <td>{{ user.phoneNumber }}</td>
+                  <td>{{ user.email or 'N/A' }}</td>
+                  <td>
+                    {% if user.status == 'active' %}
+                      <span class="badge bg-success">{{ user.status }}</span>
+                    {% elif user.status == 'inactive' %}
+                      <span class="badge bg-warning">{{ user.status }}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{{ user.status or 'active' }}</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-outline-primary view-user" data-user-id="{{ user.id }}">View</button>
+                    <button class="btn btn-sm btn-outline-secondary edit-staff" data-user-id="{{ user.id }}" data-full-name="{{ user.fullName }}" data-email="{{ user.email }}" data-phone="{{ user.phoneNumber }}" data-status="{{ user.status }}">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger delete-staff" data-user-id="{{ user.id }}">Delete</button>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="5" class="text-center text-muted">No staff members found</td>
+              </tr>
+            {% endif %}
+          </tbody>
         </table>
       </div>
     </div>

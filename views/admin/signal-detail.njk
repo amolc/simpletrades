@@ -4,7 +4,7 @@
 <div class="container-fluid">
   <div class="mt-4 mb-3 d-flex justify-content-between align-items-center">
     <div>
-      <h2 class="mb-1">Signal Management: <span id="productTitle"></span></h2>
+      <h2 class="mb-1">Signal Management: <span id="productTitle">{{ productName }}</span></h2>
       <small class="text-muted">Watchlist and signals for this product</small>
     </div>
     <a href="/admin/signals" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back</a>
@@ -27,7 +27,24 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="watchlistBody"></tbody>
+          <tbody id="watchlistBody">
+            {% for item in watchlist %}
+            <tr>
+              <td>{{ item.stockName }}</td>
+              <td>{{ item.market }}</td>
+              <td>₹{{ item.currentPrice.toFixed(2) }}</td>
+              <td>₹{{ item.alertPrice.toFixed(2) }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-success" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Buy</button>
+                  <button class="btn btn-outline-warning" data-action="sell" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Sell</button>
+                  <button class="btn btn-outline-primary" data-action="edit" data-id="{{ item.id }}">Edit</button>
+                  <button class="btn btn-outline-danger" data-action="delete" data-id="{{ item.id }}">Delete</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </div>
@@ -53,7 +70,27 @@
               <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="signalsBody"></tbody>
+          <tbody id="signalsBody">
+            {% for signal in signals %}
+            <tr>
+              <td>{{ signal.stock }}</td>
+              <td>{{ signal.signalType or signal.type }}</td>
+              <td>₹{{ signal.entry.toFixed(2) }}</td>
+              <td>₹{{ signal.target.toFixed(2) }}</td>
+              <td>₹{{ signal.stopLoss.toFixed(2) }}</td>
+              <td><span class="badge {% if signal.status == 'ACTIVE' %}bg-success{% elif signal.status == 'CLOSED' %}bg-secondary{% else %}bg-warning{% endif %}">{{ signal.status }}</span></td>
+              <td>{{ signal.createdAt|date("Y-m-d H:i:s") }}</td>
+              <td>{{ signal.updatedAt|date("Y-m-d H:i:s") }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <button class="btn btn-outline-primary" data-saction="activate" data-sid="{{ signal.id }}">Activate</button>
+                  <button class="btn btn-outline-secondary" data-saction="close" data-sid="{{ signal.id }}">Close</button>
+                  <button class="btn btn-outline-danger" data-saction="delete" data-sid="{{ signal.id }}">Delete</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
         </table>
       </div>
     </div>

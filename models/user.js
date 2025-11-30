@@ -11,12 +11,13 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       User.hasMany(models.Subscription, { foreignKey: 'userId' });
+      User.hasMany(models.Transaction, { foreignKey: 'userId', as: 'transactions' });
     }
   }
   User.init({
     phoneNumber: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
       unique: true
     },
     email: {

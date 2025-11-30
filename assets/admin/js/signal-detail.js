@@ -1,59 +1,12 @@
 document.addEventListener('DOMContentLoaded',()=>{
   const token=localStorage.getItem('adminToken')
   const productName=decodeURIComponent(window.location.pathname.split('/').pop())
-  document.getElementById('productTitle').textContent=productName
   const watchBody=document.getElementById('watchlistBody')
   const signalsBody=document.getElementById('signalsBody')
   const addBtn=document.getElementById('addWatchBtn')
   const modalEl=document.getElementById('watchModal')
   const modal=new bootstrap.Modal(modalEl)
   const saveBtn=document.getElementById('saveWatchBtn')
-
-  const loadWatch=async()=>{
-    const res=await fetch(`/api/watchlist?productName=${encodeURIComponent(productName)}`,{headers:{'Authorization':`Bearer ${token}`}})
-    const data=await res.json()
-    const rows=(data.data||[]).map(w=>`
-      <tr>
-        <td>${escape(w.stockName)}</td>
-        <td>${escape(w.market)}</td>
-        <td>₹${Number(w.currentPrice).toFixed(2)}</td>
-        <td>₹${Number(w.alertPrice).toFixed(2)}</td>
-        <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-success" data-action="buy" data-id="${w.id}" data-stock="${escape(w.stockName)}">Buy</button>
-            <button class="btn btn-outline-warning" data-action="sell" data-id="${w.id}" data-stock="${escape(w.stockName)}">Sell</button>
-            <button class="btn btn-outline-primary" data-action="edit" data-id="${w.id}">Edit</button>
-            <button class="btn btn-outline-danger" data-action="delete" data-id="${w.id}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `).join('')
-    watchBody.innerHTML=rows
-  }
-
-  const loadSignals=async()=>{
-    const res=await fetch('/api/signals',{headers:{'Authorization':`Bearer ${token}`}})
-    const data=await res.json()
-    signalsBody.innerHTML=(data.data||[]).map(s=>`
-      <tr>
-        <td>${escape(s.stock)}</td>
-        <td>${escape(s.signalType||s.type)}</td>
-        <td>₹${Number(s.entry).toFixed(2)}</td>
-        <td>₹${Number(s.target).toFixed(2)}</td>
-        <td>₹${Number(s.stopLoss).toFixed(2)}</td>
-        <td><span class="badge ${s.status==='ACTIVE'?'bg-success':s.status==='CLOSED'?'bg-secondary':'bg-warning'}">${escape(s.status)}</span></td>
-        <td>${new Date(s.createdAt).toLocaleString()}</td>
-        <td>${new Date(s.updatedAt).toLocaleString()}</td>
-        <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" data-saction="activate" data-sid="${s.id}">Activate</button>
-            <button class="btn btn-outline-secondary" data-saction="close" data-sid="${s.id}">Close</button>
-            <button class="btn btn-outline-danger" data-saction="delete" data-sid="${s.id}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `).join('')
-  }
 
   const escape=t=>{const d=document.createElement('div');d.textContent=t;return d.innerHTML}
   const decodeJwt=(t)=>{try{const p=t.split('.')[1];return JSON.parse(atob(p))}catch(e){return {}}}
@@ -76,7 +29,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     const url=id?`/api/watchlist/${id}`:'/api/watchlist'
     const method=id?'PUT':'POST'
     const res=await fetch(url,{method,headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)})
-    if(res.ok){modal.hide();loadWatch()}else{alert('Error saving watchlist')}
+    if(res.ok){modal.hide();window.location.reload()}else{alert('Error saving watchlist')}
   })
 
   const signalModalEl=document.getElementById('signalCreateModal')
@@ -102,7 +55,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(action==='delete'){
       if(confirm('Delete this watchlist item?')){
         const res=await fetch(`/api/watchlist/${id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}})
-        if(res.ok){loadWatch()}
+        if(res.ok){window.location.reload()}
       }
     }
     if(action==='buy' || action==='sell'){
@@ -160,7 +113,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
     const body={ stock, entry, target, stopLoss, type:'stocks', signalType:side, notes, userId: adminId }
     const res=await fetch('/api/signals',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)})
-    if(res.ok){ signalModal.hide(); loadSignals() } else { const j=await res.json().catch(()=>({})); alert(j.error||'Error creating signal') }
+    if(res.ok){ signalModal.hide(); window.location.reload() } else { const j=await res.json().catch(()=>({})); alert(j.error||'Error creating signal') }
   })
 
   document.getElementById('signalsTable').addEventListener('click',async(e)=>{
@@ -170,19 +123,19 @@ document.addEventListener('DOMContentLoaded',()=>{
     const action=btn.dataset.saction
     if(action==='activate'){
       const res=await fetch(`/api/signals/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({status:'ACTIVE'})})
-      if(res.ok){loadSignals()}
+      if(res.ok){window.location.reload()}
     }
     if(action==='close'){
       const res=await fetch(`/api/signals/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify({status:'CLOSED'})})
-      if(res.ok){loadSignals()}
+      if(res.ok){window.location.reload()}
     }
     if(action==='delete'){
       if(confirm('Delete this signal?')){
         const res=await fetch(`/api/signals/${id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}})
-        if(res.ok){loadSignals()}
+        if(res.ok){window.location.reload()}
       }
     }
   })
 
-  loadWatch();loadSignals()
+  // Data is now loaded server-side via Nunjucks
 })
