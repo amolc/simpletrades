@@ -12,22 +12,173 @@
     <div class="row g-4">
       {% for product in products %}
       <div class="col-lg-3 col-md-6">
-        <div class="service-card h-100">
-          <div class="service-icon"><i class="fas fa-chart-bar"></i></div>
-          <h4 class="service-title">{{ product.name }}</h4>
-          <p class="service-description">{{ product.description }}</p>
-          <div class="pricing-info mb-3">
-            <small class="text-muted d-block mb-1">Pricing:</small>
-            <div class="d-flex justify-content-between">
-              <span class="badge bg-success">Trial: ₹{{ product.pricing.trial }}</span>
-              <span class="badge bg-primary">Monthly: ₹{{ product.pricing.monthly }}</span>
+        <div class="product-card">
+          <div class="product-icon"><i class="fas fa-chart-bar"></i></div>
+          <h4 class="product-title">{{ product.name }}</h4>
+          <div class="product-content">
+            <p class="product-description truncated">{{ product.description }}</p>
+            <div class="pricing-info">
+              <small class="text-muted d-block mb-2">Premium plans available</small>
+              <div class="price-range">
+                <span class="badge bg-primary">Starting from ₹{{ product.pricing.monthly }}/month</span>
+              </div>
             </div>
           </div>
-          <a href="/product/{{ product.name | lower }}" class="btn btn-outline-primary w-100">Learn More</a>
+          <div class="product-actions">
+            <a href="/product/{{ product.name | lower }}" class="btn btn-primary w-100">Learn More</a>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add animation on scroll for product cards
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, observerOptions);
+    
+    // Observe all product cards
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(card);
+    });
+});
+</script>
+
+<style>
+/* Additional styling for products page to match index page */
+.services-section {
+    padding: 80px 0;
+}
+
+.product-card {
+    background: var(--bg-white);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    height: 420px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.product-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
+}
+
+.product-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+    box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+    flex-shrink: 0;
+    min-width: 60px;
+    min-height: 60px;
+}
+
+.product-icon i {
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.product-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.75rem;
+}
+
+.product-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0.75rem;
+    min-height: 100px;
+}
+
+.product-description {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.product-description.truncated {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.pricing-info {
+    margin-top: auto;
+}
+
+.price-range {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.product-actions {
+    margin-top: auto;
+    padding-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .product-card {
+        height: auto;
+        min-height: 380px;
+        padding: 1.5rem;
+    }
+    
+    .product-icon {
+        width: 60px;
+        height: 60px;
+        margin-bottom: 1rem;
+    }
+    
+    .product-icon i {
+        font-size: 1.5rem;
+    }
+    
+    .product-title {
+        font-size: 1.1rem;
+    }
+    
+    .product-description {
+        font-size: 0.875rem;
+    }
+}
+</style>
 {% endblock %}

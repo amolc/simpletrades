@@ -215,6 +215,65 @@ router.get('/subscription/confirm', async (req, res) => {
   }
 })
 
+// Payment retry route for failed payments
+router.get('/payment/retry', async (req, res) => {
+  const { subscriptionId, productId, planId } = req.query
+  console.log('🎯 Payment retry route - subscriptionId:', subscriptionId, 'productId:', productId, 'planId:', planId)
+  
+  try {
+    // Get authenticated user
+    const user = await authenticateViewUser(req, res)
+    if (!user) {
+      return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl))
+    }
+
+    // Validate that the subscription belongs to this user and has failed payment
+    const subscription = await db.Subscription.findByPk(subscriptionId, {
+      include: [
+        {
+          model: db.Plan,
+          include: [db.Product]
+        }
+      ]
+    })
+
+    if (!subscription || subscription.userId !== user.id) {
+      return res.status(404).render('userpanel/error.njk', {
+        title: 'Subscription Not Found',
+        error: 'Subscription not found or access denied'
+      })
+    }
+
+    // Check for failed payment transactions
+    const transactions = await db.Transaction.findAll({
+      where: {
+        subscriptionId: subscriptionId,
+        userId: user.id,
+        paymentStatus: 'failed'
+      },
+      order: [['createdAt', 'DESC']],
+      limit: 1
+    })
+
+    if (transactions.length === 0) {
+      return res.status(400).render('userpanel/error.njk', {
+        title: 'No Failed Payment Found',
+        error: 'No failed payment transaction found for this subscription'
+      })
+    }
+
+    // Redirect to payment page with the subscription details
+    res.redirect(`/payment?subscriptionId=${subscriptionId}&productId=${subscription.plan.Product.id}&planId=${subscription.plan.id}`)
+    
+  } catch (error) {
+    console.error('Error in payment retry route:', error)
+    res.status(500).render('userpanel/error.njk', { 
+      title: 'Error Processing Payment Retry',
+      error: error.message 
+    })
+  }
+})
+
 // Payment page route
 router.get('/payment', async (req, res) => {
   const { subscriptionId, productId, planId } = req.query
