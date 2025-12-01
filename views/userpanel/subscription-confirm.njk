@@ -1,0 +1,166 @@
+{% extends "layout.njk" %}
+
+{% block title %}Confirm Subscription - SimpleIncome{% endblock %}
+
+{% block content %}
+<section class="py-5" style="padding-top: 100px;">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow-lg">
+          <div class="card-header bg-primary text-white">
+            <h3 class="mb-0"><i class="fas fa-shopping-cart me-2"></i>Confirm Your Subscription</h3>
+          </div>
+          <div class="card-body">
+            <!-- User Details -->
+            <div class="mb-4">
+              <h5 class="text-primary mb-3">User Details</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Name:</strong> <span id="userName">{{ user.fullName }}</span></p>
+                  <p><strong>Email:</strong> <span id="userEmail">{{ user.email }}</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Phone:</strong> <span id="userPhone">{{ user.phoneNumber }}</span></p>
+                  <p><strong>User ID:</strong> <span id="userId">{{ user.id }}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <hr>
+
+            <!-- Product & Plan Details -->
+            <div class="mb-4">
+              <h5 class="text-primary mb-3">Subscription Details</h5>
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Product:</strong> <span id="productName">{{ product.name }}</span></p>
+                  <p><strong>Plan:</strong> <span id="planName">{{ plan.planName }}</span></p>
+                  <p><strong>Duration:</strong> <span id="planDuration">{{ plan.numberOfDays }} days</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>Amount:</strong> <span class="text-success fw-bold">₹<span id="planAmount">{{ plan.cost }}</span></span></p>
+                  <p><strong>Start Date:</strong> <span id="startDate">{{ startDate }}</span></p>
+                  <p><strong>End Date:</strong> <span id="endDate">{{ endDate }}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Plan Features -->
+            {% if plan.features %}
+            <div class="mb-4">
+              <h5 class="text-primary mb-3">Plan Features</h5>
+              <div class="row">
+                {% for feature in plan.features %}
+                <div class="col-md-6 mb-2">
+                  <i class="fas fa-check text-success me-2"></i>{{ feature }}
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% endif %}
+
+            <hr>
+
+            <!-- Payment Information -->
+            <div class="alert alert-info mb-4">
+              <h6><i class="fas fa-info-circle me-2"></i>Payment Information</h6>
+              <p class="mb-0">You will be redirected to complete the payment after confirming your subscription. Payment details will be provided on the next page.</p>
+            </div>
+
+            <!-- Terms and Conditions -->
+            <div class="mb-4">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                <label class="form-check-label" for="termsCheck">
+                  I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                </label>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-between">
+              <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left me-2"></i>Back
+              </button>
+              <button type="button" class="btn btn-primary btn-lg" id="confirmSubscriptionBtn">
+                <i class="fas fa-check me-2"></i>Confirm Subscription
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const confirmBtn = document.getElementById('confirmSubscriptionBtn');
+  const termsCheck = document.getElementById('termsCheck');
+
+  // Enable/disable confirm button based on terms acceptance
+  termsCheck.addEventListener('change', function() {
+    confirmBtn.disabled = !this.checked;
+  });
+
+  // Handle subscription confirmation
+  confirmBtn.addEventListener('click', async function() {
+    if (!termsCheck.checked) {
+      alert('Please accept the terms and conditions');
+      return;
+    }
+
+    // Disable button and show loading
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+
+    try {
+      const subscriptionData = {
+        userId: '{{ user.id }}',
+        planId: '{{ plan.id }}',
+        startDate: '{{ startDate }}',
+        endDate: '{{ endDate }}',
+        amount: '{{ plan.cost }}',
+        status: 'active',
+        paymentStatus: 'pending'
+      };
+
+      console.log('Creating subscription with data:', subscriptionData);
+
+      const response = await fetch('/api/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+        },
+        body: JSON.stringify(subscriptionData)
+      });
+
+      const result = await response.json();
+      console.log('Subscription response:', result);
+
+      if (response.ok && result.success) {
+        // Success - redirect to payment page
+        alert('Subscription created successfully! Redirecting to payment...');
+        
+        // Redirect to payment page with subscription details and auth token
+        const subscriptionId = result.data.id;
+        const authToken = localStorage.getItem('authToken');
+        window.location.href = `/payment?subscriptionId=${subscriptionId}&authToken=${authToken}`;
+      } else {
+        // Error handling
+        alert('Error creating subscription: ' + (result.message || 'Unknown error'));
+        confirmBtn.disabled = false;
+        confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Subscription';
+      }
+    } catch (error) {
+      console.error('Error creating subscription:', error);
+      alert('Network error: ' + error.message);
+      confirmBtn.disabled = false;
+      confirmBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Subscription';
+    }
+  });
+});
+</script>
+{% endblock %}

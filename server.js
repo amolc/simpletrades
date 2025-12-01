@@ -5,8 +5,8 @@ const path = require('path');
 const nunjucks = require('nunjucks');
 const viewsRouter = require('./views/routes');
 const adminViewsRouter = require('./views/admin/routes');
-const apiRoutes = require('./api/routes');
 const db = require('./models');
+const apiRoutes = require('./api/routes')(db);
 
 const app = express();
 
@@ -46,7 +46,9 @@ app.use('/api', apiRoutes);
 // Start the server
 async function start(){
   try{
+    console.log('Attempting to authenticate database...');
     await db.sequelize.authenticate();
+    console.log('Database authenticated successfully.');
     // Ensure Users.phoneNumber exists (nullable) and unique index without crashing
     try {
       const qi = db.sequelize.getQueryInterface();
@@ -59,12 +61,21 @@ async function start(){
     } catch (e) {
       console.warn('Users.phoneNumber ensure step warning:', e.message);
     }
-    // Targeted schema alignment to avoid crashing on legacy constraints
+    console.log('Attempting to sync Product model...');
     try { await db.Product.sync({ alter: true }) } catch(e){ console.warn('Schema update(Product) skipped:', e.message) }
+    console.log('Product model synced.');
+    console.log('Attempting to sync Plan model...');
     try { await db.Plan.sync({ alter: true }) } catch(e){ console.warn('Schema update(Plan) skipped:', e.message) }
+    console.log('Plan model synced.');
+    console.log('Attempting to sync Subscription model...');
     try { await db.Subscription.sync({ alter: true }) } catch(e){ console.warn('Schema update(Subscription) skipped:', e.message) }
+    console.log('Subscription model synced.');
+    console.log('Attempting to sync Transaction model...');
     try { await db.Transaction.sync({ alter: true }) } catch(e){ console.warn('Schema update(Transaction) skipped:', e.message) }
+    console.log('Transaction model synced.');
+    console.log('Attempting to sync Signal model...');
     try { await db.Signal.sync({ alter: true }) } catch(e){ console.warn('Schema update(Signal) skipped:', e.message) }
+    console.log('Signal model synced.');
     // Do NOT alter Users here to avoid crashing due to legacy duplicate/empty values
     app.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);

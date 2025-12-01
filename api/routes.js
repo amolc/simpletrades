@@ -1,6 +1,7 @@
+module.exports = (db) => {
 const express = require('express')
 const planController = require('./planController')
-const { userController } = require('./userController')
+const { userController, authenticate } = require('./user')
 const { productController } = require('./productController')
 const { signalsController } = require('./signalsController')
 const { watchlistController } = require('./watchlistController')
@@ -33,15 +34,15 @@ router.delete('/signals/:id', signalsController.deleteSignal)
 router.post('/signals/:id/activate', signalsController.activateSignal)
 router.post('/signals/:id/close', signalsController.closeSignal)
 
-router.post('/users/register', userController.registerUser)
-router.post('/users/login', userController.loginUser)
-router.post('/users/admin/login', userController.loginAdmin)
-router.get('/users', userController.getAllUsers)
-router.get('/users/stats', userController.getUserStats)
-router.get('/users/:id', userController.getUserById)
-router.put('/users/:id', userController.updateUser)
-router.delete('/users/:id', userController.deleteUser)
-router.put('/users/:id/change-password', userController.changePassword)
+router.post('/users/register', userController(db).registerUser)
+router.post('/users/login', userController(db).loginUser)
+router.post('/users/admin/login', userController(db).loginAdmin)
+router.get('/users', userController(db).getAllUsers)
+router.get('/users/stats', userController(db).getUserStats)
+router.get('/users/:id', userController(db).getUserById)
+router.put('/users/:id', userController(db).updateUser)
+router.delete('/users/:id', userController(db).deleteUser)
+router.put('/users/:id/change-password', userController(db).changePassword)
 
 // router.get('/subscriptions/pending', subscriptionController.getPendingSubscriptions)
 // router.put('/subscriptions/:id/approve', subscriptionController.approveSubscription)
@@ -59,6 +60,7 @@ router.get('/transactions', transactionController.getAllTransactions)
 router.get('/transactions/:id', transactionController.getTransactionById)
 router.post('/transactions', transactionController.createTransaction)
 router.put('/transactions/:id', transactionController.updateTransaction)
+router.put('/transactions/:id/status', transactionController.updateTransactionStatus)
 router.get('/transactions/export', transactionController.exportTransactions)
 
 // Settings
@@ -73,4 +75,10 @@ router.post('/watchlist', watchlistController.create)
 router.put('/watchlist/:id', watchlistController.update)
 router.delete('/watchlist/:id', watchlistController.remove)
 
-module.exports = router
+const path = require('path')
+router.get('/admin', authenticate, (req, res) => {
+  res.sendFile(path.join(__dirname, '../admin.html'))
+})
+
+return router
+}

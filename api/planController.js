@@ -33,8 +33,25 @@ const planController = {
 
   createPlan: async (req, res) => {
     try {
-      // Placeholder for create plan logic
-      res.status(200).json({ success: true, data: { message: 'Create plan placeholder' } });
+      const { productName, planName, planDescription, numberOfDays, cost, isActive } = req.body;
+
+      // Find the product to associate the plan with
+      const product = await db.Product.findOne({ where: { name: productName } });
+      if (!product) {
+        return res.status(404).json({ success: false, message: 'Product not found' });
+      }
+
+      const newPlan = await db.Plan.create({
+        productName,
+        planName,
+        planDescription,
+        numberOfDays,
+        cost,
+        isActive: isActive || false,
+        productId: product.id // Associate plan with product using productId
+      });
+
+      res.status(201).json({ success: true, message: 'Plan created successfully', data: newPlan });
     } catch (error) {
       console.error('Error creating plan:', error);
       res.status(500).json({ success: false, message: 'Internal server error', error: error.message });

@@ -18,17 +18,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   const loadSubs=async()=>{
     const res=await fetch(`/api/subscriptions?userId=${user.id}`);
     const data=await res.json();
-    const subs=data.data||data||[];
+    const subs=data.data?.subscriptions || data.data || data || [];
     if(!subs.length){subsEmpty.style.display='block';return}
     subsBody.innerHTML=subs.map(s=>`<tr>
-      <td>${s.productName||s.product||''}</td>
-      <td>${s.planName||s.plan||''}</td>
+      <td>${s.plan?.Product?.name || s.productName || s.product || 'Stocks'}</td>
+      <td>${s.plan?.planName || s.planName || s.plan || ''}</td>
       <td>${s.startDate?fmt(s.startDate):''}</td>
       <td>${s.endDate?fmt(s.endDate):''}</td>
       <td><span class="badge ${s.status==='active'?'bg-success':'bg-secondary'}">${s.status||'active'}</span></td>
       <td>
         <div class="btn-group btn-group-sm">
-          <a class="btn btn-outline-primary" href="/dashboard/signals/${encodeURIComponent(s.productName||s.product||'Stocks')}?start=${encodeURIComponent(s.startDate||'')}">Details</a>
+          <a class="btn btn-outline-primary" href="/dashboard/signals/${encodeURIComponent(s.plan?.Product?.name || s.productName || s.product || 'Stocks')}?start=${encodeURIComponent(s.startDate||'')}">Details</a>
           <a class="btn btn-outline-success" href="/products">Renew</a>
         </div>
       </td>

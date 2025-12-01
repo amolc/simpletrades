@@ -63,7 +63,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 transactionsBody.appendChild(row);
 });
     updateSummaryMetrics(transactionsToRender);
-    updatePagination(transactionsToRender);
+    updatePagination(Array.from(transactionsBody.children).filter(child => child.tagName === 'TR'));
+  }
+
+  // Function to update transaction status via API
+  async function updateTransactionStatus(transactionId, newStatus) {
+    try {
+      const response = await fetch(`/api/transactions/${transactionId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Transaction status updated successfully!');
+      } else {
+        alert(`Error updating status: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating transaction status:', error);
+      alert('Failed to update transaction status.');
+    }
   }
 
   // Function to load transactions from the API
@@ -487,6 +511,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Search functionality
   if (searchInput) {
     searchInput.addEventListener('input', () => {
+      currentPage = 1; // Reset to first page
+      filterTransactions();
+    });
+  }
+
+  if (statusFilter) {
+    statusFilter.addEventListener('change', () => {
+      currentPage = 1; // Reset to first page
       filterTransactions();
     });
   }
@@ -591,33 +623,57 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
           const transaction = result.data;
           
-          // Populate modal fields
-          document.getElementById('modalTransactionId').textContent = transaction.id;
-          document.getElementById('modalTransactionDate').textContent = new Date(transaction.createdAt).toLocaleString();
-          document.getElementById('modalCustomerName').textContent = transaction.customer ? transaction.customer.fullName : 'N/A';
-          document.getElementById('modalCustomerEmail').textContent = transaction.customer ? transaction.customer.email : 'N/A';
-          document.getElementById('modalAmount').textContent = `₹${transaction.amount ? transaction.amount.toFixed(2) : '0.00'}`;
-          document.getElementById('modalCurrency').textContent = transaction.currency || 'N/A';
-          document.getElementById('modalPaymentMethod').textContent = transaction.paymentMethod || 'N/A';
-          document.getElementById('modalPaymentStatus').textContent = transaction.paymentStatus || 'N/A';
-          document.getElementById('modalTransactionType').textContent = transaction.transactionType || 'N/A';
-          document.getElementById('modalReferenceNumber').textContent = transaction.referenceNumber || 'N/A';
-          document.getElementById('modalProcessedAt').textContent = transaction.processedAt ? new Date(transaction.processedAt).toLocaleString() : 'N/A';
-          
-          // Subscription details (if available)
-          const subscriptionDetailsDiv = document.getElementById('modalSubscriptionDetails');
-          if (transaction.subscription) {
-            subscriptionDetailsDiv.innerHTML = `
+          // Populate modal fields dynamically
+          const modalBody = document.getElementById('transactionModalBody');
+          modalBody.innerHTML = `
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Transaction ID:</strong> ${transaction.id}</p>
+                <p><strong>Date:</strong> ${new Date(transaction.createdAt).toLocaleString()}</p>
+                <p><strong>Customer Name:</strong> ${transaction.customer ? transaction.customer.fullName : 'N/A'}</p>
+                <p><strong>Customer Email:</strong> ${transaction.customer ? transaction.customer.email : 'N/A'}</p>
+                <p><strong>Amount:</strong> ₹${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</p>
+                <p><strong>Currency:</strong> ${transaction.currency || 'N/A'}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Payment Method:</strong> ${transaction.paymentMethod || 'N/A'}</p>
+                <p><strong>Payment Status:</strong>
+                   <select class="form-select form-select-sm d-inline-block w-auto" id="modalPaymentStatus">
+                     <option value="pending" ${transaction.paymentStatus === 'pending' ? 'selected' : ''}>Pending</option>
+                     <option value="completed" ${transaction.paymentStatus === 'completed' ? 'selected' : ''}>Completed</option>
+                     <option value="failed" ${transaction.paymentStatus === 'failed' ? 'selected' : ''}>Failed</option>
+                     <option value="refunded" ${transaction.paymentStatus === 'refunded' ? 'selected' : ''}>Refunded</option>
+                   </select>
+                 </p>
+                <p><strong>Transaction Type:</strong> ${transaction.transactionType || 'N/A'}</p>
+                <p><strong>Reference Number:</strong> ${transaction.referenceNumber || 'N/A'}</p>
+                <p><strong>Processed At:</strong> ${transaction.processedAt ? new Date(transaction.processedAt).toLocaleString() : 'N/A'}</p>
+              </div>
+            </div>
+            ${transaction.subscription ? `
+              <hr>
+              <h6>Subscription Details</h6>
               <p><strong>Subscription ID:</strong> ${transaction.subscription.id}</p>
               <p><strong>Plan:</strong> ${transaction.subscription.plan ? transaction.subscription.plan.planName : 'N/A'}</p>
               <p><strong>Subscription Status:</strong> ${transaction.subscription.status}</p>
-            `;
-            subscriptionDetailsDiv.style.display = 'block';
-          } else {
-            subscriptionDetailsDiv.style.display = 'none';
-          }
+            ` : ''}
+          `;
 
           transactionModal.show();
+
+          const modalPaymentStatus = document.getElementById('modalPaymentStatus');
+          if (modalPaymentStatus) {
+            modalPaymentStatus.addEventListener('change', async (event) => {
+              const newStatus = event.target.value;
+              const transactionId = transaction.id;
+              // Call API to update status
+              await updateTransactionStatus(transactionId, newStatus);
+              // Optionally, refresh the transactions list or update the specific row
+              loadTransactions(); // Reload all transactions to reflect the change
+              transactionModal.hide(); // Hide modal after update
+            });
+          }
+
         } else {
           alert(`Error fetching transaction details: ${result.message || 'Unknown error'}`);
         }

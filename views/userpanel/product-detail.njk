@@ -35,7 +35,10 @@
                                             <span class="amount">{{ pricingResolved.trial }}</span>
                                         </div>
                                         <p class="period">7 days</p>
-                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
+                                                data-product-id="{{ product.id }}" 
+                                                data-plan-name="trial"
+                                                data-plan-days="7">
                                             Start Trial
                                         </button>
                                     </div>
@@ -50,7 +53,10 @@
                                             <span class="amount">{{ pricingResolved.monthly }}</span>
                                         </div>
                                         <p class="period">per month</p>
-                                        <button class="btn btn-primary btn-sm" onclick="window.location.href='/register'">
+                                        <button class="btn btn-primary btn-sm subscribe-btn" 
+                                                data-product-id="{{ product.id }}" 
+                                                data-plan-name="monthly"
+                                                data-plan-days="30">
                                             Subscribe Now
                                         </button>
                                     </div>
@@ -65,7 +71,10 @@
                                             <span class="amount">{{ pricingResolved.quarterly }}</span>
                                         </div>
                                         <p class="period">per quarter</p>
-                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
+                                                data-product-id="{{ product.id }}" 
+                                                data-plan-name="quarterly"
+                                                data-plan-days="90">
                                             Save 33%
                                         </button>
                                     </div>
@@ -80,7 +89,10 @@
                                             <span class="amount">{{ pricingResolved.yearly }}</span>
                                         </div>
                                         <p class="period">per year</p>
-                                        <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='/register'">
+                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
+                                                data-product-id="{{ product.id }}" 
+                                                data-plan-name="yearly"
+                                                data-plan-days="365">
                                             Best Value
                                         </button>
                                     </div>
@@ -139,7 +151,10 @@
     <div class="container text-center">
         <h2 class="mb-4">Ready to Start Trading {{ product.name }}?</h2>
         <p class="lead mb-4">Join thousands of traders who trust our {{ product.name | lower }} signals</p>
-        <button class="btn btn-light btn-lg px-5" onclick="window.location.href='/register'">
+        <button class="btn btn-light btn-lg px-5 subscribe-btn" 
+                data-product-id="{{ product.id }}" 
+                data-plan-name="monthly"
+                data-plan-days="30">
             <i class="fas fa-rocket me-2"></i>Get Started Today
         </button>
     </div>
@@ -280,4 +295,83 @@
     }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all subscribe buttons
+    const subscribeButtons = document.querySelectorAll('.subscribe-btn');
+    
+    subscribeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const planName = this.getAttribute('data-plan-name');
+            const planDays = this.getAttribute('data-plan-days');
+            
+            // Check if user is logged in
+            const authToken = localStorage.getItem('authToken');
+            
+            if (!authToken) {
+                // User is not logged in, show login modal
+                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+                loginModal.show();
+                
+                // Store the intended action in sessionStorage for after login
+                sessionStorage.setItem('pendingSubscription', JSON.stringify({
+                    productId: productId,
+                    planName: planName,
+                    planDays: planDays
+                }));
+                
+                return;
+            }
+            
+            // User is logged in, proceed to confirmation page
+            handleSubscription(productId, planName, planDays);
+        });
+    });
+    
+    // Function to handle subscription redirection
+    function handleSubscription(productId, planName, planDays) {
+        // Get the correct plan IDs based on the product and plan name
+        // These are the actual database IDs for the Stocks product
+        const planIds = {
+            'trial': '20',     // Stocks Trial (ID: 20)
+            'monthly': '1',    // Stocks Monthly (ID: 1)
+            'quarterly': '2',  // Stocks Quarterly (ID: 2)
+            'yearly': '3'      // Stocks Yearly (ID: 3)
+        };
+        
+        const planId = planIds[planName] || '1'; // Default to monthly if not found
+        
+        // Get auth token
+        const authToken = localStorage.getItem('authToken');
+        
+        // Redirect to confirmation page with auth token
+        if (authToken) {
+            window.location.href = `/subscription/confirm?productId=${productId}&planId=${planId}&authToken=${authToken}`;
+        } else {
+            // Store the intended action in sessionStorage for after login
+            sessionStorage.setItem('pendingSubscription', JSON.stringify({
+                productId: productId,
+                planName: planName,
+                planDays: planDays
+            }));
+            
+            // Redirect to login
+            window.location.href = '/login?redirect=' + encodeURIComponent(`/subscription/confirm?productId=${productId}&planId=${planId}`);
+        }
+    }
+    
+    // Check for pending subscription after login
+    if (sessionStorage.getItem('pendingSubscription')) {
+        const pending = JSON.parse(sessionStorage.getItem('pendingSubscription'));
+        sessionStorage.removeItem('pendingSubscription');
+        
+        // Small delay to ensure page is fully loaded
+        setTimeout(() => {
+            handleSubscription(pending.productId, pending.planName, pending.planDays);
+        }, 500);
+    }
+});
+</script>
 {% endblock %}

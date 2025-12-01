@@ -87,15 +87,32 @@
     const auth = document.getElementById('authActions');
     const navDash = document.getElementById('navDashboard');
     const updateUI = ()=>{
-      const logged = !!localStorage.getItem('authToken');
+      const token = localStorage.getItem('authToken');
+      const logged = !!token;
+      console.log('=== updateUI called ===');
+      console.log('Token found:', token ? token.substring(0, 20) + '...' : 'none');
+      console.log('Logged status:', logged);
+      console.log('guestActions element:', guest);
+      console.log('authActions element:', auth);
+      console.log('navDashboard element:', navDash);
+      
+      if (!guest || !auth || !navDash) {
+        console.error('One or more UI elements not found!');
+        return;
+      }
+      
       if (logged){
+        console.log('Applying logged-in UI state');
         guest.classList.add('d-none');
         auth.classList.remove('d-none');
         navDash.classList.remove('d-none');
+        console.log('UI updated for logged-in user');
       } else {
+        console.log('Applying logged-out UI state');
         guest.classList.remove('d-none');
         auth.classList.add('d-none');
         navDash.classList.add('d-none');
+        console.log('UI updated for logged-out user');
       }
     };
     updateUI();
@@ -108,24 +125,77 @@
       });
     }
     const modalBtn = document.getElementById('modalLoginBtn');
+    
+    // Function to properly close the modal
+    const closeLoginModal = () => {
+      const modal = document.getElementById('loginModal');
+      const backdrop = document.querySelector('.modal-backdrop');
+      
+      // First, blur any focused element to prevent aria-hidden issues
+      if (document.activeElement) {
+        document.activeElement.blur();
+      }
+      
+      // Remove backdrop
+      if (backdrop) {
+        backdrop.remove();
+      }
+      
+      // Remove modal classes
+      modal.classList.remove('show');
+      modal.style.display = 'none';
+      
+      // Remove body classes
+      document.body.classList.remove('modal-open');
+      
+      // Reset aria attributes
+      modal.setAttribute('aria-hidden', 'true');
+      modal.removeAttribute('aria-modal');
+      
+      console.log('Modal closed manually');
+    };
+    
     if (modalBtn){
       modalBtn.addEventListener('click', async ()=>{
         const phone = document.getElementById('loginPhoneNumber').value.trim();
         const password = document.getElementById('loginPassword').value;
+        
+        console.log('Attempting login with phone:', phone);
+        
         try{
           const res = await fetch('/api/users/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phoneNumber:phone,password})});
           const data = await res.json();
-          if(res.ok && data.success){
-            localStorage.setItem('authToken', data.data.token);
+          
+          console.log('Login response:', data);
+          console.log('Response status:', res.status);
+          console.log('Response ok:', res.ok);
+          
+          if(res.ok && data.token){
+            console.log('Login successful! Token received:', data.token.substring(0, 20) + '...');
+            
+            // Store token
+            localStorage.setItem('authToken', data.token);
+            console.log('Token stored in localStorage');
+            
+            // Close modal first
+            closeLoginModal();
+            
+            // Update UI immediately
             updateUI();
-            const modal = bootstrap.Modal.getInstance(document.getElementById('loginModal'));
-            if (modal) modal.hide();
-            window.location.href = '/dashboard';
+            
+            // Small delay then reload to ensure everything is clean
+            setTimeout(() => {
+              console.log('Reloading page...');
+              window.location.reload();
+            }, 100);
+            
           } else {
-            alert(data.error || data.message || 'Login failed');
+            console.log('Login failed:', data.message || 'Unknown error');
+            // Could show error message here if needed
           }
         }catch(e){
-          alert('Network error');
+          console.error('Login error:', e);
+          // alert('Network error');
         }
       });
     }

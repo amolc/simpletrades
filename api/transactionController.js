@@ -232,6 +232,72 @@ async function updateTransaction(req, res) {
   }
 }
 
+async function updateTransaction(req, res) {
+  try {
+    const { id } = req.params
+    const {
+      paymentStatus,
+      failureReason,
+      gatewayResponse,
+      processedAt
+    } = req.body
+
+    const transaction = await db.Transaction.findByPk(id)
+    if (!transaction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      })
+    }
+
+    // Update transaction
+    const updateData = {}
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
+    if (failureReason !== undefined) updateData.failureReason = failureReason
+    if (gatewayResponse !== undefined) updateData.gatewayResponse = gatewayResponse
+    if (processedAt !== undefined) updateData.processedAt = processedAt
+
+    await transaction.update(updateData)
+
+    res.status(200).json({
+      success: true,
+      message: 'Transaction updated successfully',
+      data: transaction
+    })
+  } catch (error) {
+    console.error('Error updating transaction:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    })
+  }
+}
+
+async function updateTransactionStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({ success: false, message: 'Status is required' });
+    }
+
+    const transaction = await db.Transaction.findByPk(id);
+    if (!transaction) {
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+
+    transaction.paymentStatus = status;
+    await transaction.save();
+
+    res.status(200).json({ success: true, message: 'Transaction status updated successfully', data: transaction });
+  } catch (error) {
+    console.error('Error updating transaction status:', error);
+    res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
+}
+
 async function exportTransactions(req, res) {
   try {
     const { 
@@ -357,6 +423,7 @@ const transactionController = {
   getTransactionById,
   createTransaction,
   updateTransaction,
+  updateTransactionStatus,
   exportTransactions
 }
 

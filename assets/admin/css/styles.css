@@ -229,3 +229,9 @@ body{line-height:1.5;font-size:14px}
 .input-group-text.bg-white {
   background-color: #fff !important;
 }
+
+/* Fix for modal dropdown z-index */
+#transactionModal #modalPaymentStatus {
+  z-index: 1060; /* Higher than modal z-index (1050) */
+  position: relative;
+}

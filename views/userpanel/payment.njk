@@ -1,0 +1,257 @@
+{% extends "layout.njk" %}
+
+{% block title %}Payment - {{ websiteName }}{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-credit-card me-2"></i>Complete Your Payment</h4>
+          </div>
+          <div class="card-body p-4">
+            <!-- Subscription Details -->
+            <div class="alert alert-info mb-4">
+              <h6><i class="fas fa-info-circle me-2"></i>Subscription Details</h6>
+              <div class="row">
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Product:</strong> <span id="productName">{{ productName }}</span></p>
+                  <p class="mb-1"><strong>Plan:</strong> <span id="planName">{{ planName }}</span></p>
+                </div>
+                <div class="col-md-6">
+                  <p class="mb-1"><strong>Duration:</strong> <span id="planDuration">{{ planDuration }}</span></p>
+                  <p class="mb-1"><strong>Amount:</strong> <span id="amount" class="text-primary fw-bold">₹{{ amount }}</span></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Methods -->
+            <div class="mb-4">
+              <h5 class="mb-3">Choose Payment Method</h5>
+              
+              <!-- UPI Payment -->
+              <div class="card border-primary mb-3">
+                <div class="card-header bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="upiPayment" value="upi" checked>
+                    <label class="form-check-label fw-bold" for="upiPayment">
+                      <i class="fas fa-qrcode me-2"></i>UPI Payment (Scan QR Code)
+                    </label>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div id="qrCodeContainer" class="text-center mb-3">
+                    <p class="text-muted">Scan this QR code with any UPI app</p>
+                    <div id="qrcode" class="d-inline-block"></div>
+                  </div>
+                  <div class="alert alert-warning">
+                    <small><i class="fas fa-exclamation-triangle me-1"></i>After making the payment, enter the transaction reference number below.</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Other Payment Methods (Placeholder) -->
+              <div class="card border-secondary mb-3">
+                <div class="card-header bg-light">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="otherPayment" value="other">
+                    <label class="form-check-label fw-bold" for="otherPayment">
+                      <i class="fas fa-university me-2"></i>Bank Transfer
+                    </label>
+                  </div>
+                </div>
+                <div class="card-body" style="display: none;">
+                  <div class="bank-details">
+                    <p><strong>Bank Name:</strong> Example Bank</p>
+                    <p><strong>Account Number:</strong> 1234567890</p>
+                    <p><strong>IFSC Code:</strong> EXAM0001234</p>
+                    <p><strong>Account Holder:</strong> {{ websiteName }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Transaction Reference -->
+            <div class="mb-4">
+              <h5 class="mb-3">Payment Confirmation</h5>
+              <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>Enter the transaction reference number from your payment app or bank statement.
+              </div>
+              <form id="paymentForm">
+                <div class="mb-3">
+                  <label for="transactionReference" class="form-label">Transaction Reference Number *</label>
+                  <input type="text" class="form-control" id="transactionReference" required 
+                         placeholder="Enter transaction reference (e.g., UPI123456789)">
+                  <div class="form-text">This is usually found in your payment app's transaction history.</div>
+                </div>
+                
+                <div class="mb-3">
+                  <label for="additionalNotes" class="form-label">Additional Notes (Optional)</label>
+                  <textarea class="form-control" id="additionalNotes" rows="2" 
+                            placeholder="Any additional information about the payment"></textarea>
+                </div>
+
+                <!-- Hidden Fields -->
+                <input type="hidden" id="subscriptionId" value="{{ subscriptionId }}">
+                <input type="hidden" id="userId" value="{{ userId }}">
+                <input type="hidden" id="planId" value="{{ planId }}">
+                <input type="hidden" id="amountHidden" value="{{ amount }}">
+
+                <!-- Action Buttons -->
+                <div class="d-flex justify-content-between">
+                  <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left me-2"></i>Back
+                  </button>
+                  <button type="submit" class="btn btn-success btn-lg" id="submitPaymentBtn">
+                    <i class="fas fa-check me-2"></i>Confirm Payment
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Help Section -->
+            <div class="card border-light">
+              <div class="card-body">
+                <h6 class="card-title"><i class="fas fa-question-circle me-2"></i>Need Help?</h6>
+                <p class="card-text small mb-2">
+                  <strong>Payment Issues?</strong> Contact our support team:
+                </p>
+                <p class="small mb-1">
+                  <i class="fas fa-envelope me-2"></i>Email: support@{{ websiteName|lower|replace(' ', '') }}.com
+                </p>
+                <p class="small mb-0">
+                  <i class="fas fa-phone me-2"></i>Phone: +91-XXXXXXXXXX
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-body text-center py-4">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5>Processing Payment...</h5>
+        <p class="text-muted mb-0">Please wait while we verify your payment.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const paymentForm = document.getElementById('paymentForm');
+  const submitPaymentBtn = document.getElementById('submitPaymentBtn');
+  const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+  
+  // Generate QR Code
+  const subscriptionId = document.getElementById('subscriptionId').value;
+  const amount = document.getElementById('amountHidden').value;
+  
+  // Generate UPI QR Code
+  const upiLink = `upi://pay?pa={{ upiHandle }}&pn={{ upiName }}&am=${amount}&cu=INR&mc=0000&tid=${subscriptionId}`;
+  
+  new QRCode(document.getElementById("qrcode"), {
+    text: upiLink,
+    width: 200,
+    height: 200,
+    colorDark : "#000000",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.H
+  });
+
+  // Payment method toggle
+  document.querySelectorAll('input[name="paymentMethod"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+      const bankDetails = document.querySelector('.bank-details').parentElement;
+      const qrContainer = document.getElementById('qrCodeContainer');
+      
+      if (this.value === 'other') {
+        bankDetails.style.display = 'block';
+        qrContainer.style.display = 'none';
+      } else {
+        bankDetails.style.display = 'none';
+        qrContainer.style.display = 'block';
+      }
+    });
+  });
+
+  // Handle form submission
+  paymentForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const transactionReference = document.getElementById('transactionReference').value.trim();
+    if (!transactionReference) {
+      alert('Please enter the transaction reference number');
+      return;
+    }
+
+    // Disable button and show loading
+    submitPaymentBtn.disabled = true;
+    submitPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+    loadingModal.show();
+
+    try {
+      const paymentData = {
+        userId: document.getElementById('userId').value,
+        subscriptionId: subscriptionId,
+        amount: amount,
+        currency: 'INR',
+        paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value === 'upi' ? 'UPI' : 'bank_transfer',
+        paymentStatus: 'completed',
+        transactionType: 'subscription_payment',
+        referenceNumber: transactionReference,
+        gatewayResponse: {
+          notes: document.getElementById('additionalNotes').value,
+          paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value
+        }
+      };
+
+      console.log('Creating transaction with data:', paymentData);
+
+      const response = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + localStorage.getItem('authToken')
+        },
+        body: JSON.stringify(paymentData)
+      });
+
+      const result = await response.json();
+      console.log('Transaction response:', result);
+
+      if (response.ok && result.success) {
+        // Success - redirect to dashboard
+        loadingModal.hide();
+        alert('Payment confirmed successfully! Your subscription will be activated shortly.');
+        window.location.href = '/dashboard';
+      } else {
+        // Error handling
+        loadingModal.hide();
+        alert('Error confirming payment: ' + (result.message || 'Unknown error'));
+        submitPaymentBtn.disabled = false;
+        submitPaymentBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
+      }
+    } catch (error) {
+      console.error('Error submitting payment:', error);
+      loadingModal.hide();
+      alert('Network error: ' + error.message);
+      submitPaymentBtn.disabled = false;
+      submitPaymentBtn.innerHTML = '<i class="fas fa-check me-2"></i>Confirm Payment';
+    }
+  });
+});
+</script>
+{% endblock %}

@@ -1,14 +1,17 @@
 const db = require('../models')
 
 async function getAllProducts() {
+  console.log('🔥 DEBUG: getAllProducts called!');
   console.log('getAllProducts: Starting to fetch products from database...')
   const rows = await db.Product.findAll({ 
     include: [{ model: db.Plan, as: 'plans' }],
     order: [['sortOrder','ASC'], ['name','ASC']] 
   })
   console.log(`getAllProducts: Found ${rows.length} products in database`)
+  console.log('getAllProducts: First row data:', rows[0] ? { id: rows[0].id, name: rows[0].name } : 'no rows');
   const products = rows.map(row => toDto(row))
   console.log(`getAllProducts: Returning ${products.length} products after DTO conversion`)
+  console.log('getAllProducts: First product after DTO:', products[0] ? { id: products[0].id, name: products[0].name } : 'no products');
   return products
 }
 
@@ -40,7 +43,12 @@ async function getProducts(options = {}) {
 }
 
 async function getProductByName(name) {
-  const row = await db.Product.findOne({ where: { name } })
+  console.log('getProductByName called with name:', name);
+  const row = await db.Product.findOne({ 
+    where: { name },
+    include: [{ model: db.Plan, as: 'plans' }]
+  })
+  console.log('getProductByName found row:', row ? { id: row.id, name: row.name } : 'null');
   return row ? toDto(row) : null
 }
 
@@ -97,7 +105,9 @@ async function deleteProduct(name) {
 }
 
 function toDto(row){
+  console.log('toDto called with row:', { id: row.id, name: row.name, hasPlans: !!row.plans });
   return {
+    id: row.id,
     name: row.name,
     description: row.description,
     category: row.category,
@@ -131,10 +141,7 @@ function fromDto(dto){
     sortOrder: dto.sortOrder || 0,
     targetAudience: dto.targetAudience || '',
     keyFeatures: dto.keyFeatures || [],
-    pricingTrial: dto.pricing?.trial ?? dto.trial ?? 0,
-    pricingMonthly: dto.pricing?.monthly ?? dto.monthly ?? 0,
-    pricingQuarterly: dto.pricing?.quarterly ?? dto.quarterly ?? 0,
-    pricingYearly: dto.pricing?.yearly ?? dto.yearly ?? 0
+
   }
 }
 

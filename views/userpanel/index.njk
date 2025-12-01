@@ -57,11 +57,7 @@
                             {% endfor %}
                         </ul>
                         <div class="pricing-info mb-3">
-                            <small class="text-muted d-block mb-1">Pricing:</small>
-                            <div class="d-flex justify-content-between">
-                                <span class="badge bg-success">Trial: ₹{{ product.pricing.trial }}</span>
-                                <span class="badge bg-primary">Monthly: ₹{{ product.pricing.monthly }}</span>
-                            </div>
+                            <small class="text-muted d-block mb-1">Plans available</small>
                         </div>
                         <a href="/product/{{ product.name | lower }}" class="btn btn-outline-primary w-100">Learn More</a>
                     </div>

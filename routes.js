@@ -61,15 +61,117 @@ router.get('/product/:name', async (req, res) => {
             });
         }
         
+        console.log('🎯 Found product:', { id: product.id, name: product.name, hasId: !!product.id });
+        
+        // Get plans for this product from the database
+        const db = require('./models');
+        const plans = await db.Plan.findAll({
+            where: {
+                productName: product.name,
+                isActive: true
+            },
+            order: [['numberOfDays', 'ASC']]
+        });
+        
+        console.log(`📋 Found ${plans.length} plans for product: ${product.name}`);
+        
+        // Format plans for the template
+        const pricingResolved = {
+            trial: '0',
+            monthly: '0',
+            quarterly: '0',
+            yearly: '0'
+        };
+        
+        plans.forEach(plan => {
+            if (plan.planName.toLowerCase().includes('trial')) {
+                pricingResolved.trial = plan.cost.toString();
+            } else if (plan.numberOfDays <= 31) {
+                pricingResolved.monthly = plan.cost.toString();
+            } else if (plan.numberOfDays <= 93) {
+                pricingResolved.quarterly = plan.cost.toString();
+            } else if (plan.numberOfDays >= 365) {
+                pricingResolved.yearly = plan.cost.toString();
+            }
+        });
+        
+        console.log(`💰 Pricing resolved:`, pricingResolved);
+        
         console.log(`✅ Rendering product detail for: ${product.name}`);
         res.render('userpanel/product-detail.njk', { 
             product: product,
+            pricingResolved: pricingResolved,
             title: `${product.name} Trading Signals - SimpleIncome`
         });
     } catch (error) {
         console.error('❌ Error loading product:', error);
         res.status(500).render('userpanel/error.njk', { 
             title: 'Error Loading Product',
+            error: error.message
+        });
+    }
+});
+
+// Subscription confirmation page route
+router.get('/subscription/confirm', async (req, res) => {
+    console.log('🎯 Subscription confirmation route hit');
+    try {
+        // Get user data from query parameters
+        const { productId, planId } = req.query;
+        
+        if (!productId || !planId) {
+            return res.status(400).render('userpanel/error.njk', {
+                title: 'Invalid Request',
+                error: 'Product ID and Plan ID are required'
+            });
+        }
+
+        const db = require('./models');
+        
+        // Get product and plan details
+        const product = await db.Product.findOne({
+            where: { id: productId }
+        });
+        
+        const plan = await db.Plan.findOne({
+            where: { id: planId }
+        });
+        
+        if (!product || !plan) {
+            return res.status(404).render('userpanel/error.njk', {
+                title: 'Not Found',
+                error: 'Product or Plan not found'
+            });
+        }
+        
+        // Calculate start and end dates
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(startDate.getDate() + plan.numberOfDays);
+        
+        // For now, we'll use mock user data. In a real implementation,
+        // you'd get this from the authenticated user
+        const user = {
+            id: 1,
+            fullName: 'Demo User',
+            email: 'demo@example.com',
+            phoneNumber: '+91-9999999999'
+        };
+        
+        console.log(`✅ Rendering subscription confirmation for: ${product.name} - ${plan.planName}`);
+        res.render('userpanel/subscription-confirm.njk', {
+            title: 'Confirm Subscription - SimpleIncome',
+            user: user,
+            product: product,
+            plan: plan,
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Error loading subscription confirmation:', error);
+        res.status(500).render('userpanel/error.njk', {
+            title: 'Error Loading Confirmation',
             error: error.message
         });
     }
