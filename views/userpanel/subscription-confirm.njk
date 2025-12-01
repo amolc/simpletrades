@@ -5,6 +5,26 @@
 {% block content %}
 <section class="py-5" style="padding-top: 100px;">
   <div class="container">
+    <!-- Page Header with Shopping Cart Experience -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="checkout-header">
+          <h1 class="page-title mb-2">
+            <i class="fas fa-shopping-cart me-2 text-primary"></i>
+            Checkout - {{ product.name }}
+          </h1>
+          <!-- Breadcrumb -->
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="/">Home</a></li>
+              <li class="breadcrumb-item"><a href="/products">Products</a></li>
+              <li class="breadcrumb-item"><a href="/product/{{ product.id }}">{{ product.name }}</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Confirmation</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
     <div class="row justify-content-center">
       <div class="col-lg-8">
         <div class="card shadow-lg">
@@ -46,32 +66,10 @@
               </div>
             </div>
 
-            <!-- Plan Features -->
-            {% if plan.features %}
-            <div class="mb-4">
-              <h5 class="text-primary mb-3">Plan Features</h5>
-              <div class="row">
-                {% for feature in plan.features %}
-                <div class="col-md-6 mb-2">
-                  <i class="fas fa-check text-success me-2"></i>{{ feature }}
-                </div>
-                {% endfor %}
-              </div>
-            </div>
-            {% endif %}
-
-            <hr>
-
-            <!-- Payment Information -->
-            <div class="alert alert-info mb-4">
-              <h6><i class="fas fa-info-circle me-2"></i>Payment Information</h6>
-              <p class="mb-0">You will be redirected to complete the payment after confirming your subscription. Payment details will be provided on the next page.</p>
-            </div>
-
             <!-- Terms and Conditions -->
             <div class="mb-4">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                <input class="form-check-input" type="checkbox" id="termsCheck" required checked style="border-color: #000;">
                 <label class="form-check-label" for="termsCheck">
                   I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
                 </label>
@@ -79,13 +77,19 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="d-flex justify-content-between">
-              <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
-                <i class="fas fa-arrow-left me-2"></i>Back
-              </button>
+            <div class="d-flex justify-content-between mb-4">
               <button type="button" class="btn btn-primary btn-lg" id="confirmSubscriptionBtn">
                 <i class="fas fa-check me-2"></i>Confirm Subscription
               </button>
+              <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left me-2"></i>Back
+              </button>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="alert alert-info mb-0">
+              <h6><i class="fas fa-info-circle me-2"></i>Payment Information</h6>
+              <p class="mb-0">You will be redirected to complete the payment after confirming your subscription. Payment details will be provided on the next page.</p>
             </div>
           </div>
         </div>
@@ -98,6 +102,9 @@
 document.addEventListener('DOMContentLoaded', function() {
   const confirmBtn = document.getElementById('confirmSubscriptionBtn');
   const termsCheck = document.getElementById('termsCheck');
+
+  // Enable confirm button by default since checkbox is pre-checked
+  confirmBtn.disabled = false;
 
   // Enable/disable confirm button based on terms acceptance
   termsCheck.addEventListener('change', function() {
@@ -142,9 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
       if (response.ok && result.success) {
         // Success - redirect to payment page
-        alert('Subscription created successfully! Redirecting to payment...');
-        
-        // Redirect to payment page with subscription details and auth token
         const subscriptionId = result.data.id;
         const authToken = localStorage.getItem('authToken');
         window.location.href = `/payment?subscriptionId=${subscriptionId}&authToken=${authToken}`;
@@ -163,4 +167,89 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<style>
+/* Shopping Cart Checkout Header Styles */
+.checkout-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 10px;
+  border-left: 4px solid #007bff;
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.page-title i {
+  font-size: 1.8rem;
+}
+
+.breadcrumb {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: ">";
+  color: #6c757d;
+  font-weight: bold;
+}
+
+.breadcrumb-item a {
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 500;
+}
+
+.breadcrumb-item a:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Card styling to match checkout experience */
+.card {
+  border: 1px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  border-bottom: 2px solid #0056b3;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .checkout-header {
+    padding: 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .page-title i {
+    font-size: 1.4rem;
+  }
+  
+  .breadcrumb {
+    font-size: 0.85rem;
+  }
+}
+</style>
 {% endblock %}

@@ -1,76 +1,255 @@
-# Frontend User Flow
+# Frontend Documentation - SimpleIncome
 
-This document outlines the complete user flow of the StockAgent application, from the initial landing page to the subscription and dashboard.
+## Overview
+SimpleIncome is a trading signals platform with both customer-facing and admin interfaces. The application uses Nunjucks templates for server-side rendering with a Node.js/Express backend.
 
-## 1. Landing Page (`index.html`)
+## Authentication System
 
-The user journey begins on the main landing page, which serves as the entry point for both new and existing users.
+### User Authentication
+- **Method**: JWT-based authentication
+- **Token Storage**: LocalStorage (`authToken`)
+- **Token Propagation**: Via query parameters for redirects
+- **Authentication Check**: `authenticateViewUser()` function in routes
 
-- **New Users**: Can navigate to the registration page by clicking the **Register** button.
-- **Existing Users**: Can proceed to the login page by clicking the **Login** button.
+### Admin Authentication
+- **Method**: Separate admin login system
+- **Access**: Admin-only routes under `/admin/*`
 
-## 2. Registration (`subscribe.html`)
+## Page Structure & Authentication Requirements
 
-New users are directed to the subscription page to create an account and select a plan.
+### Public Pages (No Authentication Required)
 
-- **Plan Selection**: Users can choose from various subscription plans, including a free trial and paid tiers (e.g., Monthly, Quarterly, Annual).
-- **User Details**: A form captures the user's full name, mobile number, email address, and a password for the new account.
-- **Alert Preferences**: Users can provide their Telegram ID and WhatsApp number and choose their preferred method for receiving alerts.
-- **Terms and Conditions**: Users must agree to the terms and conditions before proceeding.
-- **Registration and Subscription**: Upon clicking "Register and Subscribe," the system creates a new user account and a corresponding subscription.
+#### 1. Home Page
+- **URL**: `/`
+- **Template**: `views/userpanel/index.njk`
+- **Purpose**: Landing page with product showcase
+- **Features**: Displays top 4 active products, hero section, features
 
-## 3. Login (`login.html`)
+#### 2. Product Details
+- **URL**: `/product/:name`
+- **Template**: `views/userpanel/product-detail.njk`
+- **Purpose**: Individual product information and pricing
+- **Features**: Product description, pricing plans, subscription options
 
-Existing users can access their accounts through the login page.
+#### 3. Products Listing
+- **URL**: `/products`
+- **Template**: `views/userpanel/products.njk`
+- **Purpose**: Browse all available products
+- **Features**: Product grid, filtering by category
 
-- **Credentials**: Users enter their registered mobile phone number and password.
-- **Authentication**: The system sends a request to the `/api/users/login` endpoint to verify the credentials.
-- **Token Storage**: Upon successful authentication, a JWT token is returned and stored in the browser's `localStorage`.
-- **Redirection**: The user is then redirected to the main dashboard.
+#### 4. Plans Page
+- **URL**: `/plans`
+- **Template**: `views/userpanel/plans.njk`
+- **Purpose**: Display all available subscription plans
+- **Features**: Plan comparison, pricing details
 
-## 4. Dashboard (`dashboard.html`)
+#### 5. Stocks Page
+- **URL**: `/stocks`
+- **Template**: `views/userpanel/stocks.njk`
+- **Purpose**: Stock market information
+- **Features**: Stock listings, market data
 
-The dashboard is the central hub for authenticated users, providing an overview of their account and subscription status.
+#### 6. Contact Page
+- **URL**: `/contact`
+- **Template**: `views/userpanel/contact.njk`
+- **Purpose**: Contact form and support information
+- **Features**: Contact form, support details
 
-- **Authentication**: Access to the dashboard is protected and requires a valid JWT token.
-- **User Information**: The dashboard displays the user's phone number and email address, fetched from the `/api/users/dashboard` endpoint.
-- **Subscription Status**:
-    - **Pending**: If a subscription is awaiting manual verification, it is displayed with a "Pending Verification" status and a yellow warning indicator.
-    - **Active**: Once approved, the subscription status changes to "Active," with a progress bar indicating the remaining duration.
-- **Product Access**: The dashboard features cards for different products (e.g., Stocks, Options), which show an "Active" or "Pending" status based on the user's subscription.
-- **Logout**: A logout button allows the user to securely log out, which clears the JWT token from `localStorage` and redirects to the login page.
+#### 7. User Registration
+- **URL**: `/register`
+- **Template**: `views/userpanel/register.njk`
+- **Purpose**: New user registration
+- **Features**: Registration form, validation
+- **API**: `POST /api/users/register`
 
-## 5. Subscription Plans (`plans.html`)
+#### 8. User Login
+- **URL**: `/login`
+- **Template**: `views/userpanel/login.njk`
+- **Purpose**: User authentication
+- **Features**: Login form, redirect handling
+- **API**: `POST /api/users/login`
+- **Authentication**: Phone number + password
 
-From the dashboard, users can navigate to the plans page to view and select a subscription.
+#### 9. Error Pages
+- **URL**: `/error` (generic error handler)
+- **Templates**: 
+  - `views/userpanel/error.njk` (generic errors)
+  - `views/userpanel/404.njk` (not found)
+- **Purpose**: Error handling and user feedback
 
-- **Plan Options**: The page displays all available subscription plans with their respective prices and features.
-- **Plan Selection**: When a user chooses a plan, they are redirected to the payment page, with the selected plan and amount passed as URL parameters.
+### Authenticated Pages (User Login Required)
 
-## 6. Payment (`payment.html`)
+#### 10. Dashboard
+- **URL**: `/dashboard`
+- **Template**: `views/userpanel/dashboard.njk`
+- **Purpose**: User dashboard with subscription overview
+- **Features**: 
+  - User welcome message
+  - Active subscriptions table
+  - Quick access to signals
+- **JavaScript**: `assets/js/dashboard.js`
+- **API**: `GET /api/subscriptions/user/:userId`
 
-## 7. Settings (`settings.html`)
+#### 11. Trading Signals
+- **URL**: `/signals/`
+- **Template**: `views/userpanel/signals.njk`
+- **Purpose**: Trading signals dashboard
+- **Features**:
+  - Signal statistics (total, active, win rate, P&L)
+  - Signals table with real-time data
+  - Auto-refresh every 30 seconds
+- **API**: `GET /api/signals`
 
-The settings page allows users to manage their profile and security settings.
+#### 12. User-Specific Signals
+- **URL**: `/dashboard/signals/:productName`
+- **Template**: `views/userpanel/user-signals.njk`
+- **Purpose**: Product-specific signals for subscribed users
+- **Features**: Filtered signals by product, detailed signal information
 
-- **Profile Information**: Users can update their personal details, such as their name and email address.
-- **Password Reset**: A dedicated section allows users to change their password.
-- **Alert Preferences**: Users can update their Telegram ID and WhatsApp number and change their preferred alert method.
+#### 13. Subscription Confirmation
+- **URL**: `/subscription/confirm?productId=X&planId=Y`
+- **Template**: `views/userpanel/subscription-confirm.njk`
+- **Purpose**: Confirm subscription details before payment
+- **Features**:
+  - Product and plan details
+  - Subscription dates calculation
+  - User information display
+- **Authentication**: Required (redirects to login if not authenticated)
+- **Flow**: Product page → Subscription confirm → Payment
 
-## 8. Signals (`signals.html`)
+#### 14. Payment Page
+- **URL**: `/payment?subscriptionId=X&authToken=Y`
+- **Template**: `views/userpanel/payment.njk`
+- **Purpose**: Payment processing for subscriptions
+- **Features**:
+  - UPI payment instructions
+  - Subscription details
+  - Payment amount display
+- **Authentication**: Required (via authToken in URL)
+- **Parameters**: `subscriptionId` or `productId+planId`
+- **Amount Calculation**: Uses `Number(plan.cost).toFixed(2)`
 
-This page displays the trading signals for the products the user has subscribed to.
+### Admin Pages (Admin Authentication Required)
 
-- **Product-Specific Signals**: The left menu will dynamically populate with links to the signal pages for each subscribed product (e.g., "Stock Signals").
-- **Signal History**: Users can view a history of all signals sent to them since their subscription started.
-- **Signal Details**: Each signal in the list will show relevant details, such as the stock symbol, entry price, target price, and stop loss.
+#### 15. Admin Login
+- **URL**: `/admin/login`
+- **Template**: `views/admin/login.njk`
+- **Purpose**: Admin authentication
+- **Features**: Admin-specific login form
+- **JavaScript**: `assets/admin/js/login.js`
 
+#### 16. Admin Dashboard
+- **URL**: `/admin/dashboard`
+- **Template**: `views/admin/dashboard.njk`
+- **Purpose**: Admin overview and statistics
+- **Features**: System statistics, quick actions
 
-The payment page facilitates the subscription payment process.
+#### 17. Admin Signals Management
+- **URL**: `/admin/signals`
+- **Template**: `views/admin/signals.njk`
+- **Purpose**: Signal management and monitoring
+- **Features**:
+  - Signal statistics
+  - Watchlist management
+  - Signal creation/editing
+  - Real-time data updates
 
-- **Payment Details**: The selected plan and corresponding amount are displayed.
-- **QR Code Generation**: A UPI QR code is generated for the specified amount, allowing the user to make a payment using any UPI-enabled app.
-- **Reference Number**: After completing the payment, the user enters the transaction reference number (UTR/Transaction ID) into an input field.
-- **Payment Confirmation**: The user clicks "I Have Completed Payment" to submit the reference number to the backend via the `/api/activate-subscription` endpoint.
-- **Pending Status**: The system creates a new subscription with a `pending` status, which will be manually verified by an administrator.
-- **Redirection**: The user is then redirected back to the dashboard, where they can see their new subscription in a pending state.
+#### 18. Admin Signal Details
+- **URL**: `/admin/signals/:productName`
+- **Template**: `views/admin/signal-detail.njk`
+- **Purpose**: Product-specific signal management
+- **Features**: Detailed signal analytics, product filtering
+
+#### 19. Admin Products
+- **URL**: `/admin/products`
+- **Template**: `views/admin/products.njk`
+- **Purpose**: Product management
+- **Features**: Product CRUD operations, pricing management
+
+#### 20. Admin Subscriptions
+- **URL**: `/admin/subscriptions`
+- **Template**: `views/admin/subscriptions.njk`
+- **Purpose**: Subscription management
+- **Features**:
+  - All user subscriptions
+  - Subscription status tracking
+  - Pagination (50 items per page)
+- **API**: Uses `subscriptionController.getAllSubscriptions()`
+
+#### 21. Admin Transactions
+- **URL**: `/admin/transactions`
+- **Template**: `views/admin/transactions.njk`
+- **Purpose**: Payment transaction management
+- **Features**:
+  - Transaction history
+  - Payment status tracking
+  - Pagination (50 items per page)
+- **API**: Uses `transactionController.getAllTransactions()`
+
+#### 22. Admin Staff Management
+- **URL**: `/admin/staff`
+- **Template**: `views/admin/staff.njk`
+- **Purpose**: Staff user management
+- **Features**: Staff CRUD operations, role management
+- **API**: Uses `userController.getAllUsers()` with `userType=staff`
+
+#### 23. Admin Customers
+- **URL**: `/admin/customers`
+- **Template**: `views/admin/customers.njk`
+- **Purpose**: Customer management
+- **Features**: Customer overview, subscription tracking
+- **API**: Uses `userController.getAllUsers()` with `userType=customer`
+
+#### 24. Admin Settings
+- **URL**: `/admin/settings`
+- **Template**: `views/admin/settings.njk`
+- **Purpose**: System configuration
+- **Features**: Payment settings, system preferences
+
+## Authentication Flow
+
+### User Authentication Flow
+1. **Login**: `/login` → API call → Store token in localStorage
+2. **Authenticated Access**: Include token in requests
+3. **Token Propagation**: Pass authToken in URLs for redirects
+4. **Logout**: Clear localStorage, redirect to home
+
+### Subscription Flow
+1. **Product Selection**: `/product/:name`
+2. **Plan Selection**: Choose subscription plan
+3. **Confirmation**: `/subscription/confirm?productId=X&planId=Y`
+4. **Payment**: `/payment?subscriptionId=X&authToken=Y`
+5. **Dashboard**: `/dashboard` (view active subscription)
+
+### Admin Authentication Flow
+1. **Admin Login**: `/admin/login`
+2. **Admin Dashboard**: `/admin/dashboard`
+3. **Management Pages**: Various admin routes
+
+## JavaScript Files
+
+### User Panel Scripts
+- `assets/js/dashboard.js`: Dashboard functionality, subscription loading
+- `assets/js/main.js`: Common functionality
+- Template-specific scripts embedded in Nunjucks files
+
+### Admin Scripts
+- `assets/admin/js/login.js`: Admin authentication
+- Admin-specific functionality embedded in templates
+
+## Error Handling
+- **404 Errors**: Custom 404 page for missing content
+- **500 Errors**: Generic error page with error messages
+- **Authentication Errors**: Redirect to login with return URL
+- **API Errors**: Displayed in-page with user-friendly messages
+
+## Template Inheritance
+- **Base Layout**: `views/layout.njk` (user panel)
+- **Admin Layout**: `views/admin/layout.njk` (admin panel)
+- **Common Components**: Header, footer shared across pages
+
+## Data Flow
+- **Server-Side Rendering**: Nunjucks templates with data injection
+- **API Integration**: Fetch calls to backend API endpoints
+- **Real-Time Updates**: JavaScript polling for signal updates (30s intervals)
+- **Authentication**: JWT tokens passed via headers, cookies, or URL parameters

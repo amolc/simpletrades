@@ -278,7 +278,7 @@ router.get('/payment', async (req, res) => {
       planId: planId || plan?.id || '',
       productName: product?.name || plan?.productName || subscription?.plan?.Product?.name || 'Stocks',
       planName: plan?.planName || subscription?.plan?.planName || 'Unknown Plan',
-      planDuration: plan?.planDays || subscription?.plan?.planDays || 30,
+      planDuration: plan?.numberOfDays || subscription?.plan?.numberOfDays || 30,
       amount: Number(plan?.cost || subscription?.plan?.cost || 0).toFixed(2)
     });
     

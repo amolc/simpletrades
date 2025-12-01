@@ -3,8 +3,29 @@
 {% block title %}Payment - {{ websiteName }}{% endblock %}
 
 {% block content %}
-<section class="section">
+<section class="section" style="padding-top: 100px;">
   <div class="container">
+    <!-- Shopping Cart Checkout Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="checkout-header">
+          <h1 class="page-title mb-2">
+            <i class="fas fa-shopping-cart me-2 text-primary"></i>
+            Checkout - {{ productName }}
+          </h1>
+          <!-- Breadcrumb -->
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+              <li class="breadcrumb-item"><a href="/">Home</a></li>
+              <li class="breadcrumb-item"><a href="/products">Products</a></li>
+              <li class="breadcrumb-item"><a href="/product/{{ productId }}">{{ productName }}</a></li>
+              <li class="breadcrumb-item"><a href="/subscription/confirm?productId={{ productId }}&planId={{ planId }}">Confirmation</a></li>
+              <li class="breadcrumb-item active" aria-current="page">Payment</li>
+            </ol>
+          </nav>
+        </div>
+      </div>
+    </div>
     <div class="row justify-content-center">
       <div class="col-lg-8">
         <div class="card shadow-sm">
@@ -13,16 +34,42 @@
           </div>
           <div class="card-body p-4">
             <!-- Subscription Details -->
-            <div class="alert alert-info mb-4">
-              <h6><i class="fas fa-info-circle me-2"></i>Subscription Details</h6>
-              <div class="row">
-                <div class="col-md-6">
-                  <p class="mb-1"><strong>Product:</strong> <span id="productName">{{ productName }}</span></p>
-                  <p class="mb-1"><strong>Plan:</strong> <span id="planName">{{ planName }}</span></p>
-                </div>
-                <div class="col-md-6">
-                  <p class="mb-1"><strong>Duration:</strong> <span id="planDuration">{{ planDuration }}</span></p>
-                  <p class="mb-1"><strong>Amount:</strong> <span id="amount" class="text-primary fw-bold">₹{{ amount }}</span></p>
+            <div class="card border-light mb-4">
+              <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Subscription Details</h6>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <!-- Customer Details - Left Side -->
+                  <div class="col-md-6">
+                    <h6 class="text-primary mb-3">Customer Details</h6>
+                    <div class="mb-2">
+                      <strong>Name:</strong> <span class="text-dark">{{ user.fullName }}</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Email:</strong> <span class="text-dark">{{ user.email }}</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Phone:</strong> <span class="text-dark">{{ user.phoneNumber }}</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Plan Details - Right Side -->
+                  <div class="col-md-6">
+                    <h6 class="text-primary mb-3">Plan Details</h6>
+                    <div class="mb-2">
+                      <strong>Product:</strong> <span class="text-dark">{{ productName }}</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Plan:</strong> <span class="text-dark">{{ planName }}</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Duration:</strong> <span class="text-dark">{{ planDuration }} days</span>
+                    </div>
+                    <div class="mb-2">
+                      <strong>Amount:</strong> <span class="text-primary fw-bold">₹{{ amount }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -49,6 +96,14 @@
                   <div class="alert alert-warning">
                     <small><i class="fas fa-exclamation-triangle me-1"></i>After making the payment, enter the transaction reference number below.</small>
                   </div>
+                  
+                  <!-- Transaction Reference Input - Moved here below QR code -->
+                  <div class="mt-3 mb-3">
+                    <label for="transactionReference" class="form-label fw-bold">Transaction Reference Number *</label>
+                    <input type="text" class="form-control" id="transactionReference" required 
+                           placeholder="Enter transaction reference (e.g., UPI123456789)">
+                    <div class="form-text">This is usually found in your payment app's transaction history.</div>
+                  </div>
                 </div>
               </div>
 
@@ -69,23 +124,27 @@
                     <p><strong>IFSC Code:</strong> EXAM0001234</p>
                     <p><strong>Account Holder:</strong> {{ websiteName }}</p>
                   </div>
+                  
+                  <!-- Transaction Reference Input for Bank Transfer -->
+                  <div class="mt-3 mb-3">
+                    <label for="transactionReferenceBank" class="form-label fw-bold">Transaction Reference Number *</label>
+                    <input type="text" class="form-control" id="transactionReferenceBank" required 
+                           placeholder="Enter transaction reference from bank transfer">
+                    <div class="form-text">Enter the UTR/reference number from your bank transfer.</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Transaction Reference -->
+            <!-- Transaction Reference Section - Now only for additional notes -->
             <div class="mb-4">
               <h5 class="mb-3">Payment Confirmation</h5>
               <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>Enter the transaction reference number from your payment app or bank statement.
+                <i class="fas fa-info-circle me-2"></i>Please review your payment details and add any additional notes if needed.
               </div>
               <form id="paymentForm">
+                <!-- Transaction reference is now above, keeping only additional notes here -->
                 <div class="mb-3">
-                  <label for="transactionReference" class="form-label">Transaction Reference Number *</label>
-                  <input type="text" class="form-control" id="transactionReference" required 
-                         placeholder="Enter transaction reference (e.g., UPI123456789)">
-                  <div class="form-text">This is usually found in your payment app's transaction history.</div>
-                </div>
                 
                 <div class="mb-3">
                   <label for="additionalNotes" class="form-label">Additional Notes (Optional)</label>
@@ -101,11 +160,11 @@
 
                 <!-- Action Buttons -->
                 <div class="d-flex justify-content-between">
-                  <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
-                    <i class="fas fa-arrow-left me-2"></i>Back
-                  </button>
                   <button type="submit" class="btn btn-success btn-lg" id="submitPaymentBtn">
                     <i class="fas fa-check me-2"></i>Confirm Payment
+                  </button>
+                  <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left me-2"></i>Back
                   </button>
                 </div>
               </form>
@@ -119,10 +178,10 @@
                   <strong>Payment Issues?</strong> Contact our support team:
                 </p>
                 <p class="small mb-1">
-                  <i class="fas fa-envelope me-2"></i>Email: support@{{ websiteName|lower|replace(' ', '') }}.com
+                  <i class="fas fa-envelope me-2"></i>Email: support@simpleincome.co
                 </p>
                 <p class="small mb-0">
-                  <i class="fas fa-phone me-2"></i>Phone: +91-XXXXXXXXXX
+                  <i class="fas fa-phone me-2"></i>Phone: +91 9226260737
                 </p>
               </div>
             </div>
@@ -191,7 +250,16 @@ document.addEventListener('DOMContentLoaded', function() {
   paymentForm.addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    const transactionReference = document.getElementById('transactionReference').value.trim();
+    // Get the selected payment method and corresponding transaction reference
+    const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked').value;
+    let transactionReference;
+    
+    if (paymentMethod === 'upi') {
+      transactionReference = document.getElementById('transactionReference').value.trim();
+    } else {
+      transactionReference = document.getElementById('transactionReferenceBank').value.trim();
+    }
+    
     if (!transactionReference) {
       alert('Please enter the transaction reference number');
       return;
@@ -235,7 +303,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (response.ok && result.success) {
         // Success - redirect to dashboard
         loadingModal.hide();
-        alert('Payment confirmed successfully! Your subscription will be activated shortly.');
         window.location.href = '/dashboard';
       } else {
         // Error handling
@@ -254,4 +321,98 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+
+<style>
+/* Shopping Cart Checkout Header Styles */
+.checkout-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  padding: 1.5rem;
+  border-radius: 10px;
+  border-left: 4px solid #007bff;
+  margin-bottom: 1rem;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.page-title i {
+  font-size: 1.8rem;
+}
+
+.breadcrumb {
+  background: transparent;
+  padding: 0;
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.breadcrumb-item + .breadcrumb-item::before {
+  content: ">";
+  color: #6c757d;
+  font-weight: bold;
+}
+
+.breadcrumb-item a {
+  color: #007bff;
+  text-decoration: none;
+  transition: color 0.2s ease;
+  font-weight: 500;
+}
+
+.breadcrumb-item a:hover {
+  color: #0056b3;
+  text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Enhanced card styling for payment page */
+.card {
+  border: 1px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+  border-bottom: 2px solid #0056b3;
+}
+
+/* Payment method cards enhancement */
+.card.border-primary {
+  border-width: 2px;
+}
+
+.card.border-secondary {
+  border-width: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .checkout-header {
+    padding: 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .page-title i {
+    font-size: 1.4rem;
+  }
+  
+  .breadcrumb {
+    font-size: 0.85rem;
+  }
+}
+</style>
 {% endblock %}
