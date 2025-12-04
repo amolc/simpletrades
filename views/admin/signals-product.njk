@@ -1,0 +1,365 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Product Signals - {{ productName }}{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="/assets/admin/css/styles.css">
+{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="mt-4 mb-3">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/admin/signals">Signals</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ productName }}</li>
+      </ol>
+    </nav>
+    <h2 class="mb-1">{{ productName }} Signals</h2>
+    <small class="text-muted">Signals for {{ productName }} product</small>
+  </div>
+
+  <!-- Product Stats Card -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <div class="row text-center">
+            <div class="col-md-3">
+              <div class="text-muted small">Total Signals</div>
+              <div class="h4 mb-0">{{ productStats.totalSignals }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted small">Win Rate</div>
+              <div class="h4 mb-0 text-success">{{ productStats.winLossRatio }}%</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted small">Profits</div>
+              <div class="h4 mb-0 text-success">{{ productStats.profitSignals }}</div>
+            </div>
+            <div class="col-md-3">
+              <div class="text-muted small">Losses</div>
+              <div class="h4 mb-0 text-danger">{{ productStats.lossSignals }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Watchlist -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">{{ productName }} Watchlist</h5>
+          <button class="btn btn-primary btn-sm" id="addWatchlistBtn"><i class="fas fa-plus me-1"></i>Add to Watchlist</button>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0" id="productWatchlistTable">
+              <thead>
+                <tr>
+                  <th>Stock Name</th>
+                  <th>Market</th>
+                  <th>Current Price</th>
+                  <th>Alert Price</th>
+                  <th>Product</th>
+                  <th>Added Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="productWatchlistBody">
+                {% for item in watchlist %}
+                <tr data-watchlist-id="{{ item.id }}">
+                  <td><strong>{{ item.stockName }}</strong></td>
+                  <td>{{ item.market }}</td>
+                  <td>₹{{ item.currentPrice.toFixed(2) }}</td>
+                  <td>₹{{ item.alertPrice.toFixed(2) }}</td>
+                  <td>{{ item.productName or '-' }}</td>
+                  <td>{{ item.createdAt.toLocaleString() }}</td>
+                  <td>
+                    <div class="btn-group btn-group-sm">
+                      <button class="btn btn-outline-success" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Buy</button>
+                      <button class="btn btn-outline-warning" data-action="sell" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Sell</button>
+                      <button class="btn btn-outline-primary" data-action="edit-watchlist" data-wid="{{ item.id }}">Edit</button>
+                      <button class="btn btn-outline-danger" data-action="delete-watchlist" data-wid="{{ item.id }}">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signals Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">{{ productName }} Signals</h5>
+      <div>
+        <a href="/admin/signals" class="btn btn-outline-secondary btn-sm me-2">Back to All Signals</a>
+        <button class="btn btn-primary btn-sm" id="addSignalBtn"><i class="fas fa-plus me-1"></i>Add Signal</button>
+      </div>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="productSignalsTable">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Type</th>
+              <th>Entry</th>
+              <th>Target</th>
+              <th>Stop Loss</th>
+              <th>Entry Time</th>
+              <th>Exit Price</th>
+              <th>Exit Time</th>
+              <th>Status</th>
+              <th>P&L</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="productSignalsBody">
+            {% for signal in signals %}
+            <tr>
+              <td><strong>{{ signal.symbol }}</strong></td>
+              <td>{{ signal.signalType or signal.type }}</td>
+              <td>₹{{ signal.entry.toFixed(2) }}</td>
+              <td>₹{{ signal.target.toFixed(2) }}</td>
+              <td>₹{{ signal.stopLoss.toFixed(2) }}</td>
+              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.getDate().toString().padStart(2, '0') }}/{{ (signal.entryDateTime.getMonth() + 1).toString().padStart(2, '0') }}/{{ signal.entryDateTime.getFullYear().toString().slice(-2) }} {{ signal.entryDateTime.getHours().toString().padStart(2, '0') }}:{{ signal.entryDateTime.getMinutes().toString().padStart(2, '0') }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitPrice %}₹{{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.getDate().toString().padStart(2, '0') }}/{{ (signal.exitDateTime.getMonth() + 1).toString().padStart(2, '0') }}/{{ signal.exitDateTime.getFullYear().toString().slice(-2) }} {{ signal.exitDateTime.getHours().toString().padStart(2, '0') }}:{{ signal.exitDateTime.getMinutes().toString().padStart(2, '0') }}{% else %}-{% endif %}</td>
+              <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
+              <td>
+                {% if signal.profitLoss %}
+                  {% if signal.profitLoss >= 0 %}
+                    <span class="text-success">+₹{{ signal.profitLoss.toFixed(2) }}</span>
+                  {% else %}
+                    <span class="text-danger">-₹{{ (-signal.profitLoss).toFixed(2) }}</span>
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>{{ signal.createdAt.toLocaleString() }}</td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  {% if signal.status == 'IN_PROGRESS' %}
+                    <button class="btn btn-outline-warning" data-action="close" data-sid="{{ signal.id }}" data-symbol="{{ signal.symbol }}">Close</button>
+                  {% endif %}
+                  <button class="btn btn-outline-primary" data-action="edit" data-sid="{{ signal.id }}">Edit</button>
+                  <button class="btn btn-outline-danger" data-action="delete" data-sid="{{ signal.id }}">Delete</button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- No Signals Message -->
+  {% if signals.length === 0 %}
+  <div class="alert alert-info mt-3">
+    <i class="fas fa-info-circle me-2"></i>No signals found for {{ productName }}. <a href="/admin/signals" class="alert-link">View all signals</a> or add a new signal.
+  </div>
+  {% endif %}
+
+  <!-- No Watchlist Items Message -->
+  {% if watchlist.length === 0 %}
+  <div class="alert alert-info mt-3">
+    <i class="fas fa-info-circle me-2"></i>No watchlist items for {{ productName }}. Add symbols to your watchlist to track potential trading opportunities.
+  </div>
+  {% endif %}
+</div>
+
+<!-- Signal Modal -->
+<div class="modal fade" id="signalModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="signalModalTitle">Add Signal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="signalForm">
+          <input type="hidden" id="signalId">
+          <div class="mb-3">
+            <label class="form-label" for="signalSymbol">Symbol</label>
+            <input class="form-control" id="signalSymbol" type="text" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalType">Signal Type</label>
+            <select class="form-select" id="signalType" required>
+              <option value="">Select type...</option>
+              <option value="BUY">BUY</option>
+              <option value="SELL">SELL</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalEntry">Entry Price</label>
+            <input class="form-control" id="signalEntry" type="number" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalTarget">Target Price</label>
+            <input class="form-control" id="signalTarget" type="number" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalStopLoss">Stop Loss</label>
+            <input class="form-control" id="signalStopLoss" type="number" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalNotes">Notes</label>
+            <textarea class="form-control" id="signalNotes" rows="3" placeholder="Analysis notes..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveSignalBtn">Save Signal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Signal Close Modal -->
+<div class="modal fade" id="signalCloseModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Close Signal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="signalCloseForm">
+          <div class="mb-3">
+            <label class="form-label" for="closeSignalSymbol">Symbol</label>
+            <input class="form-control" id="closeSignalSymbol" type="text" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="closeSignalEntry">Entry Price</label>
+            <input class="form-control" id="closeSignalEntry" type="number" step="0.01" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="closeSignalTarget">Target Price</label>
+            <input class="form-control" id="closeSignalTarget" type="number" step="0.01" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="closeExitPrice">Exit Price <span class="text-danger">*</span></label>
+            <input class="form-control" id="closeExitPrice" type="number" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="closeSignalNotes">Closing Notes</label>
+            <textarea class="form-control" id="closeSignalNotes" rows="2" placeholder="Reason for closing..."></textarea>
+          </div>
+          <input type="hidden" id="closeSignalId">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="closeSignalBtn">Close Signal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Signal Creation Modal -->
+<div class="modal fade" id="signalCreateModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="signalCreateTitle">Create Signal</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="signalCreateForm">
+          <div class="mb-3">
+            <label class="form-label" for="signalStock">Stock Name</label>
+            <input class="form-control" id="signalStock" type="text" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalTime">Time</label>
+            <input class="form-control" id="signalTime" type="text" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalCurrentPrice">Current Price</label>
+            <input class="form-control" id="signalCurrentPrice" type="number" step="0.01" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalTarget">Target <small class="text-muted"><span id="targetPctSign">+</span><span id="targetPctLabel">0.5</span>%</small></label>
+            <div class="d-flex align-items-center gap-2">
+              <input class="form-control" id="signalTarget" type="number" step="0.01" required>
+              <input type="range" id="targetPct" min="0" max="3" step="0.25" value="0.5" style="width:140px">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalStop">Stop Loss <small class="text-muted"><span id="stopPctSign">-</span><span id="stopPctLabel">0.5</span>%</small></label>
+            <div class="d-flex align-items-center gap-2">
+              <input class="form-control" id="signalStop" type="number" step="0.01" required>
+              <input type="range" id="stopPct" min="0" max="3" step="0.25" value="0.5" style="width:140px">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalNotes">Notes</label>
+            <textarea class="form-control" id="signalNotes" rows="3" placeholder="Any analysis notes..."></textarea>
+          </div>
+          <input type="hidden" id="signalEntry">
+          <input type="hidden" id="signalSide">
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="createSignalBtn">Create Signal</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Watchlist Modal -->
+<div class="modal fade" id="watchlistModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="watchlistModalTitle">Add to Watchlist</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="watchlistForm">
+          <input type="hidden" id="watchlistId">
+          <div class="mb-3">
+            <label class="form-label" for="watchlistStockName">Stock Name</label>
+            <input class="form-control" id="watchlistStockName" type="text" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="watchlistMarket">Market</label>
+            <input class="form-control" id="watchlistMarket" type="text" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="watchlistCurrentPrice">Current Price</label>
+            <input class="form-control" id="watchlistCurrentPrice" type="number" step="0.01" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="watchlistAlertPrice">Alert Price</label>
+            <input class="form-control" id="watchlistAlertPrice" type="number" step="0.01" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveWatchlistBtn">Save Watchlist Item</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+// Add product name to body dataset for JavaScript access
+document.body.dataset.productName = '{{ productName }}';
+</script>
+<script src="/assets/admin/js/signals-product.js"></script>
+{% endblock %}

@@ -9,24 +9,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const modal=new bootstrap.Modal(modalEl)
   const detailsModal=new bootstrap.Modal(detailsModalEl)
   const load=async()=>{
-    const res=await fetch('/api/users?userType=customer',{headers:{'Authorization':`Bearer ${token}`}})
-    const data=await res.json()
-    const users=data.data||[]
-    tbody.innerHTML=users.map(u=>`
-      <tr>
-        <td>${escape(u.fullName||'')}</td>
-        <td>${escape(u.phoneNumber||'')}</td>
-        <td>${escape(u.email||'')}</td>
-        <td><span class="badge ${u.status==='active'?'bg-success':u.status==='inactive'?'bg-secondary':'bg-danger'}">${u.status}</span></td>
-        <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" data-action="details" data-id="${u.id}">Details</button>
-            <button class="btn btn-outline-primary" data-action="edit" data-id="${u.id}">Edit</button>
-            <button class="btn btn-outline-danger" data-action="delete" data-id="${u.id}">Delete</button>
-          </div>
-        </td>
-      </tr>
-    `).join('')
+    // Keep the original approach - data is already rendered in template
+    // No need to reload data via JavaScript
   }
   const escape=t=>{const d=document.createElement('div');d.textContent=t;return d.innerHTML}
   addBtn.addEventListener('click',()=>{
@@ -56,31 +40,48 @@ document.addEventListener('DOMContentLoaded',()=>{
   tbody.addEventListener('click',async(e)=>{
     const btn=e.target.closest('button')
     if(!btn)return
-    const id=btn.dataset.id
-    const action=btn.dataset.action
-    if(action==='edit'){
-      const res=await fetch(`/api/users/${id}`,{headers:{'Authorization':`Bearer ${token}`}})
-      const data=await res.json()
-      const u=data.data||data
-      document.getElementById('customerId').value=u.id
-      document.getElementById('customerFullName').value=u.fullName||''
-      document.getElementById('customerEmail').value=u.email||''
-      document.getElementById('customerPhone').value=u.phoneNumber||''
-      document.getElementById('customerStatus').value=u.status||'active'
+    
+    // Check for edit-customer class
+    if(btn.classList.contains('edit-customer')){
+      const id=btn.dataset.userId
+      const fullName=btn.dataset.fullName||''
+      const email=btn.dataset.email||''
+      const phone=btn.dataset.phone||''
+      const status=btn.dataset.status||'active'
+
+      document.getElementById('customerId').value=id
+      document.getElementById('customerFullName').value=fullName
+      document.getElementById('customerEmail').value=email
+      document.getElementById('customerPhone').value=phone
+      document.getElementById('customerStatus').value=status
       document.querySelector('#customerModal .modal-title').textContent='Edit Customer'
       document.getElementById('customerPasswordGroup').style.display='none'
       modal.show()
+      return
     }
-    if(action==='delete'){
+
+    // Check for delete-customer class
+    if(btn.classList.contains('delete-customer')){
+      const id=btn.dataset.userId
       if(confirm('Delete this customer?')){
         const res=await fetch(`/api/users/${id}`,{method:'DELETE',headers:{'Authorization':`Bearer ${token}`}})
-        if(res.ok){load()}
+        if(res.ok){
+          // Remove the row from the table
+          const row=btn.closest('tr')
+          if(row)row.remove()
+        }
       }
+      return
     }
-    if(action==='details'){
+
+    // Check for view-user class (details)
+    if(btn.classList.contains('view-user')){
+      const id=btn.dataset.userId
+      // For details, we need to fetch the full user data since it's not all in the template
       const res=await fetch(`/api/users/${id}`,{headers:{'Authorization':`Bearer ${token}`}})
       const data=await res.json()
       const u=data.data||data
+      
       document.getElementById('customerDetailsBody').innerHTML=`
         <div class="row">
           <div class="col-md-6">
@@ -102,6 +103,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         </div>
       `
       detailsModal.show()
+      return
     }
   })
   load()

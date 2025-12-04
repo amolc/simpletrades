@@ -11,10 +11,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Signal.belongsTo(models.User, { foreignKey: 'userId' });
+      Signal.belongsTo(models.Product, { foreignKey: 'product', targetKey: 'name' });
     }
   }
   Signal.init({
-    stock: {
+    product: {
       type: DataTypes.STRING,
       allowNull: false
     },

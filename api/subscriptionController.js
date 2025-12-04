@@ -200,7 +200,8 @@ async function updateSubscription(req, res) {
       amount,
       status,
       paymentStatus,
-      referenceNumber
+      referenceNumber,
+      notes
     } = req.body
 
     const subscription = await db.Subscription.findByPk(id)
@@ -216,11 +217,57 @@ async function updateSubscription(req, res) {
     if (startDate !== undefined) updateData.startDate = new Date(startDate)
     if (endDate !== undefined) updateData.endDate = new Date(endDate)
     if (amount !== undefined) updateData.amount = amount
-    if (status !== undefined) updateData.status = status
-    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus
+    
+    // Validate status values
+    if (status !== undefined) {
+      const validStatuses = ['active', 'pending', 'expired', 'cancelled']
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status value. Must be one of: ${validStatuses.join(', ')}`
+        })
+      }
+      updateData.status = status
+    }
+    
+    // Validate payment status values
+    if (paymentStatus !== undefined) {
+      const validPaymentStatuses = ['pending', 'completed', 'failed']
+      if (!validPaymentStatuses.includes(paymentStatus)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid payment status value. Must be one of: ${validPaymentStatuses.join(', ')}`
+        })
+      }
+      updateData.paymentStatus = paymentStatus
+    }
+    
     if (referenceNumber !== undefined) updateData.referenceNumber = referenceNumber
+    if (notes !== undefined) updateData.notes = notes
 
-    await subscription.update(updateData)
+    try {
+      await subscription.update(updateData)
+    } catch (error) {
+      console.error('Database update error:', error)
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        sql: error.sql,
+        parameters: error.parameters,
+        fields: Object.keys(updateData),
+        values: Object.values(updateData)
+      })
+      
+      if (error.name === 'SequelizeDatabaseError' && error.message.includes('Data truncated')) {
+        return res.status(400).json({
+          success: false,
+          message: `Database error: Invalid value for field. Attempted to update: ${JSON.stringify(updateData)}`,
+          error: error.message,
+          attemptedUpdate: updateData
+        })
+      }
+      throw error // Re-throw other errors to be handled by the general catch block
+    }
 
     res.status(200).json({
       success: true,

@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
+const cors = require('cors');
 const nunjucks = require('nunjucks');
 const viewsRouter = require('./views/routes');
 const adminViewsRouter = require('./views/admin/routes');
@@ -18,12 +19,44 @@ const env = nunjucks.configure('views', {
 });
 env.addGlobal('currentYear', new Date().getFullYear());
 
+// Add date filter for formatting dates
+env.addFilter('date', function(dateObj, format) {
+    if (!dateObj) return '';
+    const date = new Date(dateObj);
+
+    // Handle different format patterns
+    const formatMap = {
+        'Y': date.getFullYear(),
+        'm': String(date.getMonth() + 1).padStart(2, '0'),
+        'd': String(date.getDate()).padStart(2, '0'),
+        'H': String(date.getHours()).padStart(2, '0'),
+        'i': String(date.getMinutes()).padStart(2, '0'),
+        's': String(date.getSeconds()).padStart(2, '0')
+    };
+
+    // Replace format placeholders with actual values
+    return format.replace(/Y|m|d|H|i|s/g, match => formatMap[match]);
+});
+
+// Add json filter for serializing objects
+env.addFilter('json', function(obj) {
+    return JSON.stringify(obj);
+});
+
 // Set Nunjucks as the view engine
 app.set('view engine', 'njk');
 
 // Middleware to parse JSON request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// CORS middleware
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Request logging middleware
 app.use((req, res, next) => {

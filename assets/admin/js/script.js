@@ -85,7 +85,79 @@ class SignalManager{constructor(){this.form=document.getElementById('signalForm'
 const signalManager=new SignalManager();
 
 // New simplified Product logic using API
-document.addEventListener('DOMContentLoaded', function() {
+function initProductScripts() {
+    console.log('Product scripts initializing...');
+    console.log('DOM ready state:', document.readyState);
+    console.log('Current URL:', window.location.href);
+    console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+    
+    // Method 1: Direct event listener attachment
+    setTimeout(() => {
+        const editButtons = document.querySelectorAll('.edit-product-btn');
+        console.log('Found edit buttons:', editButtons.length);
+        
+        if (editButtons.length === 0) {
+            console.warn('No edit buttons found! This might be the issue.');
+        }
+        
+        editButtons.forEach((btn, index) => {
+            console.log(`Attaching listener to button ${index}:`, btn.dataset.productName);
+            console.log('Button element:', btn);
+            console.log('Button dataset:', btn.dataset);
+            
+            // Remove any existing listeners first
+            btn.removeEventListener('click', handleEditClick);
+            
+            // Add new listener
+            btn.addEventListener('click', handleEditClick);
+        });
+        
+        console.log('Direct event listeners attached successfully');
+    }, 2000); // Increased timeout to ensure DOM is fully loaded
+    
+    // Method 2: Event delegation as backup
+    document.addEventListener('click', function(e) {
+        console.log('Click event fired on:', e.target);
+        console.log('Event path:', e.composedPath());
+        console.log('Closest edit button:', e.target.closest('.edit-product-btn'));
+        
+        if (e.target.closest('.edit-product-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const btn = e.target.closest('.edit-product-btn');
+            const productName = btn.dataset.productName;
+            console.log('Edit button clicked (delegated):', productName);
+            alert('Edit button clicked (delegated): ' + productName);
+            editProduct(productName);
+        }
+    });
+    
+    console.log('Event delegation listener attached');
+}
+
+// Separate click handler function for better debugging
+function handleEditClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const productName = this.dataset.productName;
+    console.log('Edit button clicked (direct):', productName);
+    alert('Edit button clicked (direct): ' + productName);
+    editProduct(productName);
+}
+
+// Initialize scripts when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        initProductScripts();
+        initProductForm();
+    });
+} else {
+    // DOM is already loaded
+    initProductScripts();
+    initProductForm();
+}
+
+function initProductForm() {
     // Form Submission
     const productForm = document.getElementById('productForm');
     if (productForm) {
@@ -143,52 +215,119 @@ document.addEventListener('DOMContentLoaded', function() {
             details.style.display = isVisible ? 'none' : 'block';
         });
     });
-});
+} // This closes the DOMContentLoaded event listener
+
+console.log('Product scripts loaded successfully');
 
 // Edit Product
 async function editProduct(name) {
+    alert('editProduct called with name: ' + name);
+    console.log('editProduct called with name:', name);
     try {
         const res = await fetch(`/api/products/${name}`);
+        console.log('API response status:', res.status);
         const data = await res.json();
+        console.log('API response data:', data);
+        
         if (res.ok && data.success) {
             const p = data.data;
+            console.log('Product data received:', p);
+            
             switchToCreateTab();
             
-            const form = document.getElementById('productForm');
-            form.dataset.mode = 'edit';
-            document.querySelector('#create-product .card-header h5').textContent = 'Edit Product';
-            document.querySelector('#create-product button[type="submit"]').textContent = 'Update Product';
+            // Wait a bit for tab switch to complete
+            setTimeout(() => {
+                const form = document.getElementById('productForm');
+                if (!form) {
+                    console.error('Product form not found!');
+                    alert('Error: Product form not found');
+                    return;
+                }
+                
+                form.dataset.mode = 'edit';
+                
+                // Update the header text with proper null checking
+                const headerElement = document.querySelector('#create-product .border-bottom h4');
+                if (headerElement) {
+                    headerElement.textContent = 'Edit Product';
+                } else {
+                    console.warn('Header element not found for editing');
+                }
+                
+                // Update the submit button text with proper null checking
+                const submitButton = document.querySelector('#create-product button[type="submit"]');
+                if (submitButton) {
+                    submitButton.textContent = 'Update Product';
+                } else {
+                    console.warn('Submit button not found for editing');
+                }
 
-            document.getElementById('productName').value = p.name;
-            document.getElementById('productName').readOnly = true; // Cannot change name (ID)
-            document.getElementById('productCategory').value = p.category;
-            document.getElementById('productDescription').value = p.description;
-            document.getElementById('keyFeatures').value = p.keyFeatures.join('\n');
-            document.getElementById('targetAudience').value = p.targetAudience;
-            document.getElementById('productStatus').value = p.status;
-            document.getElementById('sortOrder').value = p.sortOrder;
-            
-            // Populate plans for editing (but make them read-only since we can't edit plans here)
-            if (p.plans && p.plans.length > 0) {
-                createProductPlans = p.plans.map(plan => ({
-                    planName: plan.name,
-                    planDescription: plan.description,
-                    numberOfDays: plan.days,
-                    cost: plan.cost,
-                    isActive: plan.isActive,
-                    currency: 'INR'
-                }));
-                renderCreateProductPlans();
-                // Disable plan editing in edit mode
-                document.querySelector('#createProductPlans').insertAdjacentHTML('afterbegin', 
-                    '<div class="alert alert-info mb-2"><small><i class="fas fa-info-circle me-1"></i>Plans cannot be edited here. Use the "Add Plan" button on the product card to add new plans.</small></div>');
-                document.querySelector('button[onclick="addPlanToCreateForm()"]').disabled = true;
-            }
+                // Populate form fields
+                const productName = document.getElementById('productName');
+                const productCategory = document.getElementById('productCategory');
+                const productDescription = document.getElementById('productDescription');
+                const keyFeatures = document.getElementById('keyFeatures');
+                const targetAudience = document.getElementById('targetAudience');
+                const productStatus = document.getElementById('productStatus');
+                const sortOrder = document.getElementById('sortOrder');
+                
+                console.log('Form elements found:', {
+                    productName: !!productName,
+                    productCategory: !!productCategory,
+                    productDescription: !!productDescription,
+                    keyFeatures: !!keyFeatures,
+                    targetAudience: !!targetAudience,
+                    productStatus: !!productStatus,
+                    sortOrder: !!sortOrder
+                });
+
+                if (productName) {
+                    productName.value = p.name;
+                    productName.readOnly = true;
+                }
+                if (productCategory) productCategory.value = p.category || '';
+                if (productDescription) productDescription.value = p.description || '';
+                if (keyFeatures && p.keyFeatures) keyFeatures.value = p.keyFeatures.join('\n');
+                if (targetAudience) targetAudience.value = p.targetAudience || '';
+                if (productStatus) productStatus.value = p.status || 'active';
+                if (sortOrder) sortOrder.value = p.sortOrder || 0;
+                
+                console.log('Form populated successfully');
+                
+                // Populate plans for editing (but make them read-only since we can't edit plans here)
+                if (p.plans && p.plans.length > 0) {
+                    createProductPlans = p.plans.map(plan => ({
+                        planName: plan.name,
+                        planDescription: plan.description,
+                        numberOfDays: plan.days,
+                        cost: plan.cost,
+                        isActive: plan.isActive,
+                        currency: 'INR'
+                    }));
+                    renderCreateProductPlans();
+                    
+                    // Add info message about plan editing with null checks
+                    const plansContainer = document.querySelector('#createProductPlans');
+                    const addPlanButton = document.querySelector('button[onclick="addPlanToCreateForm()"]');
+                    
+                    if (plansContainer) {
+                        plansContainer.insertAdjacentHTML('afterbegin', 
+                            '<div class="alert alert-info mb-2"><small><i class="fas fa-info-circle me-1"></i>Plans cannot be edited here. Use the "Add Plan" button on the product card to add new plans.</small></div>');
+                    }
+                    
+                    if (addPlanButton) {
+                        addPlanButton.disabled = true;
+                    } else {
+                        console.warn('Add plan button not found');
+                    }
+                }
+            }, 100); // End of setTimeout
         } else {
             alert('Product not found');
         }
     } catch (error) {
-        alert('Error fetching product details');
+        console.error('Error in editProduct:', error);
+        alert('Error fetching product details: ' + error.message);
     }
 }
 
@@ -211,40 +350,78 @@ async function deleteProduct(name) {
 
 // Tab Switcher
 function switchToCreateTab() {
+    console.log('switchToCreateTab called');
     const createTab = document.getElementById('create-product-tab');
     const createPane = document.getElementById('create-product');
     const viewTab = document.getElementById('view-products-tab');
     const viewPane = document.getElementById('view-products');
 
+    console.log('Tab elements:', {
+        createTab: !!createTab,
+        createPane: !!createPane,
+        viewTab: !!viewTab,
+        viewPane: !!viewPane
+    });
+
     if (createTab && createPane) {
-        if (viewTab) viewTab.classList.remove('active');
-        if (viewPane) viewPane.classList.remove('show', 'active');
-        createTab.classList.add('active');
-        createPane.classList.add('show', 'active');
+        // Use Bootstrap's tab API instead of manual class manipulation
+        const tabTrigger = new bootstrap.Tab(createTab);
+        tabTrigger.show();
+        console.log('Tab switched successfully using Bootstrap API');
+        
+        // Ensure the pane is visible
         setTimeout(() => {
             const first = document.querySelector('#create-product input[type="text"]');
             if (first) first.focus();
-        }, 100);
+            console.log('Focus set to first input');
+        }, 200); // Increased timeout for better reliability
+    } else {
+        console.error('Could not find required tab elements');
     }
     
     // Reset form mode if switching via button (not edit)
     const form = document.getElementById('productForm');
     if (form && !form.dataset.mode) {
          form.reset();
-         document.getElementById('productName').readOnly = false;
-         document.querySelector('#create-product .card-header h5').textContent = 'Create New Product';
-         document.querySelector('#create-product button[type="submit"]').textContent = 'Create Product';
+         const productNameInput = document.getElementById('productName');
+         const headerElement = document.querySelector('#create-product .border-bottom h4');
+         const submitButton = document.querySelector('#create-product button[type="submit"]');
+         
+         if (productNameInput) {
+             productNameInput.readOnly = false;
+         }
+         if (headerElement) {
+             headerElement.textContent = 'Create New Product';
+         }
+         if (submitButton) {
+             submitButton.textContent = 'Create Product';
+         }
     }
 }
 
 // Plan Management
 function addPlan(productName) {
-    document.getElementById('planProductName').textContent = productName;
-    document.getElementById('planProduct').value = productName;
-    document.getElementById('addPlanForm').reset();
+    const planProductName = document.getElementById('planProductName');
+    const planProduct = document.getElementById('planProduct');
+    const addPlanForm = document.getElementById('addPlanForm');
+    const addPlanModal = document.getElementById('addPlanModal');
     
-    const modal = new bootstrap.Modal(document.getElementById('addPlanModal'));
-    modal.show();
+    if (planProductName) {
+        planProductName.textContent = productName;
+    }
+    if (planProduct) {
+        planProduct.value = productName;
+    }
+    if (addPlanForm) {
+        addPlanForm.reset();
+    }
+    
+    if (addPlanModal) {
+        const modal = new bootstrap.Modal(addPlanModal);
+        modal.show();
+    } else {
+        console.error('Add plan modal not found');
+    }
 }
 
 // Create Product Plans Management

@@ -5,12 +5,12 @@ const getSignals = async (filters = {}) => {
   const whereClause = {}
   if (filters.status) whereClause.status = filters.status
   if (filters.type) whereClause.signalType = filters.type
-  if (filters.stock) whereClause.stock = { [Op.like]: `%${filters.stock}%` }
+  if (filters.product) whereClause.product = { [Op.like]: `%${filters.product}%` }
   if (filters.date) whereClause.date = filters.date
   const signals = await db.Signal.findAll({ where: whereClause, order: [['createdAt', 'DESC']] })
   return signals.map(signal => ({
     id: signal.id,
-    stock: signal.stock,
+    product: signal.product,
     symbol: signal.symbol,
     signalType: signal.signalType,
     type: signal.type,
@@ -36,7 +36,7 @@ const getSignalById = async (id) => {
   if (!signal) return null
   return {
     id: signal.id,
-    stock: signal.stock,
+    product: signal.product,
     symbol: signal.symbol,
     signalType: signal.signalType,
     type: signal.type,
@@ -67,8 +67,8 @@ const createSignal = async (signalData) => {
     userId = anyUser ? anyUser.id : null
   }
   const newSignal = await db.Signal.create({
-    stock: signalData.stock,
-    symbol: signalData.symbol || signalData.stock,
+    product: signalData.product,
+    symbol: signalData.symbol || signalData.product,
     signalType: signalData.signalType || 'BUY',
     type: signalData.type,
     entry: signalData.entry,
@@ -87,7 +87,7 @@ const createSignal = async (signalData) => {
   })
   return {
     id: newSignal.id,
-    stock: newSignal.stock,
+    product: newSignal.product,
     symbol: newSignal.symbol,
     signalType: newSignal.signalType,
     type: newSignal.type,
@@ -121,7 +121,7 @@ const updateSignal = async (id, updateData) => {
     signal.status = updateData.status
   }
   
-  if (updateData.stock !== undefined) signal.stock = updateData.stock
+  if (updateData.product !== undefined) signal.product = updateData.product
   if (updateData.symbol !== undefined) signal.symbol = updateData.symbol
   if (updateData.signalType !== undefined) signal.signalType = updateData.signalType
   if (updateData.type !== undefined) signal.type = updateData.type
@@ -152,7 +152,7 @@ const updateSignal = async (id, updateData) => {
   await signal.save()
   return {
     id: signal.id,
-    stock: signal.stock,
+    product: signal.product,
     symbol: signal.symbol,
     signalType: signal.signalType,
     type: signal.type,
@@ -198,7 +198,7 @@ const activateSignal = async (id) => {
   
   return {
     id: signal.id,
-    stock: signal.stock,
+    product: signal.product,
     symbol: signal.symbol,
     signalType: signal.signalType,
     type: signal.type,
@@ -270,7 +270,7 @@ const closeSignal = async (id, exitPrice = null) => {
   
   return {
     id: signal.id,
-    stock: signal.stock,
+    product: signal.product,
     symbol: signal.symbol,
     signalType: signal.signalType,
     type: signal.type,
@@ -325,13 +325,77 @@ const getSignalStats = async () => {
   }
 }
 
+const getProductSignalStats = async () => {
+  try {
+    // Get all unique product types from signals and join with product table to get actual product names
+    const productTypes = await db.Signal.findAll({
+      attributes: ['type'],
+      group: ['type'],
+      order: [['type', 'ASC']],
+      include: [{
+        model: db.Product,
+        attributes: ['name'],
+        required: false,
+        on: {
+          [db.Sequelize.Op.or]: [
+            { name: db.Sequelize.col('Signal.type') },
+            { name: 'Stocks' } // Default to Stocks for stock signals
+          ]
+        }
+      }]
+    })
+
+    const productStats = []
+
+    for (const productType of productTypes) {
+      // Map signal type to product name (e.g., 'stocks' -> 'Stocks')
+      let productName = 'Stocks' // Default fallback
+      if (productType.type === 'stocks') {
+        productName = 'Stocks'
+      } else if (productType.type === 'options') {
+        productName = 'Options'
+      } else if (productType.type === 'commodity') {
+        productName = 'Commodity'
+      } else if (productType.type === 'crypto') {
+        productName = 'Crypto'
+      } else if (productType.type === 'forex') {
+        productName = 'Forex'
+      }
+      
+      // Get total signals for this product type
+      const totalSignals = await db.Signal.count({ where: { type: productType.type } })
+      
+      // Get completed signals (PROFIT + LOSS) for this product type
+      const profitSignals = await db.Signal.count({ where: { type: productType.type, status: 'PROFIT' } })
+      const lossSignals = await db.Signal.count({ where: { type: productType.type, status: 'LOSS' } })
+      const completedSignals = profitSignals + lossSignals
+      
+      // Calculate win/loss ratio
+      const winLossRatio = completedSignals > 0 ? Math.round((profitSignals / completedSignals) * 100) : 0
+      
+      productStats.push({
+        productName,
+        totalSignals,
+        winLossRatio,
+        profitSignals,
+        lossSignals
+      })
+    }
+
+    return productStats
+  } catch (error) {
+    console.error('Error getting product signal stats:', error)
+    throw error
+  }
+}
+
 const signalsController = {
   async getAllSignals(req, res) {
     try {
       const filters = {}
       if (req.query.status) filters.status = req.query.status
       if (req.query.type) filters.type = req.query.type
-      if (req.query.stock) filters.stock = req.query.stock
+      if (req.query.product) filters.product = req.query.product
       if (req.query.date) filters.date = req.query.date
       const signalList = await getSignals(filters)
       res.json({ success: true, data: signalList, count: signalList.length })
@@ -343,6 +407,14 @@ const signalsController = {
     try {
       const stats = await getSignalStats()
       res.json({ success: true, data: stats })
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message })
+    }
+  },
+  async getProductSignalStats(req, res) {
+    try {
+      const productStats = await getProductSignalStats()
+      res.json({ success: true, data: productStats })
     } catch (error) {
       res.status(500).json({ success: false, error: error.message })
     }
@@ -360,7 +432,7 @@ const signalsController = {
   },
   async createSignal(req, res) {
     try {
-      const requiredFields = ['stock', 'entry', 'target', 'stopLoss', 'type']
+      const requiredFields = ['product', 'entry', 'target', 'stopLoss', 'type']
       const missingFields = requiredFields.filter(field => !req.body[field])
       if (missingFields.length > 0) {
         return res.status(400).json({ success: false, error: `Missing required fields: ${missingFields.join(', ')}` })
@@ -425,5 +497,6 @@ module.exports = {
   updateSignal,
   deleteSignal,
   getSignalStats,
+  getProductSignalStats,
   signalsController
 }

@@ -59,12 +59,16 @@
         <table class="table table-hover mb-0" id="signalsTable">
           <thead>
             <tr>
-              <th>Stock</th>
+              <th>Symbol</th>
               <th>Type</th>
               <th>Entry</th>
               <th>Target</th>
-              <th>Stop</th>
+              <th>Stop Loss</th>
+              <th>Entry Time</th>
+              <th>Exit Price</th>
+              <th>Exit Time</th>
               <th>Status</th>
+              <th>P&L</th>
               <th>Created</th>
               <th>Updated</th>
               <th>Actions</th>
@@ -73,12 +77,26 @@
           <tbody id="signalsBody">
             {% for signal in signals %}
             <tr>
-              <td>{{ signal.stock }}</td>
+              <td><strong>{{ signal.symbol }}</strong></td>
               <td>{{ signal.signalType or signal.type }}</td>
               <td>₹{{ signal.entry.toFixed(2) }}</td>
               <td>₹{{ signal.target.toFixed(2) }}</td>
               <td>₹{{ signal.stopLoss.toFixed(2) }}</td>
-              <td><span class="badge {% if signal.status == 'ACTIVE' %}bg-success{% elif signal.status == 'CLOSED' %}bg-secondary{% else %}bg-warning{% endif %}">{{ signal.status }}</span></td>
+              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.getDate().toString().padStart(2, '0') }}/{{ (signal.entryDateTime.getMonth() + 1).toString().padStart(2, '0') }}/{{ signal.entryDateTime.getFullYear().toString().slice(-2) }} {{ signal.entryDateTime.getHours().toString().padStart(2, '0') }}:{{ signal.entryDateTime.getMinutes().toString().padStart(2, '0') }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitPrice %}₹{{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.getDate().toString().padStart(2, '0') }}/{{ (signal.exitDateTime.getMonth() + 1).toString().padStart(2, '0') }}/{{ signal.exitDateTime.getFullYear().toString().slice(-2) }} {{ signal.exitDateTime.getHours().toString().padStart(2, '0') }}:{{ signal.exitDateTime.getMinutes().toString().padStart(2, '0') }}{% else %}-{% endif %}</td>
+              <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% else %}bg-secondary{% endif %}">{{ signal.status }}</span></td>
+              <td>
+                {% if signal.profitLoss %}
+                  {% if signal.profitLoss >= 0 %}
+                    <span class="text-success">+₹{{ signal.profitLoss.toFixed(2) }}</span>
+                  {% else %}
+                    <span class="text-danger">-₹{{ (-signal.profitLoss).toFixed(2) }}</span>
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
               <td>{{ signal.createdAt|date("Y-m-d H:i:s") }}</td>
               <td>{{ signal.updatedAt|date("Y-m-d H:i:s") }}</td>
               <td>

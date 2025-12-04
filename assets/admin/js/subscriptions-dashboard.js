@@ -391,73 +391,23 @@ document.addEventListener('DOMContentLoaded', () => {
     subscriptionsBody.addEventListener('click', async (e) => {
       const action = e.target.dataset.action;
       const id = e.target.dataset.id;
-      
+
       if (!action || !id) return;
-      
+
       if (action === 'view') {
         // View subscription details
         window.location.href = `/admin/subscriptions/${id}`;
-      } else if (action === 'edit') {
-        // Edit subscription
-        const clickedButton = e.target;
-        const originalText = clickedButton.innerHTML;
-        
-        try {
-          // Show loading state
-          clickedButton.disabled = true;
-          clickedButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Loading...';
-          
-          const response = await fetch(`/api/subscriptions/${id}`);
-          const result = await response.json();
-          
-          if (result.success) {
-            const subscription = result.data;
-            document.getElementById('subscriptionId').value = subscription.id;
-            
-            // Set customer
-            customerSelect.value = subscription.userId;
-            
-            // Set product and load plans
-            if (subscription.plan?.product?.id) {
-              productSelect.value = subscription.plan.product.id;
-              await loadPlansForProduct(subscription.plan.product.id);
-              
-              // Set plan
-              if (subscription.plan?.id) {
-                planSelect.value = subscription.plan.id;
-                // Trigger plan details
-                const event = new Event('change');
-                planSelect.dispatchEvent(event);
-              }
-            }
-            
-            // Set other fields
-            document.getElementById('startDate').value = subscription.startDate ? new Date(subscription.startDate).toISOString().split('T')[0] : '';
-            document.getElementById('subscriptionNotes').value = subscription.notes || '';
-            
-            document.getElementById('subscriptionModalTitle').textContent = 'Edit Subscription';
-            document.getElementById('saveSubscriptionBtn').textContent = 'Update Subscription';
-            subscriptionModal.show();
-          }
-        } catch (error) {
-          console.error('Error loading subscription:', error);
-          alert('Error loading subscription data');
-        } finally {
-          // Restore button state
-          clickedButton.disabled = false;
-          clickedButton.innerHTML = originalText;
-        }
       } else if (action === 'cancel') {
         // Cancel subscription
         const cancelButton = e.target;
         const originalText = cancelButton.innerHTML;
-        
+
         if (confirm('Are you sure you want to cancel this subscription?')) {
           try {
             // Show loading state
             cancelButton.disabled = true;
             cancelButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelling...';
-            
+
             const response = await fetch(`/api/subscriptions/${id}`, {
               method: 'PUT',
               headers: {
@@ -465,11 +415,22 @@ document.addEventListener('DOMContentLoaded', () => {
               },
               body: JSON.stringify({ status: 'cancelled' })
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
-              window.location.reload(); // Reload to show updated data
+              // Update UI without full reload
+              const row = cancelButton.closest('tr');
+              if (row) {
+                // Update status badge
+                const statusCell = row.querySelector('td:nth-child(6)');
+                if (statusCell) {
+                  statusCell.innerHTML = '<span class="badge bg-danger">cancelled</span>';
+                }
+                // Remove cancel button
+                cancelButton.remove();
+              }
+              alert('Subscription cancelled successfully!');
             } else {
               alert('Error cancelling subscription: ' + (result.error || 'Unknown error'));
             }
@@ -561,7 +522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     subscriptionId: subscription.id,
                     amount: subscription.plan.cost,
                     paymentMethod: 'UPI',
-                    paymentStatus: 'paid',
+                    paymentStatus: 'completed',
                     transactionType: 'subscription_payment',
                     referenceNumber: transactionReference,
                   }),
@@ -572,7 +533,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (paymentResult.success) {
                   alert('Payment linked successfully!');
                   linkPaymentModal.hide();
-                  window.location.reload();
+                  // Update payment status in UI
+                  const row = document.querySelector(`button[data-id="${id}"][data-action="link-payment"]`).closest('tr');
+                  if (row) {
+                    const paymentStatusCell = row.querySelector('td:nth-child(7)');
+                    if (paymentStatusCell) {
+                      paymentStatusCell.innerHTML = '<span class="badge bg-success">completed</span>';
+                    }
+                  }
                 } else {
                   alert('Error linking payment: ' + (paymentResult.message || 'Unknown error'));
                 }
@@ -620,9 +588,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Load subscriptions
+  // Load subscriptions - modified to work with existing template data
   async function loadSubscriptions() {
     try {
+      // Check if data is already rendered in template
+      const existingRows = subscriptionsBody.querySelectorAll('tr');
+      if (existingRows.length > 0 && !existingRows[0].querySelector('.text-center')) {
+        // Data is already rendered, just initialize
+        console.log('Using template-rendered subscription data');
+        return;
+      }
+
+      // If no data in template, fetch from API
       subscriptionsBody.innerHTML = '<tr><td colspan="8" class="text-center">Loading subscriptions...</td></tr>';
       const response = await fetch('/api/subscriptions');
       const result = await response.json();
@@ -666,10 +643,9 @@ let selectedPlan;
         <td>₹${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
         <td>${new Date(subscription.startDate).toLocaleDateString()}</td>
         <td><span class="badge bg-${subscription.status === 'active' ? 'success' : subscription.status === 'pending' ? 'warning' : 'danger'}">${subscription.status}</span></td>
-        <td><span class="badge bg-${subscription.paymentStatus === 'paid' ? 'success' : subscription.paymentStatus === 'pending' ? 'warning' : 'danger'}">${subscription.paymentStatus}</span></td>
+        <td><span class="badge bg-${subscription.paymentStatus === 'completed' ? 'success' : subscription.paymentStatus === 'pending' ? 'warning' : 'danger'}">${subscription.paymentStatus}</span></td>
         <td>
           <button class="btn btn-sm btn-info view-subscription-btn" data-id="${subscription.id}" data-action="view">View</button>
-          <button class="btn btn-sm btn-primary edit-subscription-btn" data-id="${subscription.id}" data-action="edit">Edit</button>
           ${subscription.status === 'active' ? `<button class="btn btn-sm btn-danger cancel-subscription-btn" data-id="${subscription.id}" data-action="cancel">Cancel</button>` : ''}
           ${subscription.paymentStatus === 'pending' ? `<button class="btn btn-sm btn-success link-payment-btn" data-id="${subscription.id}" data-action="link-payment">Link Payment</button>` : ''}
         </td>

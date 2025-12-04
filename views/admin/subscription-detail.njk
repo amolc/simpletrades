@@ -1,0 +1,318 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Subscription Details - Admin{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <!-- Subscription data for JavaScript -->
+  <div id="subscriptionData" data-subscription='{{ subscription|json }}' style="display: none;"></div>
+
+  <div class="mt-4 mb-3">
+    <h2 class="mb-1">Subscription Details</h2>
+    <small class="text-muted">View and manage subscription #{{ subscription.id }}</small>
+  </div>
+
+  <!-- Back button -->
+  <div class="mb-3">
+    <a href="/admin/subscriptions" class="btn btn-secondary">
+      <i class="fas fa-arrow-left me-1"></i> Back to Subscriptions
+    </a>
+  </div>
+
+  <!-- Subscription Info Card -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Subscription Information</h5>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <td><strong>Subscription ID</strong></td>
+              <td>{{ subscription.id }}</td>
+            </tr>
+            <tr>
+              <td><strong>Customer</strong></td>
+              <td>
+                {% if subscription.User %}
+                  {{ subscription.User.fullName }} ({{ subscription.User.email }})
+                {% else %}
+                  N/A (N/A)
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Product</strong></td>
+              <td>
+                {% if subscription.plan and subscription.plan.Product %}
+                  {{ subscription.plan.Product.name }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Plan Type</strong></td>
+              <td>
+                {% if subscription.plan %}
+                  {{ subscription.plan.planName }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <td><strong>Status</strong></td>
+              <td>
+                <span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'pending' %}bg-warning{% elif subscription.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ subscription.status|upper }}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Payment Status</strong></td>
+              <td>
+                <span class="badge {% if subscription.paymentStatus == 'paid' or subscription.paymentStatus == 'completed' %}bg-success{% elif subscription.paymentStatus == 'pending' %}bg-warning{% elif subscription.paymentStatus == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {% if subscription.paymentStatus == 'completed' %}PAID{% else %}{{ subscription.paymentStatus|upper }}{% endif %}
+                </span>
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Start Date</strong></td>
+              <td>{{ subscription.startDate|date('Y-m-d') }}</td>
+            </tr>
+            <tr>
+              <td><strong>End Date</strong></td>
+              <td>{{ subscription.endDate|date('Y-m-d') }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <td><strong>Cost</strong></td>
+              <td>
+                {% if subscription.plan %}
+                  ₹{{ subscription.plan.cost }}
+                {% else %}
+                  ₹0.00
+                {% endif %}
+              </td>
+            </tr>
+            <tr>
+              <td><strong>Billing Cycle</strong></td>
+              <td>
+                {% if subscription.plan %}
+                  {{ subscription.plan.renewalType }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <table class="table table-sm">
+            <tr>
+              <td><strong>Created At</strong></td>
+              <td>{{ subscription.createdAt|date('Y-m-d H:i:s') }}</td>
+            </tr>
+            <tr>
+              <td><strong>Updated At</strong></td>
+              <td>{{ subscription.updatedAt|date('Y-m-d H:i:s') }}</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      {% if subscription.notes %}
+      <div class="mt-3">
+        <h6>Notes</h6>
+        <div class="card">
+          <div class="card-body">
+            <p class="mb-0">{{ subscription.notes }}</p>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Transaction History -->
+  <div class="card mb-4">
+    <div class="card-header bg-info text-white">
+      <h5 class="mb-0">Transaction History</h5>
+    </div>
+    <div class="card-body">
+      {% if transactions and transactions.length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>Transaction ID</th>
+              <th>Date</th>
+              <th>Amount</th>
+              <th>Payment Method</th>
+              <th>Status</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for transaction in transactions %}
+            <tr>
+              <td>{{ transaction.id }}</td>
+              <td>{{ transaction.createdAt|date('Y-m-d H:i:s') }}</td>
+              <td>₹{{ transaction.amount|default('0.00') }}</td>
+              <td>{{ transaction.paymentMethod|default('N/A') }}</td>
+              <td>
+                <span class="badge {% if transaction.paymentStatus == 'paid' or transaction.paymentStatus == 'completed' %}bg-success{% elif transaction.paymentStatus == 'pending' %}bg-warning{% elif transaction.paymentStatus == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {% if transaction.paymentStatus == 'completed' %}PAID{% else %}{{ transaction.paymentStatus|upper }}{% endif %}
+                </span>
+              </td>
+              <td>{{ transaction.referenceNumber|default('N/A') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="alert alert-info">
+        No transactions found for this subscription.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="card">
+    <div class="card-header">
+      <h5 class="mb-0">Actions</h5>
+    </div>
+    <div class="card-body">
+      <div class="d-flex flex-wrap gap-2">
+        {% if subscription.status == 'active' %}
+        <button class="btn btn-danger" id="cancelSubscriptionBtn">
+          <i class="fas fa-ban me-1"></i> Cancel Subscription
+        </button>
+        {% endif %}
+
+        {% if subscription.paymentStatus == 'pending' %}
+        <button class="btn btn-success" id="linkPaymentBtn">
+          <i class="fas fa-link me-1"></i> Link Payment
+        </button>
+        {% endif %}
+
+        <button class="btn btn-primary" id="editSubscriptionBtn">
+          <i class="fas fa-edit me-1"></i> Edit Subscription
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Link Payment Modal -->
+<div class="modal fade" id="linkPaymentModal" tabindex="-1" aria-labelledby="linkPaymentModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="linkPaymentModalLabel">Link Payment for Subscription #{{ subscription.id }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <p>Subscription ID: <strong>{{ subscription.id }}</strong></p>
+        <p>Amount Due: <strong>
+          {% if subscription.plan %}
+            ₹{{ subscription.plan.cost }}
+          {% else %}
+            ₹0.00
+          {% endif %}
+        </strong></p>
+        <div id="qrcode" class="mb-3"></div>
+        <p>Scan the QR code above to make the payment, or use the details below:</p>
+        <div class="text-start mb-3">
+          <p class="mb-1"><strong>Bank Name:</strong> Example Bank</p>
+          <p class="mb-1"><strong>Account Number:</strong> 1234567890</p>
+          <p class="mb-1"><strong>IFSC Code:</strong> EXAM0001234</p>
+          <p class="mb-1"><strong>UPI ID:</strong> pay@examplebank</p>
+        </div>
+        <div class="alert alert-info" role="alert">
+          After making the payment, please enter the transaction reference number below.
+        </div>
+        <form id="linkPaymentForm">
+          <div class="mb-3">
+            <label for="transactionReference" class="form-label">Transaction Reference Number</label>
+            <input type="text" class="form-control" id="transactionReference" required>
+          </div>
+          <button type="submit" class="btn btn-primary" id="submitPaymentBtn">Submit Payment</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Subscription Modal -->
+<div class="modal fade" id="editSubscriptionModal" tabindex="-1" aria-labelledby="editSubscriptionModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editSubscriptionModalLabel">Edit Subscription #{{ subscription.id }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editSubscriptionForm">
+          <input type="hidden" id="editSubscriptionId" value="{{ subscription.id }}">
+
+          <div class="mb-3">
+            <label class="form-label" for="editStatus">Status</label>
+            <select class="form-select" id="editStatus">
+              <option value="active" {% if subscription.status == 'active' %}selected{% endif %}>Active</option>
+              <option value="pending" {% if subscription.status == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="cancelled" {% if subscription.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+              <option value="expired" {% if subscription.status == 'expired' %}selected{% endif %}>Expired</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="editPaymentStatus">Payment Status</label>
+            <select class="form-select" id="editPaymentStatus">
+              <option value="completed" {% if subscription.paymentStatus == 'completed' %}selected{% endif %}>Paid</option>
+              <option value="pending" {% if subscription.paymentStatus == 'pending' %}selected{% endif %}>Pending</option>
+              <option value="failed" {% if subscription.paymentStatus == 'failed' %}selected{% endif %}>Failed</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="editStartDate">Start Date</label>
+            <input type="date" class="form-control" id="editStartDate" value="{{ subscription.startDate|date('Y-m-d') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="editEndDate">End Date</label>
+            <input type="date" class="form-control" id="editEndDate" value="{{ subscription.endDate|date('Y-m-d') }}">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="editNotes">Notes</label>
+            <textarea class="form-control" id="editNotes" rows="3">{{ subscription.notes|default('') }}</textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveEditBtn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/assets/admin/js/subscription-detail.js"></script>
+{% endblock %}

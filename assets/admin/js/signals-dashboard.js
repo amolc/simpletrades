@@ -169,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const body = {
-        stock: stock,
+        product: stock,
         entry: entry,
         target: target,
         stopLoss: stopLoss,

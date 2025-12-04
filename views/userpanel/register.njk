@@ -13,19 +13,28 @@
             <form id="registerForm">
               <div class="mb-3">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="fullName" required>
+                <input type="text" class="form-control" name="fullName" id="fullName" required>
+                <div class="invalid-feedback">Please enter your full name</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Phone Number</label>
-                <input type="text" class="form-control" name="phoneNumber" required>
+                <input type="text" class="form-control" name="phoneNumber" id="phoneNumber" required>
+                <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Email (optional)</label>
-                <input type="email" class="form-control" name="email">
+                <input type="email" class="form-control" name="email" id="email">
+                <div class="invalid-feedback">Please enter a valid email address</div>
               </div>
               <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input type="password" class="form-control" name="password" required>
+                <input type="password" class="form-control" name="password" id="password" required>
+                <div class="invalid-feedback">Password must be at least 8 characters long</div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" name="confirmPassword" id="confirmPassword" required>
+                <div class="invalid-feedback">Passwords do not match</div>
               </div>
               <button type="submit" class="btn btn-primary">Register</button>
             </form>
@@ -41,15 +50,92 @@
 
 {% block scripts %}
 <script>
+// Validation functions
+function validateFullName(name) {
+  return name && name.trim().length >= 2;
+}
+
+function validatePhoneNumber(phone) {
+  return phone && /^[0-9]{10}$/.test(phone);
+}
+
+function validateEmail(email) {
+  if (!email) return true; // Email is optional
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePassword(password) {
+  return password && password.length >= 8;
+}
+
+function validatePasswordMatch(password, confirmPassword) {
+  return password === confirmPassword;
+}
+
+// Real-time validation
+document.addEventListener('DOMContentLoaded', () => {
+  const fullNameInput = document.getElementById('fullName');
+  const phoneNumberInput = document.getElementById('phoneNumber');
+  const emailInput = document.getElementById('email');
+  const passwordInput = document.getElementById('password');
+  const confirmPasswordInput = document.getElementById('confirmPassword');
+
+  // Add event listeners for real-time validation
+  fullNameInput.addEventListener('blur', () => validateField('fullName', validateFullName));
+  phoneNumberInput.addEventListener('blur', () => validateField('phoneNumber', validatePhoneNumber));
+  emailInput.addEventListener('blur', () => validateField('email', validateEmail));
+  passwordInput.addEventListener('blur', () => validateField('password', validatePassword));
+  confirmPasswordInput.addEventListener('blur', () => validateField('confirmPassword', () => validatePasswordMatch(passwordInput.value, confirmPasswordInput.value)));
+
+  // Password confirmation also needs to validate when password changes
+  passwordInput.addEventListener('blur', () => {
+    if (confirmPasswordInput.value) {
+      validateField('confirmPassword', () => validatePasswordMatch(passwordInput.value, confirmPasswordInput.value));
+    }
+  });
+});
+
+function validateField(fieldId, validator) {
+  const field = document.getElementById(fieldId);
+  const feedback = field.parentElement.querySelector('.invalid-feedback');
+
+  if (validator(field.value)) {
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+    feedback.style.display = 'none';
+    return true;
+  } else {
+    field.classList.remove('is-valid');
+    field.classList.add('is-invalid');
+    feedback.style.display = 'block';
+    return false;
+  }
+}
+
+// Form submission validation
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const form = e.target;
+
+  // Validate all fields on submit
+  const isFullNameValid = validateField('fullName', validateFullName);
+  const isPhoneValid = validateField('phoneNumber', validatePhoneNumber);
+  const isEmailValid = validateField('email', validateEmail);
+  const isPasswordValid = validateField('password', validatePassword);
+  const isConfirmPasswordValid = validateField('confirmPassword', () => validatePasswordMatch(form.password.value, form.confirmPassword.value));
+
+  // If any validation fails, stop submission
+  if (!isFullNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
+    return;
+  }
+
   const payload = {
     fullName: form.fullName.value,
     phoneNumber: form.phoneNumber.value,
     email: form.email.value,
     password: form.password.value
   };
+
   const msg = document.getElementById('registerMsg');
   try {
     const res = await fetch('/api/users/register', {

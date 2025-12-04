@@ -11,7 +11,14 @@ const watchlistController = {
       const where={}
       if(req.query.productName) where.productName = req.query.productName
       const list = await db.Watchlist.findAll({ where, order:[['updatedAt','DESC']] })
-      res.json({ success:true, data:list, count:list.length })
+      // Convert decimal fields to numbers for proper JSON serialization
+      const processedList = list.map(item => {
+        const itemData = item.get({ plain: true })
+        itemData.currentPrice = parseFloat(itemData.currentPrice)
+        itemData.alertPrice = parseFloat(itemData.alertPrice)
+        return itemData
+      })
+      res.json({ success:true, data:processedList, count:processedList.length })
     }catch(err){
       res.status(500).json({ success:false, error:err.message })
     }

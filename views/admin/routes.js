@@ -54,6 +54,23 @@ router.get('/signals', async (req, res) => {
       console.error('Error fetching signal stats:', statsError)
     }
     
+    // Fetch product signal statistics
+    let productStats = []
+    try {
+      const mockReqProductStats = { url: '/api/signals/products/stats' }
+      const mockResProductStats = {
+        json: (data) => {
+          if (data.success && data.data) {
+            productStats = data.data
+          }
+        },
+        status: () => ({ json: () => {} })
+      }
+      await signalsController.getProductSignalStats(mockReqProductStats, mockResProductStats)
+    } catch (productStatsError) {
+      console.error('Error fetching product signal stats:', productStatsError)
+    }
+    
     // Fetch products data for watchlist dropdown
     let productsData = []
     try {
@@ -113,6 +130,7 @@ router.get('/signals', async (req, res) => {
       activeClients: activeClients || 0,
       winRate: signalStats.winRate || 0,
       netProfit: signalStats.netProfit || 0,
+      productStats: productStats,
       watchlist: watchlistData,
       signals: signalsData,
       products: productsData
@@ -244,38 +262,20 @@ router.get('/transactions', async (req, res) => {
 
 router.get('/staff', async (req, res) => {
   try {
-    // Create a mock request object for the userController
-    const mockReq = { query: { userType: 'staff' } }
-    const mockRes = {
-      json: (data) => {
-        if (data.success) {
-          res.render('admin/staff.njk', { 
-            title: 'Staff - Admin',
-            staff: data.data
-          })
-        } else {
-          res.render('admin/staff.njk', { 
-            title: 'Staff - Admin',
-            staff: [],
-            error: data.error
-          })
-        }
-      },
-      status: () => ({
-        json: (data) => {
-          res.render('admin/staff.njk', { 
-            title: 'Staff - Admin',
-            staff: [],
-            error: data.error || 'Failed to fetch staff data'
-          })
-        }
-      })
-    }
-    
-    await userController.getAllUsers(mockReq, mockRes)
+    // Directly call the database and render - simpler and more reliable
+    const staff = await db.User.findAll({
+      where: { userType: 'staff' },
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.render('admin/staff.njk', {
+      title: 'Staff - Admin',
+      staff: staff
+    })
   } catch (error) {
     console.error('Error fetching staff:', error)
-    res.render('admin/staff.njk', { 
+    res.render('admin/staff.njk', {
       title: 'Staff - Admin',
       staff: [],
       error: error.message
@@ -285,38 +285,20 @@ router.get('/staff', async (req, res) => {
 
 router.get('/customers', async (req, res) => {
   try {
-    // Create a mock request object for the userController
-    const mockReq = { query: { userType: 'customer' } }
-    const mockRes = {
-      json: (data) => {
-        if (data.success) {
-          res.render('admin/customers.njk', { 
-            title: 'Customers - Admin',
-            customers: data.data
-          })
-        } else {
-          res.render('admin/customers.njk', { 
-            title: 'Customers - Admin',
-            customers: [],
-            error: data.error
-          })
-        }
-      },
-      status: () => ({
-        json: (data) => {
-          res.render('admin/customers.njk', { 
-            title: 'Customers - Admin',
-            customers: [],
-            error: data.error || 'Failed to fetch customer data'
-          })
-        }
-      })
-    }
-    
-    await userController.getAllUsers(mockReq, mockRes)
+    // Directly call the database and render - simpler and more reliable
+    const customers = await db.User.findAll({
+      where: { userType: 'customer' },
+      attributes: { exclude: ['password'] },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.render('admin/customers.njk', {
+      title: 'Customers - Admin',
+      customers: customers
+    })
   } catch (error) {
     console.error('Error fetching customers:', error)
-    res.render('admin/customers.njk', { 
+    res.render('admin/customers.njk', {
       title: 'Customers - Admin',
       customers: [],
       error: error.message
@@ -324,56 +306,174 @@ router.get('/customers', async (req, res) => {
   }
 })
 
+// Test modal route
+router.get('/test-modal', (req, res) => {
+  res.render('admin/test-modal.njk', {
+    title: 'Test Modal - Admin'
+  })
+})
+
 router.get('/signals/:productName', async (req, res) => {
   try {
     const productName = req.params.productName
     
-    // Create mock request objects for controllers
-    const watchlistReq = {
-      query: { productName: productName },
-      headers: {}
-    }
-    const signalsReq = {
-      query: {},
-      headers: {}
+    // Fetch product signal statistics for this specific product
+    let productStats = null
+    try {
+      // Get all product stats and filter for this specific product
+      const mockReqProductStats = { url: '/api/signals/products/stats' }
+      const mockResProductStats = {
+        json: (data) => {
+          if (data.success && data.data) {
+            productStats = data.data.find(p => p.productName === productName) || {
+              productName: productName,
+              totalSignals: 0,
+              winLossRatio: 0,
+              profitSignals: 0,
+              lossSignals: 0,
+              inProgressSignals: 0
+            }
+          }
+        },
+        status: () => ({ json: () => {} })
+      }
+      await signalsController.getProductSignalStats(mockReqProductStats, mockResProductStats)
+    } catch (productStatsError) {
+      console.error('Error fetching product signal stats:', productStatsError)
+      productStats = {
+        productName: productName,
+        totalSignals: 0,
+        winLossRatio: 0,
+        profitSignals: 0,
+        lossSignals: 0,
+        inProgressSignals: 0
+      }
     }
     
-    // Mock response objects to capture controller data
-    let watchlistData = []
-    let signalsData = []
-    
-    const watchlistRes = {
-      json: (data) => { watchlistData = data.data || [] },
-      status: () => ({ json: () => {} })
-    }
-    
-    const signalsRes = {
-      json: (data) => { signalsData = data.data || [] },
-      status: () => ({ json: () => {} })
+    // Fetch signals filtered by product type (using type column)
+    let filteredSignals = []
+    try {
+      // Map product name to signal type
+      const productToTypeMap = {
+        'Stocks': 'stocks',
+        'Crypto': 'crypto', 
+        'Forex': 'forex',
+        'Commodity': 'commodity'
+      }
+      
+      const signalType = productToTypeMap[productName] || productName.toLowerCase()
+      
+      const signalsList = await db.Signal.findAll({ 
+        where: { type: signalType },
+        order: [['createdAt', 'DESC']] 
+      })
+      
+      // Convert to plain objects and format for template
+      filteredSignals = signalsList.map(item => {
+        const plainItem = item.get({ plain: true })
+        return {
+          ...plainItem,
+          entry: parseFloat(plainItem.entry),
+          target: parseFloat(plainItem.target),
+          stopLoss: parseFloat(plainItem.stopLoss),
+          exitPrice: plainItem.exitPrice ? parseFloat(plainItem.exitPrice) : null,
+          profitLoss: plainItem.profitLoss ? parseFloat(plainItem.profitLoss) : null,
+          entryDateTime: plainItem.entryDateTime instanceof Date ? plainItem.entryDateTime : (plainItem.entryDateTime ? new Date(plainItem.entryDateTime) : null),
+          exitDateTime: plainItem.exitDateTime instanceof Date ? plainItem.exitDateTime : (plainItem.exitDateTime ? new Date(plainItem.exitDateTime) : null),
+          createdAt: plainItem.createdAt instanceof Date ? plainItem.createdAt : new Date(plainItem.createdAt),
+          updatedAt: plainItem.updatedAt instanceof Date ? plainItem.updatedAt : new Date(plainItem.updatedAt)
+        }
+      })
+    } catch (signalsError) {
+      console.error('Error fetching filtered signals:', signalsError)
     }
     
     // Fetch watchlist data filtered by productName
-    await watchlistController.getAll(watchlistReq, watchlistRes)
+    let watchlistData = []
+    try {
+      const watchlistList = await db.Watchlist.findAll({
+        where: { productName: productName },
+        order: [['updatedAt', 'DESC']]
+      })
+      watchlistData = watchlistList.map(item => {
+        const itemData = item.get({ plain: true })
+        // Convert decimal fields to numbers for template rendering
+        itemData.currentPrice = parseFloat(itemData.currentPrice)
+        itemData.alertPrice = parseFloat(itemData.alertPrice)
+        return itemData
+      })
+    } catch (watchlistError) {
+      console.error('Error fetching watchlist data:', watchlistError)
+    }
     
-    // Fetch all signals data
-    await signalsController.getAllSignals(signalsReq, signalsRes)
-    
-    res.render('admin/signal-detail.njk', { 
-      title: 'Signal Detail - Admin', 
+    res.render('admin/signals-product.njk', { 
+      title: `${productName} Signals - Admin`, 
       productName: productName,
-      watchlist: watchlistData,
-      signals: signalsData
+      productStats: productStats,
+      signals: filteredSignals,
+      watchlist: watchlistData
     })
     
   } catch (error) {
     console.error('Error fetching signal detail data:', error)
-    res.render('admin/signal-detail.njk', { 
-      title: 'Signal Detail - Admin', 
+    res.render('admin/signals-product.njk', { 
+      title: `${req.params.productName} Signals - Admin`, 
       productName: req.params.productName,
+      productStats: {
+        productName: req.params.productName,
+        totalSignals: 0,
+        winLossRatio: 0,
+        profitSignals: 0,
+        lossSignals: 0,
+        inProgressSignals: 0
+      },
+      signals: [],
       watchlist: [],
-      signals: []
+      error: error.message
     })
   }
 })
+
+// Add subscription detail route
+router.get('/subscriptions/:id', async (req, res) => {
+  try {
+    const subscriptionId = req.params.id;
+
+    // Fetch subscription data directly from database
+    const subscription = await db.Subscription.findByPk(subscriptionId, {
+      include: [
+        { model: db.User, as: 'User' },
+        { model: db.Plan, as: 'plan', include: [{ model: db.Product, as: 'Product' }] }
+      ]
+    });
+
+    if (!subscription) {
+      return res.status(404).render('admin/404.njk', {
+        title: 'Subscription Not Found',
+        message: 'The requested subscription does not exist.'
+      });
+    }
+
+    // Fetch related transactions
+    const transactions = await db.Transaction.findAll({
+      where: { subscriptionId: subscriptionId },
+      order: [['createdAt', 'DESC']]
+    });
+
+    res.render('admin/subscription-detail.njk', {
+      title: 'Subscription Details - Admin',
+      subscription: subscription,
+      transactions: transactions
+    });
+
+  } catch (error) {
+    console.error('Error fetching subscription details:', error);
+    res.status(500).render('admin/error.njk', {
+      title: 'Error - Admin',
+      message: 'Error loading subscription details',
+      error: error.message
+    });
+  }
+});
 
 module.exports = router

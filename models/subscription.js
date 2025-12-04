@@ -29,12 +29,16 @@ module.exports = (sequelize, DataTypes) => {
     startDate: DataTypes.DATE,
     endDate: DataTypes.DATE,
     status: {
-      type: DataTypes.ENUM('active', 'expired', 'cancelled'),
+      type: DataTypes.ENUM('active', 'pending', 'expired', 'cancelled'),
       defaultValue: 'active'
     },
     paymentStatus: {
       type: DataTypes.ENUM('pending', 'completed', 'failed'),
       defaultValue: 'pending'
+    },
+    notes: {
+      type: DataTypes.TEXT,
+      allowNull: true
     }
   }, {
     sequelize,

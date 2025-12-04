@@ -44,21 +44,39 @@ const userController = {
         });
       }
 
-      // Check if user already exists
-      const existingUser = await db.User.findOne({
-        where: {
-          [Op.or]: [
-            { phoneNumber },
-            ...(email ? [{ email }] : [])
-          ]
-        }
+      // Check if user already exists - check phone number first, then email
+      let existingUser = await db.User.findOne({
+        where: { phoneNumber }
       });
 
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          error: 'User with this phone number or email already exists'
+          error: 'Phone number already registered'
         });
+      }
+
+      // Check email only if provided
+      if (email) {
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid email format'
+          });
+        }
+
+        existingUser = await db.User.findOne({
+          where: { email }
+        });
+
+        if (existingUser) {
+          return res.status(409).json({
+            success: false,
+            error: 'Email address already registered'
+          });
+        }
       }
 
       // Hash password
@@ -310,8 +328,7 @@ const userController = {
       const user = await db.User.findByPk(id);
       if (!user) {
         return res.status(404).json({
-          success: false,
-          error: 'User not found'
+          message: 'User not found'
         });
       }
 
@@ -321,6 +338,17 @@ const userController = {
           success: false,
           error: 'User type must be either "customer" or "staff"'
         });
+      }
+
+      // Validate email format if provided
+      if (email !== undefined && email !== null && email !== '') {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid email format'
+          });
+        }
       }
 
       // Update user data
@@ -361,6 +389,37 @@ const userController = {
       });
     } catch (error) {
       console.error('Update user error:', error);
+      console.error('Error name:', error.name);
+      console.error('Error errors:', error.errors);
+      console.error('Error message:', error.message);
+      
+      // Handle Sequelize validation errors
+      if (error.name === 'SequelizeValidationError' || error.name === 'ValidationError') {
+        const validationErrors = error.errors.map(err => err.message);
+        return res.status(400).json({
+          success: false,
+          error: validationErrors.join(', ')
+        });
+      }
+      
+      // Handle any Sequelize error with validation errors array
+      if (error.errors && Array.isArray(error.errors)) {
+        const validationErrors = error.errors.map(err => err.message);
+        return res.status(400).json({
+          success: false,
+          error: validationErrors.join(', ')
+        });
+      }
+      
+      // Handle Sequelize unique constraint errors
+      if (error.name === 'SequelizeUniqueConstraintError') {
+        const field = error.errors[0].path;
+        return res.status(409).json({
+          success: false,
+          error: `${field} already exists`
+        });
+      }
+      
       res.status(500).json({
         success: false,
         error: 'Internal server error while updating user'
@@ -384,17 +443,45 @@ const userController = {
         });
       }
 
+      // Check if user has any active subscriptions
+      const activeSubscriptions = await db.Subscription.count({
+        where: { userId: id }
+      });
+
+      if (activeSubscriptions > 0) {
+        return res.status(400).json({
+          message: 'Cannot delete user with existing subscriptions. Please delete subscriptions first.'
+        });
+      }
+
+      // Check if user has any transactions
+      const transactions = await db.Transaction.count({
+        where: { userId: id }
+      });
+
+      if (transactions > 0) {
+        return res.status(400).json({
+          message: 'Cannot delete user with existing transactions. Please delete transactions first.'
+        });
+      }
+
       await user.destroy();
 
       res.json({
-        success: true,
         message: 'User deleted successfully'
       });
     } catch (error) {
       console.error('Delete user error:', error);
+      
+      // Handle specific database errors
+      if (error.name === 'SequelizeForeignKeyConstraintError') {
+        return res.status(400).json({
+          message: 'Cannot delete user due to existing related records. Please delete related data first.'
+        });
+      }
+
       res.status(500).json({
-        success: false,
-        error: 'Internal server error while deleting user'
+        message: 'Internal server error while deleting user'
       });
     }
   },
@@ -409,10 +496,10 @@ const userController = {
       const { currentPassword, newPassword } = req.body;
 
       // Validation
-      if (!currentPassword || !newPassword) {
+      if (!newPassword) {
         return res.status(400).json({
           success: false,
-          error: 'Current password and new password are required'
+          error: 'New password is required'
         });
       }
 
@@ -431,13 +518,66 @@ const userController = {
         });
       }
 
-      // Verify current password
-      const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-      if (!isCurrentPasswordValid) {
-        return res.status(400).json({
-          success: false,
-          error: 'Current password is incorrect'
-        });
+      // Check if this is an admin override (special flag)
+      const isAdminOverride = currentPassword === 'admin_reset_override';
+
+      // For admin overrides, we need to check if the requesting user is an admin
+      if (isAdminOverride) {
+        // Extract token from authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return res.status(403).json({
+            success: false,
+            error: 'Admin authorization required for password reset'
+          });
+        }
+
+        const adminToken = authHeader.split(' ')[1];
+        console.log('Received admin token:', adminToken.substring(0, 50) + '...');
+        try {
+          // Verify admin token
+          const decoded = jwt.verify(adminToken, JWT_SECRET);
+          if (decoded.role !== 'admin' && decoded.userType !== 'admin') {
+            return res.status(403).json({
+              success: false,
+              error: 'Admin privileges required for password reset'
+            });
+          }
+        } catch (tokenError) {
+          console.error('JWT verification error:', tokenError.message);
+          if (tokenError.name === 'TokenExpiredError') {
+            return res.status(403).json({
+              success: false,
+              error: 'Token expired. Please log in again.'
+            });
+          } else if (tokenError.name === 'JsonWebTokenError') {
+            return res.status(403).json({
+              success: false,
+              error: 'Invalid token. Please log in again.'
+            });
+          } else {
+            return res.status(403).json({
+              success: false,
+              error: 'Invalid admin authorization'
+            });
+          }
+        }
+      } else {
+        // Regular password change - verify current password
+        if (!currentPassword) {
+          return res.status(400).json({
+            success: false,
+            error: 'Current password is required'
+          });
+        }
+
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+        if (!isCurrentPasswordValid) {
+          return res.status(400).json({
+            success: false,
+            error: 'Current password is incorrect'
+          });
+        }
       }
 
       // Hash and update new password
@@ -447,7 +587,7 @@ const userController = {
 
       res.json({
         success: true,
-        message: 'Password changed successfully'
+        message: isAdminOverride ? 'Password reset successfully by admin' : 'Password changed successfully'
       });
     } catch (error) {
       console.error('Change password error:', error);

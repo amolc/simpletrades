@@ -10,6 +10,44 @@
     <small class="text-muted">Key metrics and products overview</small>
   </div>
 
+  <!-- Product Cards Section -->
+  <div class="row g-3 mb-4" id="productCardsRow">
+    <div class="col-12">
+      <h4 class="mb-3">Product Overview</h4>
+    </div>
+    {% for product in productStats %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card h-100 product-card">
+        <div class="card-body">
+          <h5 class="card-title">{{ product.productName }}</h5>
+          <div class="row g-2">
+            <div class="col-6">
+              <div class="text-muted small">Signals Given</div>
+              <div class="h6 mb-0">{{ product.totalSignals }}</div>
+            </div>
+            <div class="col-6">
+              <div class="text-muted small">Win/Loss Ratio</div>
+              <div class="h6 mb-0">{{ product.winLossRatio }}%</div>
+            </div>
+            <div class="col-6">
+              <div class="text-muted small">Profits</div>
+              <div class="h6 mb-0 text-success">{{ product.profitSignals }}</div>
+            </div>
+            <div class="col-6">
+              <div class="text-muted small">Losses</div>
+              <div class="h6 mb-0 text-danger">{{ product.lossSignals }}</div>
+            </div>
+          </div>
+          <div class="mt-3">
+            <a href="/admin/signals/{{ product.productName }}" class="btn btn-outline-primary btn-sm w-100">Details</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Overall Stats Row -->
   <div class="row g-3 mb-4" id="metricsRow">
     <div class="col-md-4">
       <div class="card">
@@ -114,7 +152,7 @@
           <tbody id="signalsBody">
             {% for signal in signals %}
             <tr>
-              <td>{{ signal.stock }}</td>
+              <td>{{ signal.product }}</td>
               <td>{{ signal.signalType or signal.type }}</td>
               <td>₹{{ signal.entry.toFixed(2) }}</td>
               <td>₹{{ signal.target.toFixed(2) }}</td>

@@ -1,0 +1,126 @@
+{% extends "admin/layout.njk" %}
+
+{% block title %}Test Modal{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Modal Test Page</h2>
+    <button id="testBtn" class="btn btn-primary">Test Modal</button>
+    <button id="manualTestBtn" class="btn btn-warning">Test Modal (Manual)</button>
+    
+    <!-- Simple Test Modal -->
+    <div class="modal fade" id="testModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Test Modal</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>If you can see this, the modal is working!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+console.log('=== TEST MODAL PAGE LOADED ===');
+
+// Check if Bootstrap is loaded
+console.log('Bootstrap object:', typeof bootstrap);
+console.log('Bootstrap Modal:', typeof bootstrap?.Modal);
+console.log('Available bootstrap methods:', Object.keys(bootstrap || {}));
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Test Page');
+    
+    const testBtn = document.getElementById('testBtn');
+    const testModal = document.getElementById('testModal');
+    
+    console.log('Test button found:', !!testBtn);
+    console.log('Test modal found:', !!testModal);
+    console.log('Modal element details:', testModal);
+    
+    if (testBtn && testModal) {
+        testBtn.addEventListener('click', function() {
+            console.log('=== TEST BUTTON CLICKED ===');
+            alert('Button clicked - now trying to show modal...');
+            
+            try {
+                console.log('Attempting to create bootstrap.Modal...');
+                console.log('bootstrap object:', bootstrap);
+                console.log('bootstrap.Modal:', bootstrap.Modal);
+                
+                if (!bootstrap) {
+                    throw new Error('Bootstrap is not loaded!');
+                }
+                
+                if (!bootstrap.Modal) {
+                    throw new Error('Bootstrap Modal is not available!');
+                }
+                
+                const modal = new bootstrap.Modal(testModal);
+                console.log('Modal instance created:', modal);
+                
+                console.log('Attempting to show modal...');
+                modal.show();
+                console.log('Modal show() method called successfully!');
+                
+                // Check if modal is visible after a short delay
+                setTimeout(() => {
+                    const isVisible = testModal.classList.contains('show');
+                    console.log('Modal is visible after 500ms:', isVisible);
+                    console.log('Modal classes:', testModal.className);
+                }, 500);
+                
+            } catch (error) {
+                console.error('=== ERROR SHOWING MODAL ===');
+                console.error('Error name:', error.name);
+                console.error('Error message:', error.message);
+                console.error('Error stack:', error.stack);
+                alert('Modal error: ' + error.message + '\n\nCheck console for details.');
+            }
+        });
+        
+        console.log('Event listener attached to test button');
+    
+    // Manual modal test (fallback method)
+    const manualTestBtn = document.getElementById('manualTestBtn');
+    if (manualTestBtn) {
+        manualTestBtn.addEventListener('click', function() {
+            console.log('=== MANUAL MODAL TEST ===');
+            alert('Manual modal test - trying to show modal without bootstrap...');
+            
+            try {
+                // Manual modal show method
+                testModal.style.display = 'block';
+                testModal.classList.add('show');
+                testModal.setAttribute('aria-modal', 'true');
+                testModal.setAttribute('role', 'dialog');
+                
+                // Add backdrop
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                backdrop.id = 'manualBackdrop';
+                document.body.appendChild(backdrop);
+                
+                console.log('Manual modal shown!');
+                alert('Manual modal method completed - check if modal is visible!');
+                
+            } catch (error) {
+                console.error('Manual modal error:', error);
+                alert('Manual modal error: ' + error.message);
+            }
+        });
+        console.log('Manual test button listener attached');
+    }
+    } else {
+        console.error('Required elements not found!');
+    }
+});
+</script>
+{% endblock %}
