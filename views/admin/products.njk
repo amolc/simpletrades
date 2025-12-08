@@ -55,7 +55,7 @@
                                   {% for plan in p.plans %}
                                   <div class="d-flex justify-content-between align-items-center">
                                     <small class="text-muted">{{ plan.name }}:</small>
-                                    <span class="badge bg-primary">${{ plan.cost }} / {{ plan.days }}d</span>
+                                    <span class="badge bg-primary">Rs {{ plan.cost }} / {{ plan.days }}d</span>
                                   </div>
                                   {% endfor %}
                                 {% else %}
@@ -95,7 +95,7 @@
                                         <tr>
                                           <td>{{ plan.name }}</td>
                                           <td>{{ plan.days }} days</td>
-                                          <td>${{ plan.cost }}</td>
+                                          <td>Rs {{ plan.cost }}</td>
                                         </tr>
                                         {% endfor %}
                                       {% else %}
@@ -274,7 +274,7 @@
             <div class="col-6 mb-3">
               <label for="planCost" class="form-label">Cost</label>
               <div class="input-group">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text">Rs</span>
                 <input type="number" class="form-control" id="planCost" name="cost" required min="0" step="0.01">
               </div>
             </div>
@@ -321,7 +321,7 @@
             <div class="col-md-6">
               <label for="createPlanCost" class="form-label fw-semibold">Cost <span class="text-danger">*</span></label>
               <div class="input-group">
-                <span class="input-group-text">$</span>
+                <span class="input-group-text">Rs</span>
                 <input type="number" class="form-control" id="createPlanCost" name="cost" required min="0" step="0.01" placeholder="0.00">
               </div>
               <div class="form-text">Price for this plan</div>

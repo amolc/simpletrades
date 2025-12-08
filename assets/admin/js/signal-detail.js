@@ -111,7 +111,8 @@ document.addEventListener('DOMContentLoaded',()=>{
       alert('Please fill target and stop loss');
       return;
     }
-    const body={ stock, entry, target, stopLoss, type:'stocks', signalType:side, notes, userId: adminId }
+    const toType=(p)=>({Stocks:'stocks',Crypto:'crypto',Forex:'forex',Commodity:'commodity',Options:'options'})[p]||(p?p.toLowerCase():'stocks')
+    const body={ product: productName, symbol: stock, entry, target, stopLoss, type: toType(productName), signalType:side, notes, userId: adminId }
     const res=await fetch('/api/signals',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)})
     if(res.ok){ signalModal.hide(); window.location.reload() } else { const j=await res.json().catch(()=>({})); alert(j.error||'Error creating signal') }
   })

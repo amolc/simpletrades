@@ -217,13 +217,13 @@
             <div class="row mb-5 g-4" id="signalStats">
                 <div class="col-md-2 col-sm-4 col-6">
                     <div class="stats-card fade-in">
-                        <div class="stats-number stats-total" id="totalSignals">0</div>
+                        <div class="stats-number stats-total" id="totalSignals">{{ stats.totalSignals if stats else '0' }}</div>
                         <div class="stats-label">Total Signals</div>
                     </div>
                 </div>
                 <div class="col-md-2 col-sm-4 col-6">
                     <div class="stats-card fade-in">
-                        <div class="stats-number stats-active" id="activeSignals">0</div>
+                        <div class="stats-number stats-active" id="activeSignals">{{ stats.inProgressSignals if stats else '0' }}</div>
                         <div class="stats-label">Active</div>
                     </div>
                 </div>
@@ -235,19 +235,19 @@
                 </div>
                 <div class="col-md-2 col-sm-4 col-6">
                     <div class="stats-card fade-in">
-                        <div class="stats-number stats-winrate" id="winRate">0%</div>
+                        <div class="stats-number stats-winrate" id="winRate">{{ stats.winRate if stats else '0' }}%</div>
                         <div class="stats-label">Win Rate</div>
                     </div>
                 </div>
                 <div class="col-md-2 col-sm-4 col-6">
                     <div class="stats-card fade-in">
-                        <div class="stats-number stats-profit" id="totalProfit">₹0.00</div>
+                        <div class="stats-number stats-profit" id="totalProfit">Rs {{ stats.totalProfit.toFixed(2) if stats and stats.totalProfit else '0.00' }}</div>
                         <div class="stats-label">Total Profit</div>
                     </div>
                 </div>
                 <div class="col-md-2 col-sm-4 col-6">
                     <div class="stats-card fade-in">
-                        <div class="stats-number stats-loss" id="totalLoss">₹0.00</div>
+                        <div class="stats-number stats-loss" id="totalLoss">Rs {{ stats.totalLoss.toFixed(2) if stats and stats.totalLoss else '0.00' }}</div>
                         <div class="stats-label">Total Loss</div>
                     </div>
                 </div>
@@ -275,15 +275,78 @@
                                     </tr>
                                 </thead>
                                 <tbody id="signalsTableBody">
-                                    <tr>
-                                        <td colspan="11" class="text-center">
-                                            <div class="loading-spinner">
-                                                <div class="spinner-border text-primary" role="status">
-                                                    <span class="visually-hidden">Loading signals...</span>
+                                    {% if signals and signals.length > 0 %}
+                                        {% for signal in signals %}
+                                        <tr class="fade-in">
+                                            <td>
+                                                <div class="fw-bold">{{ signal.product }}</div>
+                                                <small class="text-muted">{{ signal.symbol or '' }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="signal-badge signal-type-{{ signal.signalType | lower }}">
+                                                    <i class="fas fa-arrow-{{ 'up' if signal.signalType == 'BUY' else 'down' }} me-1"></i>
+                                                    {{ signal.signalType }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold">Rs {{ signal.entry }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-success fw-bold">Rs {{ signal.target }}</span>
+                                            </td>
+                                            <td>
+                                                <span class="text-danger">Rs {{ signal.stopLoss }}</span>
+                                            </td>
+                                            <td>
+                                                {% if signal.exitPrice %}
+                                                    <span class="fw-bold">Rs {{ signal.exitPrice }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if signal.profitLoss !== null %}
+                                                    <span class="{{ 'profit-positive' if signal.profitLoss >= 0 else 'profit-negative' }}">
+                                                        {{ '+' if signal.profitLoss >= 0 }}Rs {{ signal.profitLoss }}
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="signal-badge status-{{ signal.status | lower }}">
+                                                    <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                                                    {{ signal.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <small>{{ signal.entryDateTime | date("Y-m-d H:i:s") if signal.entryDateTime else '-' }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ signal.duration or '-' }}</span>
+                                            </td>
+                                            <td>
+                                                {% if signal.notes %}
+                                                    <small class="text-muted" title="{{ signal.notes }}">
+                                                        {{ signal.notes | truncate(30) }}
+                                                    </small>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="11" class="text-center">
+                                                <div class="empty-state">
+                                                    <i class="fas fa-chart-line"></i>
+                                                    <h5>No Signals Found</h5>
+                                                    <p>Start creating trading signals to see them here.</p>
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
                             
@@ -303,11 +366,11 @@
         // Load signals data
         async function loadSignals() {
             try {
-                const response = await fetch('/api/signals');
+                const response = await fetch('/api/signals?status=completed');
                 const result = await response.json();
                 
                 if (result.success && result.data) {
-                    displaySignals(result.data);
+                    displaySignals(result.data.slice(0, 5));
                 } else {
                     showEmptyState();
                 }
@@ -337,8 +400,8 @@
             document.getElementById('activeSignals').textContent = stats.activeSignals || 0;
             document.getElementById('pendingSignals').textContent = stats.pendingSignals || 0;
             document.getElementById('winRate').textContent = (stats.winRate || 0) + '%';
-            document.getElementById('totalProfit').textContent = '₹' + (stats.totalProfit || 0).toFixed(2);
-            document.getElementById('totalLoss').textContent = '₹' + (stats.totalLoss || 0).toFixed(2);
+            document.getElementById('totalProfit').textContent = 'Rs ' + (stats.totalProfit || 0).toFixed(2);
+            document.getElementById('totalLoss').textContent = 'Rs ' + (stats.totalLoss || 0).toFixed(2);
         }
         
         // Display signals in table
@@ -353,7 +416,7 @@
             tbody.innerHTML = signals.map(signal => `
                 <tr class="fade-in">
                     <td>
-                        <div class="fw-bold">${signal.stock}</div>
+                        <div class="fw-bold">${signal.product}</div>
                         <small class="text-muted">${signal.symbol || ''}</small>
                     </td>
                     <td>
@@ -363,21 +426,21 @@
                         </span>
                     </td>
                     <td>
-                        <span class="fw-bold">₹${signal.entry}</span>
+                        <span class="fw-bold">Rs ${signal.entry}</span>
                     </td>
                     <td>
-                        <span class="text-success fw-bold">₹${signal.target}</span>
+                        <span class="text-success fw-bold">Rs ${signal.target}</span>
                     </td>
                     <td>
-                        <span class="text-danger">₹${signal.stopLoss}</span>
+                        <span class="text-danger">Rs ${signal.stopLoss}</span>
                     </td>
                     <td>
-                        ${signal.exitPrice ? `<span class="fw-bold">₹${signal.exitPrice}</span>` : '<span class="text-muted">-</span>'}
+                        ${signal.exitPrice ? `<span class="fw-bold">Rs ${signal.exitPrice}</span>` : '<span class="text-muted">-</span>'}
                     </td>
                     <td>
                         ${signal.profitLoss !== null ? 
                             `<span class="${signal.profitLoss >= 0 ? 'profit-positive' : 'profit-negative'}">
-                                ${signal.profitLoss >= 0 ? '+' : ''}₹${signal.profitLoss}
+                                ${signal.profitLoss >= 0 ? '+' : ''}Rs ${signal.profitLoss}
                             </span>` : 
                             '<span class="text-muted">-</span>'
                         }
@@ -409,8 +472,18 @@
         // Show empty state
         function showEmptyState() {
             const tbody = document.getElementById('signalsTableBody');
-            tbody.innerHTML = '';
-            document.getElementById('emptyState').style.display = 'block';
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="text-center">
+                        <div class="empty-state">
+                            <i class="fas fa-chart-line"></i>
+                            <h5>No Signals Found</h5>
+                            <p>Start creating trading signals to see them here.</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            document.getElementById('emptyState').style.display = 'none'; // We handle it in table body
         }
         
         // Show error state
@@ -428,8 +501,9 @@
         
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            loadSignalStats();
-            loadSignals();
+            // Initial data is server-rendered, so we don't fetch immediately
+            // loadSignalStats();
+            // loadSignals();
             
             // Refresh data every 30 seconds
             setInterval(() => {

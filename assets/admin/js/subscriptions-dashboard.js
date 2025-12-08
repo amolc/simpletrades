@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
           plansData.data.forEach(plan => {
             const option = document.createElement('option');
             option.value = plan.id;
-            option.textContent = `${plan.planName} - ₹${plan.cost}/${plan.renewalType}`;
+            option.textContent = `${plan.planName} - Rs ${plan.cost}/${plan.renewalType}`;
             option.dataset.planDetails = JSON.stringify(plan);
             planSelect.appendChild(option);
           });
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
       selectedPlan = plan;
       planDetailsContent.innerHTML = `
         <p><strong>Name:</strong> ${plan.planName}</p>
-        <p><strong>Price:</strong> ₹${plan.cost}</p>
+        <p><strong>Price:</strong> Rs ${plan.cost}</p>
         <p><strong>Billing Cycle:</strong> ${plan.renewalType}</p>
         <p><strong>Description:</strong> ${plan.planDescription || 'No description available'}</p>
       `;
@@ -470,7 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (result.success) {
             const subscription = result.data;
             paymentSubscriptionId.textContent = subscription.id;
-            paymentAmountDue.textContent = `₹${parseFloat(subscription.plan.cost).toFixed(2)}`;
+            paymentAmountDue.textContent = `Rs ${parseFloat(subscription.plan.cost).toFixed(2)}`;
 
               const paymentResponse = await fetch(`/api/subscriptions/${id}/payment-qrcode`);
               const paymentResult = await paymentResponse.json();
@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
         plansData.data.forEach(plan => {
           const option = document.createElement('option');
           option.value = plan.id;
-          option.textContent = `${plan.planName} - ₹${plan.cost}/${plan.renewalType}`;
+          option.textContent = `${plan.planName} - Rs ${plan.cost}/${plan.renewalType}`;
           option.dataset.planDetails = JSON.stringify(plan);
           planSelect.appendChild(option);
         });
@@ -640,7 +640,7 @@ let selectedPlan;
         <td>${subscription.User ? subscription.User.fullName : 'N/A'}</td>
         <td>${subscription.plan && subscription.plan.Product ? subscription.plan.Product.name : 'N/A'}</td>
         <td>${subscription.plan ? subscription.plan.planName : 'N/A'}</td>
-        <td>₹${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
+        <td>Rs ${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
         <td>${new Date(subscription.startDate).toLocaleDateString()}</td>
         <td><span class="badge bg-${subscription.status === 'active' ? 'success' : subscription.status === 'pending' ? 'warning' : 'danger'}">${subscription.status}</span></td>
         <td><span class="badge bg-${subscription.paymentStatus === 'completed' ? 'success' : subscription.paymentStatus === 'pending' ? 'warning' : 'danger'}">${subscription.paymentStatus}</span></td>

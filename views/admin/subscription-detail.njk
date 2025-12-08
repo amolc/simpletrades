@@ -99,9 +99,9 @@
               <td><strong>Cost</strong></td>
               <td>
                 {% if subscription.plan %}
-                  ₹{{ subscription.plan.cost }}
+                  Rs {{ subscription.plan.cost }}
                 {% else %}
-                  ₹0.00
+                  Rs 0.00
                 {% endif %}
               </td>
             </tr>
@@ -168,7 +168,7 @@
             <tr>
               <td>{{ transaction.id }}</td>
               <td>{{ transaction.createdAt|date('Y-m-d H:i:s') }}</td>
-              <td>₹{{ transaction.amount|default('0.00') }}</td>
+              <td>Rs {{ transaction.amount|default('0.00') }}</td>
               <td>{{ transaction.paymentMethod|default('N/A') }}</td>
               <td>
                 <span class="badge {% if transaction.paymentStatus == 'paid' or transaction.paymentStatus == 'completed' %}bg-success{% elif transaction.paymentStatus == 'pending' %}bg-warning{% elif transaction.paymentStatus == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">
@@ -228,9 +228,9 @@
         <p>Subscription ID: <strong>{{ subscription.id }}</strong></p>
         <p>Amount Due: <strong>
           {% if subscription.plan %}
-            ₹{{ subscription.plan.cost }}
+            Rs {{ subscription.plan.cost }}
           {% else %}
-            ₹0.00
+            Rs 0.00
           {% endif %}
         </strong></p>
         <div id="qrcode" class="mb-3"></div>

@@ -1,5 +1,6 @@
 const express = require('express')
 const { getProducts } = require('../api/productController')
+const { getSignals, getSignalStats } = require('../api/signalsController')
 const db = require('../models')
 
 const router = express.Router()
@@ -83,8 +84,27 @@ router.get('/product/:name', async (req, res) => {
   }
 })
 
-router.get('/signals/', (req, res) => {
-  res.render('userpanel/signals.njk', { title: 'Trading Signals - SimpleIncome' })
+router.get('/signals/', async (req, res) => {
+  try {
+    const allSignals = await getSignals({ status: 'completed' })
+    // Show only 5 signals as requested
+    const signals = allSignals.slice(0, 5)
+    const stats = await getSignalStats()
+    
+    res.render('userpanel/signals.njk', { 
+      title: 'Trading Signals - SimpleIncome',
+      signals,
+      stats
+    })
+  } catch (error) {
+    console.error('Error loading signals:', error)
+    res.render('userpanel/signals.njk', { 
+      title: 'Trading Signals - SimpleIncome',
+      signals: [],
+      stats: {},
+      error: 'Error loading signals'
+    })
+  }
 })
 
 

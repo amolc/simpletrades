@@ -69,7 +69,7 @@ class ProductSignalsManager {
                 const row = e.target.closest('tr');
                 const cells = row.querySelectorAll('td');
                 const stockName = cells[0].textContent;
-                const currentPrice = parseFloat(cells[2].textContent.replace('₹', ''));
+                const currentPrice = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
                 
                 // Populate and show the signal creation modal
                 document.getElementById('signalCreateTitle').textContent = `Create ${isBuy ? 'BUY' : 'SELL'} Signal`;
@@ -237,11 +237,11 @@ class ProductSignalsManager {
                     id: row.dataset.signalId,
                     symbol: cells[0].textContent.trim(),
                     signalType: cells[1].textContent.trim(),
-                    entry: parseFloat(cells[2].textContent.replace('₹', '')),
-                    target: parseFloat(cells[3].textContent.replace('₹', '')),
-                    stopLoss: parseFloat(cells[4].textContent.replace('₹', '')),
+                    entry: parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, '')),
+                    target: parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, '')),
+                    stopLoss: parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, '')),
                     entryDateTime: cells[5].textContent.trim(),
-                    exitPrice: cells[6].textContent.trim() !== '-' ? parseFloat(cells[6].textContent.replace('₹', '')) : null,
+                    exitPrice: cells[6].textContent.trim() !== '-' ? parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')) : null,
                     exitDateTime: cells[7].textContent.trim(),
                     status: this.getStatusFromBadge(cells[8].innerHTML),
                     profitLoss: this.getProfitLossFromCell(cells[9]),
@@ -263,7 +263,7 @@ class ProductSignalsManager {
     getProfitLossFromCell(cell) {
         const text = cell.textContent.trim();
         if (text === '-') return null;
-        const value = parseFloat(text.replace(/[₹+-]/g, ''));
+        const value = parseFloat(text.replace(/[Rs\s₹+-]/g, ''));
         return cell.querySelector('.text-success') ? value : -value;
     }
 

@@ -120,9 +120,9 @@ class SignalsManager {
         return `
             <tr data-signal-id="${signal.id}">
                 <td><strong>${signal.stock}</strong><br><small class="text-muted">${signal.symbol}</small></td>
-                <td>₹${signal.entry.toFixed(2)}</td>
-                <td>₹${signal.target.toFixed(2)}</td>
-                <td>₹${signal.stopLoss.toFixed(2)}</td>
+                <td>Rs ${signal.entry.toFixed(2)}</td>
+                <td>Rs ${signal.target.toFixed(2)}</td>
+                <td>Rs ${signal.stopLoss.toFixed(2)}</td>
                 <td>${typeBadge}</td>
                 <td>
                     <small class="text-muted" title="${signal.notes}">
@@ -135,7 +135,7 @@ class SignalsManager {
                 <td>
                     ${signal.status === 'CLOSED' ? 
                         `<span class="${profitLossColor}">
-                            <i class="fas ${profitLossIcon}"></i> ₹${Math.abs(signal.profitLoss || 0).toFixed(2)}
+                            <i class="fas ${profitLossIcon}"></i> Rs ${Math.abs(signal.profitLoss || 0).toFixed(2)}
                         </span>` :
                         `<div class="btn-group btn-group-sm" role="group">
                             <button class="btn btn-outline-primary btn-sm edit-signal" data-id="${signal.id}" title="Edit">
@@ -427,11 +427,11 @@ class SignalsManager {
                         <small class="text-muted">Win Rate</small>
                     </div>
                     <div class="col-md-2 text-center">
-                        <h4 class="text-success">₹${stats.totalProfit.toFixed(2)}</h4>
+                        <h4 class="text-success">Rs ${stats.totalProfit.toFixed(2)}</h4>
                         <small class="text-muted">Profit</small>
                     </div>
                     <div class="col-md-2 text-center">
-                        <h4 class="text-danger">₹${stats.totalLoss.toFixed(2)}</h4>
+                        <h4 class="text-danger">Rs ${stats.totalLoss.toFixed(2)}</h4>
                         <small class="text-muted">Loss</small>
                     </div>
                 </div>

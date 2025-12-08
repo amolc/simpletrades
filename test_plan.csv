@@ -1,0 +1,62 @@
+Module,Type,Test Case ID,Description,Pre-conditions,Test Steps,Expected Result,Status
+Authentication,Frontend,AUTH-001,Admin Login with valid credentials,None,"1. Navigate to /admin/login
+2. Enter valid email and password
+3. Click Login button",Redirect to Admin Dashboard,Pending
+Authentication,Frontend,AUTH-002,Admin Login with invalid credentials,None,"1. Navigate to /admin/login
+2. Enter invalid email or password
+3. Click Login button",Show error message 'Invalid credentials',Pending
+Authentication,Frontend,AUTH-003,User Login with valid credentials,None,"1. Navigate to /login
+2. Enter valid email and password
+3. Click Login button",Redirect to User Dashboard,Pending
+Authentication,Frontend,AUTH-004,User Registration,None,"1. Navigate to /register
+2. Enter Name, Email, Password, Phone
+3. Click Register button",Account created and redirected to Dashboard/Login,Pending
+Admin Dashboard,Frontend,ADM-DASH-001,Verify Dashboard Statistics,Logged in as Admin,"1. Navigate to /admin/dashboard
+2. Check Total Users, Active Subscriptions, Total Revenue cards",Stats match database records,Pending
+Admin Dashboard,Frontend,ADM-DASH-002,Navigation Menu Links,Logged in as Admin,"1. Click on each menu item (Clients, Signals, Products, etc.)",Correct page loads for each link,Pending
+Admin Signals,Frontend,ADM-SIG-001,View Product Cards,Logged in as Admin,"1. Navigate to /admin/signals
+2. Check Product Overview section",Cards display correct product names and stats,Pending
+Admin Signals,Frontend,ADM-SIG-002,Navigate to Product Signals,Logged in as Admin,"1. Navigate to /admin/signals
+2. Click 'Details' on a Product Card (e.g., Crypto)",Redirect to /admin/signals/Crypto,Pending
+Admin Signals,Frontend,ADM-SIG-003,Create New Signal,Logged in as Admin,"1. Navigate to /admin/signals/Crypto
+2. Click 'Buy' or 'Sell' on a watchlist item OR Click 'Create Signal'
+3. Fill form (Symbol, Entry, Target, Stop Loss)
+4. Submit",Signal created and appears in table,Pending
+Admin Signals,Frontend,ADM-SIG-004,Edit Existing Signal,Logged in as Admin,"1. Navigate to /admin/signals/Crypto
+2. Click 'Edit' icon on a signal row
+3. Modify fields and save",Signal details updated in table,Pending
+Admin Signals,Frontend,ADM-SIG-005,Close Signal,Logged in as Admin,"1. Navigate to /admin/signals/Crypto
+2. Click 'Close' icon on a signal row
+3. Enter Exit Price and Profit/Loss
+4. Confirm",Signal status changes to Closed,Pending
+Admin Watchlist,Frontend,ADM-WATCH-001,Add to Watchlist,Logged in as Admin,"1. Navigate to /admin/signals
+2. Click 'Add Watchlist Item'
+3. Fill Stock Name, Market, Current Price
+4. Save",Item appears in Watchlist table,Pending
+Admin Products,Frontend,ADM-PROD-001,List All Products,Logged in as Admin,"1. Navigate to /admin/products",Table displays all products with correct status,Pending
+Admin Products,Frontend,ADM-PROD-002,Add New Product,Logged in as Admin,"1. Navigate to /admin/products
+2. Click 'Add Product'
+3. Fill Name, Description, Price
+4. Save",New product appears in list,Pending
+Admin Clients,Frontend,ADM-USR-001,View Client List,Logged in as Admin,"1. Navigate to /admin/customers",Table displays list of registered users,Pending
+Admin Staff,Frontend,ADM-STF-001,View Staff List,Logged in as Admin,"1. Navigate to /admin/staff",Table displays list of staff members,Pending
+User Dashboard,Frontend,USR-DASH-001,View Active Subscriptions,Logged in as User,"1. Navigate to /dashboard",Active plans displayed with expiry dates,Pending
+User Products,Frontend,USR-PROD-001,View Product Details,Logged in as User,"1. Navigate to /products
+2. Click on a product",Product detail page loads with pricing plans,Pending
+User Subscription,Frontend,USR-SUB-001,Subscribe to Plan,Logged in as User,"1. Select a plan on Product Detail page
+2. Click Subscribe/Buy
+3. Complete Payment flow (if applicable)",Subscription active in Dashboard,Pending
+User Signals,Frontend,USR-SIG-001,View Signals for Subscribed Product,Logged in as User with active sub,"1. Navigate to /signals
+2. Select Product tab",List of active signals displayed,Pending
+Backend API,Backend,API-USR-001,Get All Users,Admin Token,"GET /api/users",Return 200 OK with list of users,Pending
+Backend API,Backend,API-USR-002,Get User Details,Admin Token,"GET /api/users/:id",Return 200 OK with user object,Pending
+Backend API,Backend,API-SIG-001,Create Signal,Admin Token,"POST /api/signals
+Body: {symbol, type, entry, target, stopLoss}",Return 201 Created with signal ID,Pending
+Backend API,Backend,API-SIG-002,Get Signals,Auth Token,"GET /api/signals?type=crypto",Return 200 OK with filtered signals,Pending
+Backend API,Backend,API-PROD-001,Get Products,Public/Auth,"GET /api/products",Return 200 OK with product list,Pending
+Backend API,Backend,API-SUB-001,Create Subscription,Auth Token,"POST /api/subscriptions
+Body: {userId, planId}",Return 201 Created,Pending
+Backend API,Backend,API-WATCH-001,Add Watchlist Item,Admin Token,"POST /api/watchlist
+Body: {symbol, market, price}",Return 201 Created,Pending
+Backend API,Backend,API-WATCH-002,Delete Watchlist Item,Admin Token,"DELETE /api/watchlist/:id",Return 200 OK,Pending
+General,Frontend,GEN-001,404 Page Test,None,"Navigate to non-existent URL (e.g., /xyz)",Show custom 404 error page,Pending

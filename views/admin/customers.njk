@@ -12,9 +12,11 @@
         <table class="table table-hover mb-0" id="customersTable">
           <thead>
             <tr>
+              <th>Sr. No</th>
               <th>Name</th>
               <th>Phone</th>
               <th>Email</th>
+              <th>Date of Joining</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -23,9 +25,11 @@
             {% if customers and customers.length > 0 %}
               {% for user in customers %}
                 <tr>
+                  <td>{{ loop.index }}</td>
                   <td>{{ user.fullName or 'N/A' }}</td>
                   <td>{{ user.phoneNumber }}</td>
                   <td>{{ user.email or 'N/A' }}</td>
+                  <td>{{ user.createdAt | date("d-m-Y") }}</td>
                   <td>
                     {% if user.status == 'active' %}
                       <span class="badge bg-success">{{ user.status }}</span>
@@ -44,7 +48,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="5" class="text-center text-muted">No customers found</td>
+                <td colspan="7" class="text-center text-muted">No customers found</td>
               </tr>
             {% endif %}
           </tbody>

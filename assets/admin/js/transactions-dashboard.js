@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <td>${transaction.id}</td>
         <td>${new Date(transaction.createdAt).toLocaleString()}</td>
         <td>${transaction.User ? transaction.User.fullName : 'N/A'}</td>
-        <td>₹${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</td>
+        <td>Rs ${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</td>
         <td>${transaction.paymentMethod || 'N/A'}</td>
         <td><span class="badge bg-${transaction.paymentStatus === 'completed' ? 'success' : transaction.paymentStatus === 'pending' ? 'warning' : 'danger'}">${transaction.paymentStatus}</span></td>
         <td>
@@ -179,13 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
       metricTotalTransactions.textContent = totalTransactions;
     }
     if (metricTotalRevenue) {
-      metricTotalRevenue.textContent = `₹${totalRevenue.toFixed(2)}`;
+      metricTotalRevenue.textContent = `Rs ${totalRevenue.toFixed(2)}`;
     }
     if (metricSuccessRate) {
       metricSuccessRate.textContent = `${successRate}%`;
     }
     if (metricAvgTransaction) {
-      metricAvgTransaction.textContent = `₹${avgTransaction.toFixed(2)}`;
+      metricAvgTransaction.textContent = `Rs ${avgTransaction.toFixed(2)}`;
     }
   }
   
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p><strong>Date:</strong> ${new Date(transaction.createdAt).toLocaleString()}</p>
                 <p><strong>Customer Name:</strong> ${transaction.customer ? transaction.customer.fullName : 'N/A'}</p>
                 <p><strong>Customer Email:</strong> ${transaction.customer ? transaction.customer.email : 'N/A'}</p>
-                <p><strong>Amount:</strong> ₹${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</p>
+                <p><strong>Amount:</strong> Rs ${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</p>
                 <p><strong>Currency:</strong> ${transaction.currency || 'N/A'}</p>
               </div>
               <div class="col-md-6">

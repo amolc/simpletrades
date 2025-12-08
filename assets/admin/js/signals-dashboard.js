@@ -6,6 +6,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const saveWatchBtn = document.getElementById('saveWatchBtn');
   const watchlistBody = document.getElementById('watchlistBody');
 
+  const ensureLoader = () => {
+    let overlay = document.getElementById('pageLoader');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'pageLoader';
+      overlay.style.position = 'fixed';
+      overlay.style.top = '0';
+      overlay.style.left = '0';
+      overlay.style.right = '0';
+      overlay.style.bottom = '0';
+      overlay.style.background = 'rgba(255,255,255,0.8)';
+      overlay.style.display = 'none';
+      overlay.style.alignItems = 'center';
+      overlay.style.justifyContent = 'center';
+      overlay.style.zIndex = '1056';
+      overlay.style.backdropFilter = 'blur(2px)';
+      overlay.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+      document.body.appendChild(overlay);
+    }
+    return overlay;
+  };
+  const showLoader = () => { const el = ensureLoader(); el.style.display = 'flex'; };
+  const hideLoader = () => { const el = document.getElementById('pageLoader'); if (el) el.style.display = 'none'; };
+
   // Add watchlist item
   if (addWatchBtn) {
     addWatchBtn.addEventListener('click', () => {
@@ -31,6 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
+        showLoader();
         const response = await fetch('/api/watchlist', {
           method: 'POST',
           headers: {
@@ -45,10 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
           watchModal.hide();
           window.location.reload(); // Reload to show updated data
         } else {
+          hideLoader();
           alert('Error saving watchlist item: ' + (result.error || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error saving watchlist item:', error);
+        hideLoader();
         alert('Error saving watchlist item');
       }
     });
@@ -57,11 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Handle watchlist actions (buy, sell, edit, delete)
   if (watchlistBody) {
     watchlistBody.addEventListener('click', async (e) => {
-      const action = e.target.dataset.action;
-      const id = e.target.dataset.id;
-      const stock = e.target.dataset.stock;
-
-      if (!action || !id) return;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      const stock = btn.dataset.stock;
 
       if (action === 'edit') {
         // Find the row data and populate the modal
@@ -71,13 +98,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('watchId').value = id;
         document.getElementById('watchStock').value = cells[0].textContent;
         document.getElementById('watchMarket').value = cells[1].textContent;
-        document.getElementById('watchCurrentPrice').value = parseFloat(cells[2].textContent.replace('₹', ''));
-        document.getElementById('watchAlertPrice').value = parseFloat(cells[3].textContent.replace('₹', ''));
+        document.getElementById('watchCurrentPrice').value = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
+                document.getElementById('watchAlertPrice').value = parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, ''));
         
         watchModal.show();
       } else if (action === 'delete') {
         if (confirm('Are you sure you want to delete this watchlist item?')) {
           try {
+            showLoader();
             const response = await fetch(`/api/watchlist/${id}`, {
               method: 'DELETE'
             });
@@ -87,10 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
               window.location.reload(); // Reload to show updated data
             } else {
+              hideLoader();
               alert('Error deleting watchlist item: ' + (result.error || 'Unknown error'));
             }
           } catch (error) {
             console.error('Error deleting watchlist item:', error);
+            hideLoader();
             alert('Error deleting watchlist item');
           }
         }
@@ -102,7 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const row = e.target.closest('tr');
         const cells = row.querySelectorAll('td');
         const stockName = cells[0].textContent;
-        const currentPrice = parseFloat(cells[2].textContent.replace('₹', ''));
+        const marketName = cells[1].textContent;
+        const currentPrice = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
         
         // Populate and show the signal creation modal
         document.getElementById('signalCreateTitle').textContent = `Create ${isBuy ? 'BUY' : 'SELL'} Signal`;
@@ -111,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('signalEntry').value = currentPrice;
         document.getElementById('signalCurrentPrice').value = currentPrice;
         document.getElementById('signalSide').value = isBuy ? 'BUY' : 'SELL';
+        document.getElementById('signalProduct').value = marketName;
         
         // Set default percentage offsets
         const targetPctEl = document.getElementById('targetPct');
@@ -153,10 +185,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Handle signal creation form submission
-  const createSignalBtn = document.getElementById('createSignalBtn');
+    const createSignalBtn = document.getElementById('createSignalBtn');
   if (createSignalBtn) {
     createSignalBtn.addEventListener('click', async () => {
       const stock = document.getElementById('signalStock').value;
+      const productName = document.getElementById('signalProduct').value;
       const entry = parseFloat(document.getElementById('signalEntry').value);
       const target = parseFloat(document.getElementById('signalTarget').value);
       const stopLoss = parseFloat(document.getElementById('signalStop').value);
@@ -168,17 +201,27 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
       
+      const toType = (p) => ({
+        'Stocks':'stocks',
+        'Crypto':'crypto',
+        'Forex':'forex',
+        'Commodity':'commodity',
+        'Options':'options'
+      })[p] || (p ? p.toLowerCase() : 'stocks');
+
       const body = {
-        product: stock,
+        product: productName || 'Stocks',
+        symbol: stock,
         entry: entry,
         target: target,
         stopLoss: stopLoss,
-        type: 'stocks',
+        type: toType(productName || 'Stocks'),
         signalType: side,
         notes: notes
       };
       
       try {
+        showLoader();
         const response = await fetch('/api/signals', {
           method: 'POST',
           headers: {
@@ -194,10 +237,12 @@ document.addEventListener('DOMContentLoaded', () => {
           signalModal.hide();
           window.location.reload(); // Reload to show updated data
         } else {
+          hideLoader();
           alert('Error creating signal: ' + (result.error || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error creating signal:', error);
+        hideLoader();
         alert('Error creating signal');
       }
     });
@@ -209,12 +254,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   if (signalsBody) {
     signalsBody.addEventListener('click', async (e) => {
-      const action = e.target.dataset.saction;
-      const signalId = e.target.dataset.sid;
-
-      if (!action || !signalId) return;
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const action = btn.dataset.saction;
+      const signalId = btn.dataset.sid;
 
       try {
+        showLoader();
         let endpoint = '';
         let method = 'PUT';
         
@@ -250,10 +296,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (result.success) {
           window.location.reload(); // Reload to show updated data
         } else {
+          hideLoader();
           alert('Error updating signal: ' + (result.error || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error updating signal:', error);
+        hideLoader();
         alert('Error updating signal');
       }
     });
@@ -267,8 +315,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeSignalId').value = signalId;
     document.getElementById('closeSignalStock').value = cells[0].textContent;
     document.getElementById('closeSignalType').value = cells[1].textContent;
-    document.getElementById('closeSignalEntry').value = parseFloat(cells[2].textContent.replace('₹', ''));
-    document.getElementById('closeSignalTarget').value = parseFloat(cells[3].textContent.replace('₹', ''));
+    document.getElementById('closeSignalEntry').value = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
+        document.getElementById('closeSignalTarget').value = parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, ''));
     document.getElementById('closeExitPrice').value = '';
     document.getElementById('closeSignalNotes').value = '';
     
@@ -290,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       try {
+        showLoader();
         const response = await fetch(`/api/signals/${signalId}/close`, {
           method: 'POST',
           headers: {
@@ -304,12 +353,24 @@ document.addEventListener('DOMContentLoaded', () => {
           signalCloseModal.hide();
           window.location.reload(); // Reload to show updated data
         } else {
+          hideLoader();
           alert('Error closing signal: ' + (result.error || 'Unknown error'));
         }
       } catch (error) {
         console.error('Error closing signal:', error);
+        hideLoader();
         alert('Error closing signal');
       }
     });
   }
+  const watchModalEl = document.getElementById('watchModal')
+  const signalCreateModalEl = document.getElementById('signalCreateModal')
+  const signalCloseModalEl = document.getElementById('signalCloseModal')
+
+  watchModalEl?.addEventListener('hide.bs.modal', () => { showLoader() })
+  signalCreateModalEl?.addEventListener('hide.bs.modal', () => { showLoader() })
+  signalCloseModalEl?.addEventListener('hide.bs.modal', () => { showLoader() })
+  watchModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
+  signalCreateModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
+  signalCloseModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
 });

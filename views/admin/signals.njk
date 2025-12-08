@@ -76,7 +76,7 @@
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
             <div class="text-muted">Total Profit</div>
-            <div class="h4 mb-0" id="metricProfit">₹{{ (netProfit or 0).toFixed(2) }}</div>
+            <div class="h4 mb-0" id="metricProfit">Rs {{ (netProfit or 0).toFixed(2) }}</div>
           </div>
           <i class="fas fa-rupee-sign text-warning fs-3"></i>
         </div>
@@ -107,8 +107,8 @@
             <tr>
               <td>{{ item.stockName }}</td>
               <td>{{ item.market }}</td>
-              <td>₹{{ (item.currentPrice|float).toFixed(2) }}</td>
-              <td>₹{{ (item.alertPrice|float).toFixed(2) }}</td>
+              <td>Rs {{ (item.currentPrice|float).toFixed(2) }}</td>
+              <td>Rs {{ (item.alertPrice|float).toFixed(2) }}</td>
               <td>
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-success" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Buy</button>
@@ -154,11 +154,11 @@
             <tr>
               <td>{{ signal.product }}</td>
               <td>{{ signal.signalType or signal.type }}</td>
-              <td>₹{{ signal.entry.toFixed(2) }}</td>
-              <td>₹{{ signal.target.toFixed(2) }}</td>
-              <td>₹{{ signal.stopLoss.toFixed(2) }}</td>
+              <td>Rs {{ signal.entry.toFixed(2) }}</td>
+              <td>Rs {{ signal.target.toFixed(2) }}</td>
+              <td>Rs {{ signal.stopLoss.toFixed(2) }}</td>
               <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString() }}{% else %}-{% endif %}</td>
-              <td>{% if signal.exitPrice %}₹{{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitPrice %}Rs {{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
               <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString() }}{% else %}-{% endif %}</td>
               <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
               <td>{{ signal.createdAt.toLocaleString() }}</td>
@@ -265,6 +265,7 @@
             </div>
             <input type="hidden" id="signalEntry">
             <input type="hidden" id="signalSide">
+            <input type="hidden" id="signalProduct">
           </form>
         </div>
         <div class="modal-footer">

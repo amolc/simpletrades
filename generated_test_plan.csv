@@ -1,0 +1,202 @@
+ID,Module,Type,Description,Steps,Expected Result,Status
+FE-100,Admin Panel,Frontend,"Verify clients page loads","1. Navigate to the route rendering admin/clients.njk","Page should load without 404 or 500 errors",Pending
+FE-101,Admin Panel,Frontend,"Verify Form Submission on clients (Form #1)","1. Open clients
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-102,Admin Panel,Frontend,"Verify customers page loads","1. Navigate to the route rendering admin/customers.njk","Page should load without 404 or 500 errors",Pending
+FE-103,Admin Panel,Frontend,"Verify Form Submission on customers (Form #1)","1. Open customers
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-104,Admin Panel,Frontend,"Verify Delete Functionality on customers","1. Open customers
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-105,Admin Panel,Frontend,"Verify dashboard page loads","1. Navigate to the route rendering admin/dashboard.njk","Page should load without 404 or 500 errors",Pending
+FE-106,Admin Panel,Frontend,"Verify footer page loads","1. Navigate to the route rendering admin/footer.njk","Page should load without 404 or 500 errors",Pending
+FE-107,Admin Panel,Frontend,"Verify header page loads","1. Navigate to the route rendering admin/header.njk","Page should load without 404 or 500 errors",Pending
+FE-108,Admin Panel,Frontend,"Verify layout page loads","1. Navigate to the route rendering admin/layout.njk","Page should load without 404 or 500 errors",Pending
+FE-109,Admin Panel,Frontend,"Verify login page loads","1. Navigate to the route rendering admin/login.njk","Page should load without 404 or 500 errors",Pending
+FE-110,Admin Panel,Frontend,"Verify Form Submission on login (Form #1)","1. Open login
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-111,Admin Panel,Frontend,"Verify products page loads","1. Navigate to the route rendering admin/products.njk","Page should load without 404 or 500 errors",Pending
+FE-112,Admin Panel,Frontend,"Verify Form Submission on products (Form #1)","1. Open products
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-113,Admin Panel,Frontend,"Verify Form Submission on products (Form #2)","1. Open products
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-114,Admin Panel,Frontend,"Verify Form Submission on products (Form #3)","1. Open products
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-115,Admin Panel,Frontend,"Verify Delete Functionality on products","1. Open products
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-116,Admin Panel,Frontend,"Verify settings page loads","1. Navigate to the route rendering admin/settings.njk","Page should load without 404 or 500 errors",Pending
+FE-117,Admin Panel,Frontend,"Verify signal-detail page loads","1. Navigate to the route rendering admin/signal-detail.njk","Page should load without 404 or 500 errors",Pending
+FE-118,Admin Panel,Frontend,"Verify Form Submission on signal-detail (Form #1)","1. Open signal-detail
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-119,Admin Panel,Frontend,"Verify Form Submission on signal-detail (Form #2)","1. Open signal-detail
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-120,Admin Panel,Frontend,"Verify Delete Functionality on signal-detail","1. Open signal-detail
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-121,Admin Panel,Frontend,"Verify signals-product page loads","1. Navigate to the route rendering admin/signals-product.njk","Page should load without 404 or 500 errors",Pending
+FE-122,Admin Panel,Frontend,"Verify Form Submission on signals-product (Form #1)","1. Open signals-product
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-123,Admin Panel,Frontend,"Verify Form Submission on signals-product (Form #2)","1. Open signals-product
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-124,Admin Panel,Frontend,"Verify Form Submission on signals-product (Form #3)","1. Open signals-product
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-125,Admin Panel,Frontend,"Verify Form Submission on signals-product (Form #4)","1. Open signals-product
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-126,Admin Panel,Frontend,"Verify Delete Functionality on signals-product","1. Open signals-product
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-127,Admin Panel,Frontend,"Verify signals page loads","1. Navigate to the route rendering admin/signals.njk","Page should load without 404 or 500 errors",Pending
+FE-128,Admin Panel,Frontend,"Verify Form Submission on signals (Form #1)","1. Open signals
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-129,Admin Panel,Frontend,"Verify Form Submission on signals (Form #2)","1. Open signals
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-130,Admin Panel,Frontend,"Verify Form Submission on signals (Form #3)","1. Open signals
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-131,Admin Panel,Frontend,"Verify Delete Functionality on signals","1. Open signals
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-132,Admin Panel,Frontend,"Verify staff page loads","1. Navigate to the route rendering admin/staff.njk","Page should load without 404 or 500 errors",Pending
+FE-133,Admin Panel,Frontend,"Verify Form Submission on staff (Form #1)","1. Open staff
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-134,Admin Panel,Frontend,"Verify Form Submission on staff (Form #2)","1. Open staff
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-135,Admin Panel,Frontend,"Verify Delete Functionality on staff","1. Open staff
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-136,Admin Panel,Frontend,"Verify subscription-detail page loads","1. Navigate to the route rendering admin/subscription-detail.njk","Page should load without 404 or 500 errors",Pending
+FE-137,Admin Panel,Frontend,"Verify Form Submission on subscription-detail (Form #1)","1. Open subscription-detail
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-138,Admin Panel,Frontend,"Verify Form Submission on subscription-detail (Form #2)","1. Open subscription-detail
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-139,Admin Panel,Frontend,"Verify Delete Functionality on subscription-detail","1. Open subscription-detail
+2. Click Delete button/link
+3. Confirm dialog","Item should be deleted",Pending
+FE-140,Admin Panel,Frontend,"Verify subscriptions page loads","1. Navigate to the route rendering admin/subscriptions.njk","Page should load without 404 or 500 errors",Pending
+FE-141,Admin Panel,Frontend,"Verify Form Submission on subscriptions (Form #1)","1. Open subscriptions
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-142,Admin Panel,Frontend,"Verify Form Submission on subscriptions (Form #2)","1. Open subscriptions
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-143,Admin Panel,Frontend,"Verify Form Submission on subscriptions (Form #3)","1. Open subscriptions
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-144,Admin Panel,Frontend,"Verify test-modal page loads","1. Navigate to the route rendering admin/test-modal.njk","Page should load without 404 or 500 errors",Pending
+FE-145,Admin Panel,Frontend,"Verify transactions page loads","1. Navigate to the route rendering admin/transactions.njk","Page should load without 404 or 500 errors",Pending
+FE-146,Admin Panel,Frontend,"Verify Form Submission on transactions (Form #1)","1. Open transactions
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-147,User Panel,Frontend,"Verify footer page loads","1. Navigate to the route rendering footer.njk","Page should load without 404 or 500 errors",Pending
+FE-148,User Panel,Frontend,"Verify header page loads","1. Navigate to the route rendering header.njk","Page should load without 404 or 500 errors",Pending
+FE-149,User Panel,Frontend,"Verify Form Submission on header (Form #1)","1. Open header
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-150,User Panel,Frontend,"Verify layout page loads","1. Navigate to the route rendering layout.njk","Page should load without 404 or 500 errors",Pending
+FE-151,User Panel,Frontend,"Verify 404 page loads","1. Navigate to the route rendering userpanel/404.njk","Page should load without 404 or 500 errors",Pending
+FE-152,User Panel,Frontend,"Verify contact page loads","1. Navigate to the route rendering userpanel/contact.njk","Page should load without 404 or 500 errors",Pending
+FE-153,User Panel,Frontend,"Verify Form Submission on contact (Form #1)","1. Open contact
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-154,User Panel,Frontend,"Verify dashboard page loads","1. Navigate to the route rendering userpanel/dashboard.njk","Page should load without 404 or 500 errors",Pending
+FE-155,User Panel,Frontend,"Verify error page loads","1. Navigate to the route rendering userpanel/error.njk","Page should load without 404 or 500 errors",Pending
+FE-156,User Panel,Frontend,"Verify index page loads","1. Navigate to the route rendering userpanel/index.njk","Page should load without 404 or 500 errors",Pending
+FE-157,User Panel,Frontend,"Verify login page loads","1. Navigate to the route rendering userpanel/login.njk","Page should load without 404 or 500 errors",Pending
+FE-158,User Panel,Frontend,"Verify Form Submission on login (Form #1)","1. Open login
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-159,User Panel,Frontend,"Verify payment page loads","1. Navigate to the route rendering userpanel/payment.njk","Page should load without 404 or 500 errors",Pending
+FE-160,User Panel,Frontend,"Verify Form Submission on payment (Form #1)","1. Open payment
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-161,User Panel,Frontend,"Verify plans page loads","1. Navigate to the route rendering userpanel/plans.njk","Page should load without 404 or 500 errors",Pending
+FE-162,User Panel,Frontend,"Verify product-detail page loads","1. Navigate to the route rendering userpanel/product-detail.njk","Page should load without 404 or 500 errors",Pending
+FE-163,User Panel,Frontend,"Verify products page loads","1. Navigate to the route rendering userpanel/products.njk","Page should load without 404 or 500 errors",Pending
+FE-164,User Panel,Frontend,"Verify register page loads","1. Navigate to the route rendering userpanel/register.njk","Page should load without 404 or 500 errors",Pending
+FE-165,User Panel,Frontend,"Verify Form Submission on register (Form #1)","1. Open register
+2. Fill out form targeting current URL
+3. Submit","Form should submit to current URL successfully",Pending
+FE-166,User Panel,Frontend,"Verify signals page loads","1. Navigate to the route rendering userpanel/signals.njk","Page should load without 404 or 500 errors",Pending
+FE-167,User Panel,Frontend,"Verify stocks page loads","1. Navigate to the route rendering userpanel/stocks.njk","Page should load without 404 or 500 errors",Pending
+FE-168,User Panel,Frontend,"Verify subscription-confirm page loads","1. Navigate to the route rendering userpanel/subscription-confirm.njk","Page should load without 404 or 500 errors",Pending
+FE-169,User Panel,Frontend,"Verify user-signals page loads","1. Navigate to the route rendering userpanel/user-signals.njk","Page should load without 404 or 500 errors",Pending
+BE-170,API,Backend,"API: Fetch data from /products (routes)","Send GET request to /products","Return appropriate status code (200/201/204)",Pending
+BE-171,API,Backend,"API: Fetch data from /products/:name (routes)","Send GET request to /products/:name","Return appropriate status code (200/201/204)",Pending
+BE-172,API,Backend,"API: Create resource at /products (routes)","Send POST request to /products","Return appropriate status code (200/201/204)",Pending
+BE-173,API,Backend,"API: Update resource at /products/:name (routes)","Send PUT request to /products/:name","Return appropriate status code (200/201/204)",Pending
+BE-174,API,Backend,"API: Delete resource at /products/:name (routes)","Send DELETE request to /products/:name","Return appropriate status code (200/201/204)",Pending
+BE-175,API,Backend,"API: Fetch data from /plans (routes)","Send GET request to /plans","Return appropriate status code (200/201/204)",Pending
+BE-176,API,Backend,"API: Fetch data from /plans/product/:productName (routes)","Send GET request to /plans/product/:productName","Return appropriate status code (200/201/204)",Pending
+BE-177,API,Backend,"API: Fetch data from /plans/stats (routes)","Send GET request to /plans/stats","Return appropriate status code (200/201/204)",Pending
+BE-178,API,Backend,"API: Fetch data from /plans/:id (routes)","Send GET request to /plans/:id","Return appropriate status code (200/201/204)",Pending
+BE-179,API,Backend,"API: Create resource at /plans (routes)","Send POST request to /plans","Return appropriate status code (200/201/204)",Pending
+BE-180,API,Backend,"API: Update resource at /plans/:id (routes)","Send PUT request to /plans/:id","Return appropriate status code (200/201/204)",Pending
+BE-181,API,Backend,"API: Delete resource at /plans/:id (routes)","Send DELETE request to /plans/:id","Return appropriate status code (200/201/204)",Pending
+BE-182,API,Backend,"API: Fetch data from /signals (routes)","Send GET request to /signals","Return appropriate status code (200/201/204)",Pending
+BE-183,API,Backend,"API: Fetch data from /signals/stats (routes)","Send GET request to /signals/stats","Return appropriate status code (200/201/204)",Pending
+BE-184,API,Backend,"API: Fetch data from /signals/products/stats (routes)","Send GET request to /signals/products/stats","Return appropriate status code (200/201/204)",Pending
+BE-185,API,Backend,"API: Fetch data from /signals/:id (routes)","Send GET request to /signals/:id","Return appropriate status code (200/201/204)",Pending
+BE-186,API,Backend,"API: Create resource at /signals (routes)","Send POST request to /signals","Return appropriate status code (200/201/204)",Pending
+BE-187,API,Backend,"API: Update resource at /signals/:id (routes)","Send PUT request to /signals/:id","Return appropriate status code (200/201/204)",Pending
+BE-188,API,Backend,"API: Delete resource at /signals/:id (routes)","Send DELETE request to /signals/:id","Return appropriate status code (200/201/204)",Pending
+BE-189,API,Backend,"API: Create resource at /signals/:id/activate (routes)","Send POST request to /signals/:id/activate","Return appropriate status code (200/201/204)",Pending
+BE-190,API,Backend,"API: Create resource at /signals/:id/close (routes)","Send POST request to /signals/:id/close","Return appropriate status code (200/201/204)",Pending
+BE-191,Auth,Backend,"API: User Registration (routes)","Send POST request to /users/register","Return appropriate status code (200/201/204)",Pending
+BE-192,Auth,Backend,"API: User Login (routes)","Send POST request to /users/login","Return appropriate status code (200/201/204)",Pending
+BE-193,Auth,Backend,"API: User Login (routes)","Send POST request to /users/admin/login","Return appropriate status code (200/201/204)",Pending
+BE-194,API,Backend,"API: Fetch data from /users (routes)","Send GET request to /users","Return appropriate status code (200/201/204)",Pending
+BE-195,API,Backend,"API: Fetch data from /users/stats (routes)","Send GET request to /users/stats","Return appropriate status code (200/201/204)",Pending
+BE-196,API,Backend,"API: Fetch data from /users/:id (routes)","Send GET request to /users/:id","Return appropriate status code (200/201/204)",Pending
+BE-197,API,Backend,"API: Update resource at /users/:id (routes)","Send PUT request to /users/:id","Return appropriate status code (200/201/204)",Pending
+BE-198,API,Backend,"API: Delete resource at /users/:id (routes)","Send DELETE request to /users/:id","Return appropriate status code (200/201/204)",Pending
+BE-199,API,Backend,"API: Update resource at /users/:id/change-password (routes)","Send PUT request to /users/:id/change-password","Return appropriate status code (200/201/204)",Pending
+BE-200,API,Backend,"API: Fetch data from /subscriptions/pending (routes)","Send GET request to /subscriptions/pending","Return appropriate status code (200/201/204)",Pending
+BE-201,API,Backend,"API: Update resource at /subscriptions/:id/approve (routes)","Send PUT request to /subscriptions/:id/approve","Return appropriate status code (200/201/204)",Pending
+BE-202,API,Backend,"API: Update resource at /subscriptions/:id/reject (routes)","Send PUT request to /subscriptions/:id/reject","Return appropriate status code (200/201/204)",Pending
+BE-203,API,Backend,"API: Fetch data from /subscriptions/my (routes)","Send GET request to /subscriptions/my","Return appropriate status code (200/201/204)",Pending
+BE-204,API,Backend,"API: Fetch data from /subscriptions (routes)","Send GET request to /subscriptions","Return appropriate status code (200/201/204)",Pending
+BE-205,API,Backend,"API: Create resource at /subscriptions (routes)","Send POST request to /subscriptions","Return appropriate status code (200/201/204)",Pending
+BE-206,API,Backend,"API: Fetch data from /subscriptions/:id (routes)","Send GET request to /subscriptions/:id","Return appropriate status code (200/201/204)",Pending
+BE-207,API,Backend,"API: Update resource at /subscriptions/:id (routes)","Send PUT request to /subscriptions/:id","Return appropriate status code (200/201/204)",Pending
+BE-208,API,Backend,"API: Delete resource at /subscriptions/:id (routes)","Send DELETE request to /subscriptions/:id","Return appropriate status code (200/201/204)",Pending
+BE-209,API,Backend,"API: Fetch data from /subscriptions/:id/payment-qrcode (routes)","Send GET request to /subscriptions/:id/payment-qrcode","Return appropriate status code (200/201/204)",Pending
+BE-210,API,Backend,"API: Fetch data from /transactions (routes)","Send GET request to /transactions","Return appropriate status code (200/201/204)",Pending
+BE-211,API,Backend,"API: Fetch data from /transactions/:id (routes)","Send GET request to /transactions/:id","Return appropriate status code (200/201/204)",Pending
+BE-212,API,Backend,"API: Create resource at /transactions (routes)","Send POST request to /transactions","Return appropriate status code (200/201/204)",Pending
+BE-213,API,Backend,"API: Update resource at /transactions/:id (routes)","Send PUT request to /transactions/:id","Return appropriate status code (200/201/204)",Pending
+BE-214,API,Backend,"API: Update resource at /transactions/:id/status (routes)","Send PUT request to /transactions/:id/status","Return appropriate status code (200/201/204)",Pending
+BE-215,API,Backend,"API: Fetch data from /transactions/export (routes)","Send GET request to /transactions/export","Return appropriate status code (200/201/204)",Pending
+BE-216,API,Backend,"API: Fetch data from /settings (routes)","Send GET request to /settings","Return appropriate status code (200/201/204)",Pending
+BE-217,API,Backend,"API: Update resource at /settings (routes)","Send PUT request to /settings","Return appropriate status code (200/201/204)",Pending
+BE-218,API,Backend,"API: Create resource at /settings/reset (routes)","Send POST request to /settings/reset","Return appropriate status code (200/201/204)",Pending
+BE-219,API,Backend,"API: Fetch data from /watchlist (routes)","Send GET request to /watchlist","Return appropriate status code (200/201/204)",Pending
+BE-220,API,Backend,"API: Fetch data from /watchlist/:id (routes)","Send GET request to /watchlist/:id","Return appropriate status code (200/201/204)",Pending
+BE-221,API,Backend,"API: Create resource at /watchlist (routes)","Send POST request to /watchlist","Return appropriate status code (200/201/204)",Pending
+BE-222,API,Backend,"API: Update resource at /watchlist/:id (routes)","Send PUT request to /watchlist/:id","Return appropriate status code (200/201/204)",Pending
+BE-223,API,Backend,"API: Delete resource at /watchlist/:id (routes)","Send DELETE request to /watchlist/:id","Return appropriate status code (200/201/204)",Pending
+BE-224,API,Backend,"API: Fetch data from /admin (routes)","Send GET request to /admin","Return appropriate status code (200/201/204)",Pending
+BE-225,API,Backend,"API: Fetch data from /signals (signals)","Send GET request to /signals","Return appropriate status code (200/201/204)",Pending
+BE-226,API,Backend,"API: Fetch data from /signals/stats (signals)","Send GET request to /signals/stats","Return appropriate status code (200/201/204)",Pending
+BE-227,API,Backend,"API: Fetch data from /signals/:id (signals)","Send GET request to /signals/:id","Return appropriate status code (200/201/204)",Pending
+BE-228,API,Backend,"API: Create resource at /signals (signals)","Send POST request to /signals","Return appropriate status code (200/201/204)",Pending
+BE-229,API,Backend,"API: Update resource at /signals/:id (signals)","Send PUT request to /signals/:id","Return appropriate status code (200/201/204)",Pending
+BE-230,API,Backend,"API: Delete resource at /signals/:id (signals)","Send DELETE request to /signals/:id","Return appropriate status code (200/201/204)",Pending

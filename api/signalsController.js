@@ -3,7 +3,13 @@ const { Op } = require('sequelize')
 
 const getSignals = async (filters = {}) => {
   const whereClause = {}
-  if (filters.status) whereClause.status = filters.status
+  if (filters.status) {
+    if (filters.status === 'completed') {
+      whereClause.status = { [Op.in]: ['PROFIT', 'LOSS'] }
+    } else {
+      whereClause.status = filters.status
+    }
+  }
   if (filters.type) whereClause.signalType = filters.type
   if (filters.product) whereClause.product = { [Op.like]: `%${filters.product}%` }
   if (filters.date) whereClause.date = filters.date
@@ -304,13 +310,15 @@ const getSignalStats = async () => {
     where: { status: 'PROFIT' } 
   })
   const lossResult = await db.Signal.findOne({ 
-    attributes: [[db.sequelize.fn('SUM', db.sequelize.literal('ABS("profitLoss")')), 'totalLoss']], 
+    attributes: [[db.sequelize.fn('SUM', db.sequelize.col('profitLoss')), 'totalLoss']], 
     where: { status: 'LOSS' } 
   })
   
-  const totalProfit = profitResult?.dataValues?.totalProfit || 0
-  const totalLoss = lossResult?.dataValues?.totalLoss || 0
-  const netProfit = totalProfit - totalLoss
+  const totalProfit = parseFloat(profitResult?.dataValues?.totalProfit || 0)
+  const rawTotalLoss = parseFloat(lossResult?.dataValues?.totalLoss || 0)
+  // totalLoss should be positive for display, but it's stored as negative in DB
+  const totalLoss = Math.abs(rawTotalLoss)
+  const netProfit = totalProfit + rawTotalLoss // adding negative loss to positive profit
   
   return { 
     totalSignals, 
@@ -319,9 +327,9 @@ const getSignalStats = async () => {
     lossSignals, 
     completedSignals,
     winRate, 
-    totalProfit: parseFloat(totalProfit), 
-    totalLoss: parseFloat(totalLoss), 
-    netProfit: parseFloat(netProfit) 
+    totalProfit, 
+    totalLoss, 
+    netProfit 
   }
 }
 

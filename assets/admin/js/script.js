@@ -6,9 +6,9 @@ class SignalManager{constructor(){this.form=document.getElementById('signalForm'
           ${b}
         </div>
       </td>
-      <td><span class="text-success fw-bold">$${s.price.toFixed(2)}</span></td>
-      <td><span class="text-info">$${s.target.toFixed(2)}</span></td>
-      <td><span class="text-warning">$${s.stop.toFixed(2)}</span></td>
+      <td><span class="text-success fw-bold">Rs ${s.price.toFixed(2)}</span></td>
+      <td><span class="text-info">Rs ${s.target.toFixed(2)}</span></td>
+      <td><span class="text-warning">Rs ${s.stop.toFixed(2)}</span></td>
       <td>${this.getTypeIcon(s.type)} ${this.getTypeName(s.type)}</td>
       <td>
         ${s.notes?`<div class="d-flex align-items-center">
@@ -46,9 +46,9 @@ class SignalManager{constructor(){this.form=document.getElementById('signalForm'
               <div class="col-md-6">
                 <h6>Trade Parameters</h6>
                 <table class="table table-sm">
-                  <tr><td><strong>Entry Price:</strong></td><td>$${s.price.toFixed(2)}</td></tr>
-                  <tr><td><strong>Target Price:</strong></td><td>$${s.target.toFixed(2)}</td></tr>
-                  <tr><td><strong>Stop Loss:</strong></td><td>$${s.stop.toFixed(2)}</td></tr>
+                  <tr><td><strong>Entry Price:</strong></td><td>Rs ${s.price.toFixed(2)}</td></tr>
+                  <tr><td><strong>Target Price:</strong></td><td>Rs ${s.target.toFixed(2)}</td></tr>
+                  <tr><td><strong>Stop Loss:</strong></td><td>Rs ${s.stop.toFixed(2)}</td></tr>
                   <tr><td><strong>Type:</strong></td><td>${this.getTypeIcon(s.type)} ${this.getTypeName(s.type)}</td></tr>
                   <tr><td><strong>Risk/Reward:</strong></td><td>1:${rr}</td></tr>
                 </table>
@@ -56,8 +56,8 @@ class SignalManager{constructor(){this.form=document.getElementById('signalForm'
               <div class="col-md-6">
                 <h6>Trade Analysis</h6>
                 <table class="table table-sm">
-                  <tr><td><strong>Potential Profit:</strong></td><td class="text-success">$${(s.target-s.price).toFixed(2)}</td></tr>
-                  <tr><td><strong>Potential Loss:</strong></td><td class="text-danger">$${(s.price-s.stop).toFixed(2)}</td></tr>
+                  <tr><td><strong>Potential Profit:</strong></td><td class="text-success">Rs ${(s.target-s.price).toFixed(2)}</td></tr>
+                  <tr><td><strong>Potential Loss:</strong></td><td class="text-danger">Rs ${(s.price-s.stop).toFixed(2)}</td></tr>
                   <tr><td><strong>Created:</strong></td><td>${new Date(s.time).toLocaleString()}</td></tr>
                 </table>
               </div>
@@ -406,14 +406,15 @@ function addPlan(productName) {
     const addPlanForm = document.getElementById('addPlanForm');
     const addPlanModal = document.getElementById('addPlanModal');
     
+    if (addPlanForm) {
+        addPlanForm.reset();
+    }
+    
     if (planProductName) {
         planProductName.textContent = productName;
     }
     if (planProduct) {
         planProduct.value = productName;
-    }
-    if (addPlanForm) {
-        addPlanForm.reset();
     }
     
     if (addPlanModal) {
@@ -460,7 +461,7 @@ function renderCreateProductPlans() {
                                     </div>
                                 </td>
                                 <td><span class="badge bg-light text-dark border">${plan.numberOfDays} days</span></td>
-                                <td><span class="fw-semibold text-success">₹${plan.cost}</span></td>
+                                <td><span class="fw-semibold text-success">Rs ${plan.cost}</span></td>
                                 <td><span class="badge bg-${plan.isActive ? 'success' : 'secondary'} px-2 py-1">${plan.isActive ? 'Active' : 'Inactive'}</span></td>
                                 <td class="text-end">
                                     <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2" onclick="removeCreatePlan(${index})" title="Remove Plan">
@@ -502,6 +503,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 currency: 'INR' // Default
             };
 
+            // Client-side validation
+            if (!formData.productName) {
+                alert('Product name is missing. Please reload the page.');
+                return;
+            }
+            if (!formData.planName) {
+                alert('Please enter a plan name');
+                return;
+            }
+            if (isNaN(formData.numberOfDays) || formData.numberOfDays < 1) {
+                alert('Please enter a valid duration (at least 1 day)');
+                return;
+            }
+            if (isNaN(formData.cost) || formData.cost < 0) {
+                alert('Please enter a valid cost');
+                return;
+            }
+
             try {
                 const res = await fetch('/api/plans', {
                     method: 'POST',
@@ -514,7 +533,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('Plan added successfully');
                     window.location.reload();
                 } else {
-                    alert(data.error || 'Failed to add plan');
+                    if (data.errors && Array.isArray(data.errors)) {
+                        alert('Validation Error:\n' + data.errors.join('\n'));
+                    } else {
+                        alert(data.error || 'Failed to add plan');
+                    }
                 }
             } catch (error) {
                 console.error('Error adding plan:', error);

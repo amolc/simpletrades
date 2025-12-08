@@ -54,6 +54,10 @@ const planController = {
       res.status(201).json({ success: true, message: 'Plan created successfully', data: newPlan });
     } catch (error) {
       console.error('Error creating plan:', error);
+      if (error.name === 'SequelizeValidationError') {
+        const messages = error.errors.map(e => e.message);
+        return res.status(400).json({ success: false, message: 'Validation error', errors: messages });
+      }
       res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
   },

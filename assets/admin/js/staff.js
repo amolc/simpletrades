@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(btn.classList.contains('delete-staff')){
       const id=btn.dataset.userId
       const row=btn.closest('tr')
-      const userName=row.querySelector('td:first-child').textContent.trim()||'this staff member'
+      const userName=row.querySelector('td:nth-child(2)').textContent.trim()||'this staff member'
 
       if(confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)){
         try {

@@ -18,9 +18,9 @@ document.addEventListener('DOMContentLoaded',()=>{
     body.innerHTML=signals.map(s=>`<tr>
       <td>${s.stock}</td>
       <td>${s.signalType}</td>
-      <td>₹${Number(s.entry).toFixed(2)}</td>
-      <td>₹${Number(s.target).toFixed(2)}</td>
-      <td>₹${Number(s.stopLoss).toFixed(2)}</td>
+      <td>Rs ${Number(s.entry).toFixed(2)}</td>
+      <td>Rs ${Number(s.target).toFixed(2)}</td>
+      <td>Rs ${Number(s.stopLoss).toFixed(2)}</td>
       <td><span class="badge ${s.status==='ACTIVE'?'bg-success':s.status==='CLOSED'?'bg-secondary':'bg-warning'}">${s.status}</span></td>
       <td>${new Date(s.createdAt).toLocaleString()}</td>
     </tr>`).join('');
