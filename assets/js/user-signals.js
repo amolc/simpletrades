@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const start=params.get('start');
   const product=decodeURIComponent(window.location.pathname.split('/').pop());
   document.getElementById('sigProduct').textContent=product;
-  document.getElementById('sigStart').textContent=start?new Date(start).toLocaleDateString():'—';
+  document.getElementById('sigStart').textContent=start?new Date(start).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'}):'—';
   const token=localStorage.getItem('authToken');
   const load=async()=>{
     const res=await fetch('/api/signals');
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       <td>Rs ${Number(s.target).toFixed(2)}</td>
       <td>Rs ${Number(s.stopLoss).toFixed(2)}</td>
       <td><span class="badge ${s.status==='ACTIVE'?'bg-success':s.status==='CLOSED'?'bg-secondary':'bg-warning'}">${s.status}</span></td>
-      <td>${new Date(s.createdAt).toLocaleString()}</td>
+      <td>${new Date(s.createdAt).toLocaleString('en-IN',{timeZone:'Asia/Kolkata',hour12:false})}</td>
     </tr>`).join('');
   };
   load();

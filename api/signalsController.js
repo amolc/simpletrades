@@ -335,7 +335,6 @@ const getSignalStats = async () => {
 
 const getProductSignalStats = async () => {
   try {
-    // Get all unique product types from signals and join with product table to get actual product names
     const productTypes = await db.Signal.findAll({
       attributes: ['type'],
       group: ['type'],
@@ -347,7 +346,7 @@ const getProductSignalStats = async () => {
         on: {
           [db.Sequelize.Op.or]: [
             { name: db.Sequelize.col('Signal.type') },
-            { name: 'Stocks' } // Default to Stocks for stock signals
+            { name: 'Stocks' }
           ]
         }
       }]
@@ -356,8 +355,7 @@ const getProductSignalStats = async () => {
     const productStats = []
 
     for (const productType of productTypes) {
-      // Map signal type to product name (e.g., 'stocks' -> 'Stocks')
-      let productName = 'Stocks' // Default fallback
+      let productName = 'Stocks'
       if (productType.type === 'stocks') {
         productName = 'Stocks'
       } else if (productType.type === 'options') {
@@ -369,24 +367,30 @@ const getProductSignalStats = async () => {
       } else if (productType.type === 'forex') {
         productName = 'Forex'
       }
-      
-      // Get total signals for this product type
+
       const totalSignals = await db.Signal.count({ where: { type: productType.type } })
-      
-      // Get completed signals (PROFIT + LOSS) for this product type
       const profitSignals = await db.Signal.count({ where: { type: productType.type, status: 'PROFIT' } })
       const lossSignals = await db.Signal.count({ where: { type: productType.type, status: 'LOSS' } })
+      const inProgressSignals = await db.Signal.count({ where: { type: productType.type, status: 'IN_PROGRESS' } })
       const completedSignals = profitSignals + lossSignals
-      
-      // Calculate win/loss ratio
       const winLossRatio = completedSignals > 0 ? Math.round((profitSignals / completedSignals) * 100) : 0
-      
+
+      const totalProfitRaw = await db.Signal.sum('profitLoss', { where: { type: productType.type, status: 'PROFIT' } })
+      const rawTotalLoss = await db.Signal.sum('profitLoss', { where: { type: productType.type, status: 'LOSS' } })
+      const totalProfit = parseFloat(totalProfitRaw || 0)
+      const totalLoss = Math.abs(parseFloat(rawTotalLoss || 0))
+      const netProfit = totalProfit + parseFloat(rawTotalLoss || 0)
+
       productStats.push({
         productName,
         totalSignals,
         winLossRatio,
         profitSignals,
-        lossSignals
+        lossSignals,
+        inProgressSignals,
+        totalProfit,
+        totalLoss,
+        netProfit
       })
     }
 

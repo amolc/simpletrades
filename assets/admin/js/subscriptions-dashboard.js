@@ -209,8 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
       planDetails.classList.add('d-none');
       subscriptionModal.show();
       
-      // Set today's date as default
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
       document.getElementById('startDate').value = today;
     });
   }
@@ -297,10 +296,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
   
       const startDateInput = document.getElementById('startDate').value;
-      const startDateObj = new Date(startDateInput);
-      const endDateObj = new Date(startDateObj);
-      endDateObj.setDate(startDateObj.getDate() + selectedPlan.numberOfDays);
-      const endDate = endDateObj.toISOString().split('T')[0];
+      const startMsIST = Date.parse(`${startDateInput}T00:00:00+05:30`);
+      const endMsIST = startMsIST + (selectedPlan.numberOfDays * 24 * 60 * 60 * 1000);
+      const endDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(endMsIST));
 
       const formData = {
         userId: parseInt(customerSelect.value),
@@ -635,16 +633,20 @@ let selectedPlan;
 
     subscriptionsToRender.forEach(subscription => {
       const row = document.createElement('tr');
+      row.dataset.customerId = subscription.userId;
+      row.dataset.productId = subscription.plan && subscription.plan.Product ? subscription.plan.Product.id : '';
+      row.dataset.createdAt = subscription.createdAt || '';
+      row.dataset.startDate = subscription.startDate || '';
       row.innerHTML = `
-        <td>${subscription.id}</td>
-        <td>${subscription.User ? subscription.User.fullName : 'N/A'}</td>
-        <td>${subscription.plan && subscription.plan.Product ? subscription.plan.Product.name : 'N/A'}</td>
-        <td>${subscription.plan ? subscription.plan.planName : 'N/A'}</td>
-        <td>Rs ${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
-        <td>${new Date(subscription.startDate).toLocaleDateString()}</td>
-        <td><span class="badge bg-${subscription.status === 'active' ? 'success' : subscription.status === 'pending' ? 'warning' : 'danger'}">${subscription.status}</span></td>
-        <td><span class="badge bg-${subscription.paymentStatus === 'completed' ? 'success' : subscription.paymentStatus === 'pending' ? 'warning' : 'danger'}">${subscription.paymentStatus}</span></td>
-        <td>
+        <td data-col="id">${subscription.id}</td>
+        <td data-col="customer">${subscription.User ? subscription.User.fullName : 'N/A'}</td>
+        <td data-col="product">${subscription.plan && subscription.plan.Product ? subscription.plan.Product.name : 'N/A'}</td>
+        <td data-col="plan">${subscription.plan ? subscription.plan.planName : 'N/A'}</td>
+        <td data-col="cost">Rs ${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
+        <td data-col="startDate">${subscription.startDate ? new Date(subscription.startDate).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) : '-'}</td>
+        <td data-col="status"><span class="badge bg-${subscription.status === 'active' ? 'success' : subscription.status === 'pending' ? 'warning' : 'danger'}">${subscription.status}</span></td>
+        <td data-col="paymentStatus"><span class="badge bg-${subscription.paymentStatus === 'completed' ? 'success' : subscription.paymentStatus === 'pending' ? 'warning' : 'danger'}">${subscription.paymentStatus}</span></td>
+        <td data-col="actions">
           <button class="btn btn-sm btn-info view-subscription-btn" data-id="${subscription.id}" data-action="view">View</button>
           ${subscription.status === 'active' ? `<button class="btn btn-sm btn-danger cancel-subscription-btn" data-id="${subscription.id}" data-action="cancel">Cancel</button>` : ''}
           ${subscription.paymentStatus === 'pending' ? `<button class="btn btn-sm btn-success link-payment-btn" data-id="${subscription.id}" data-action="link-payment">Link Payment</button>` : ''}
@@ -671,7 +673,7 @@ let selectedPlan;
         customersData.data.forEach(customer => {
           const option = document.createElement('option');
           option.value = customer.id;
-          option.textContent = `${customer.name} (${customer.email})`;
+          option.textContent = `${customer.fullName || customer.name || 'N/A'} (${customer.email || ''})`;
           customerFilter.appendChild(option);
         });
       }
@@ -744,10 +746,14 @@ let selectedPlan;
     const visibleRows = [];
     
     rows.forEach(row => {
-      const subscriptionId = row.querySelector('td:first-child').textContent.toLowerCase();
-      const customerName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
-      const productName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
-      const statusBadge = row.querySelector('td:nth-child(6) span').textContent.toLowerCase();
+      const idCell = row.querySelector('td[data-col="id"]') || row.querySelector('td:first-child');
+      const customerCell = row.querySelector('td[data-col="customer"]') || row.querySelector('td:nth-child(2)');
+      const productCell = row.querySelector('td[data-col="product"]') || row.querySelector('td:nth-child(3)');
+      const statusSpan = row.querySelector('td[data-col="status"] span') || row.querySelector('td:nth-child(7) span') || row.querySelector('td:nth-child(6) span');
+      const subscriptionId = idCell ? idCell.textContent.toLowerCase() : '';
+      const customerName = customerCell ? customerCell.textContent.toLowerCase() : '';
+      const productName = productCell ? productCell.textContent.toLowerCase() : '';
+      const statusBadge = statusSpan ? statusSpan.textContent.toLowerCase() : '';
       
       let showRow = true;
       
@@ -939,16 +945,16 @@ let selectedPlan;
           bValue = new Date(b.dataset.startDate || 0);
           return bValue - aValue; // Newest first
         case 'customer.name':
-          aValue = a.querySelector('td:nth-child(2)').textContent.toLowerCase();
-          bValue = b.querySelector('td:nth-child(2)').textContent.toLowerCase();
+          aValue = (a.querySelector('td[data-col="customer"]') || a.querySelector('td:nth-child(2)')).textContent.toLowerCase();
+          bValue = (b.querySelector('td[data-col="customer"]') || b.querySelector('td:nth-child(2)')).textContent.toLowerCase();
           return aValue.localeCompare(bValue);
         case 'plan.product.name':
-          aValue = a.querySelector('td:nth-child(3)').textContent.toLowerCase();
-          bValue = b.querySelector('td:nth-child(3)').textContent.toLowerCase();
+          aValue = (a.querySelector('td[data-col="product"]') || a.querySelector('td:nth-child(3)')).textContent.toLowerCase();
+          bValue = (b.querySelector('td[data-col="product"]') || b.querySelector('td:nth-child(3)')).textContent.toLowerCase();
           return aValue.localeCompare(bValue);
         case 'status':
-          aValue = a.querySelector('td:nth-child(6) span').textContent.toLowerCase();
-          bValue = b.querySelector('td:nth-child(6) span').textContent.toLowerCase();
+          aValue = (a.querySelector('td[data-col="status"] span') || a.querySelector('td:nth-child(7) span') || a.querySelector('td:nth-child(6) span')).textContent.toLowerCase();
+          bValue = (b.querySelector('td[data-col="status"] span') || b.querySelector('td:nth-child(7) span') || b.querySelector('td:nth-child(6) span')).textContent.toLowerCase();
           return aValue.localeCompare(bValue);
         default:
           return 0;

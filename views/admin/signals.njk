@@ -157,12 +157,12 @@
               <td>Rs {{ signal.entry.toFixed(2) }}</td>
               <td>Rs {{ signal.target.toFixed(2) }}</td>
               <td>Rs {{ signal.stopLoss.toFixed(2) }}</td>
-              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString() }}{% else %}-{% endif %}</td>
+              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td>{% if signal.exitPrice %}Rs {{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
-              <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString() }}{% else %}-{% endif %}</td>
+              <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
-              <td>{{ signal.createdAt.toLocaleString() }}</td>
-              <td>{{ signal.updatedAt.toLocaleString() }}</td>
+              <td>{{ signal.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}</td>
+              <td>{{ signal.updatedAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}</td>
               <td>
                 <div class="btn-group btn-group-sm">
                   <button class="btn btn-outline-primary" data-saction="activate" data-sid="{{ signal.id }}">Activate</button>

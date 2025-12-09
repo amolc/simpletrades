@@ -12,8 +12,54 @@ router.get('/login', (req, res) => {
   res.render('admin/login.njk', { title: 'Admin Login' })
 })
 
-router.get('/dashboard', (req, res) => {
-  res.render('admin/dashboard.njk', { title: 'Admin Dashboard' })
+router.get('/dashboard', async (req, res) => {
+  try {
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date()
+    endOfDay.setHours(23, 59, 59, 999)
+
+    const totalCustomers = await db.User.count({ where: { userType: 'customer' } })
+    const todayCustomers = await db.User.count({ 
+      where: { 
+        userType: 'customer', 
+        createdAt: { [db.Sequelize.Op.between]: [startOfDay, endOfDay] } 
+      } 
+    })
+
+    const totalSubscriptions = await db.Subscription.count()
+    const todaySubscriptions = await db.Subscription.count({ 
+      where: { createdAt: { [db.Sequelize.Op.between]: [startOfDay, endOfDay] } } 
+    })
+
+    let productStats = []
+    try {
+      const mockReq = {}
+      const mockRes = {
+        json: (data) => { if (data.success && data.data) productStats = data.data },
+        status: () => ({ json: () => {} })
+      }
+      await signalsController.getProductSignalStats(mockReq, mockRes)
+    } catch (e) {}
+
+    res.render('admin/dashboard.njk', { 
+      title: 'Admin Dashboard',
+      stats: {
+        totalCustomers,
+        todayCustomers,
+        totalSubscriptions,
+        todaySubscriptions
+      },
+      productStats
+    })
+  } catch (error) {
+    res.render('admin/dashboard.njk', { 
+      title: 'Admin Dashboard',
+      error: error.message,
+      stats: { totalCustomers: 0, todayCustomers: 0, totalSubscriptions: 0, todaySubscriptions: 0 },
+      productStats: []
+    })
+  }
 })
 
 router.get('/clients', (req, res) => {

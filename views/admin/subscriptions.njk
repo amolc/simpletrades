@@ -168,17 +168,21 @@
           </thead>
           <tbody id="subscriptionsBody">
             {% for subscription in subscriptions %}
-            <tr data-customer-id="{{ subscription.userId }}" data-product-id="{{ subscription.plan.product.id or '' }}" data-created-at="{{ subscription.createdAt }}" data-start-date="{{ subscription.startDate }}">
-              <td>{{ subscription.id }}</td>
-              <td>{{ subscription.User.name or 'N/A' }}</td>
-              <td>{{ subscription.plan.product.name or 'N/A' }}</td>
-              <td>{{ subscription.plan.name or 'N/A' }}</td>
-              <td>{{ subscription.startDate|date('Y-m-d') if subscription.startDate else '-' }}</td>
-              <td><span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'pending' %}bg-warning{% elif subscription.status == 'expired' %}bg-danger{% else %}bg-secondary{% endif %}">{{ subscription.status|upper }}</span></td>
-              <td>
+            <tr data-customer-id="{{ subscription.userId }}" data-product-id="{{ subscription.plan.Product.id or '' }}" data-created-at="{{ subscription.createdAt }}" data-start-date="{{ subscription.startDate }}">
+              <td data-col="id">{{ subscription.id }}</td>
+              <td data-col="customer">{{ subscription.User.fullName or 'N/A' }}</td>
+              <td data-col="product">{{ subscription.plan.Product.name or 'N/A' }}</td>
+              <td data-col="plan">{{ subscription.plan.planName or 'N/A' }}</td>
+              <td data-col="cost">Rs {{ subscription.plan.cost or 0 }}</td>
+              <td data-col="startDate">{{ subscription.startDate|date('Y-m-d') if subscription.startDate else '-' }}</td>
+              <td data-col="status"><span class="badge {% if subscription.status == 'active' %}bg-success{% elif subscription.status == 'pending' %}bg-warning{% elif subscription.status == 'expired' %}bg-danger{% else %}bg-secondary{% endif %}">{{ subscription.status }}</span></td>
+              <td data-col="paymentStatus"><span class="badge {% if subscription.paymentStatus == 'completed' %}bg-success{% elif subscription.paymentStatus == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">{{ subscription.paymentStatus }}</span></td>
+              <td data-col="actions">
                 <div class="btn-group btn-group-sm d-flex flex-column flex-sm-row" role="group">
                   <button class="btn btn-outline-primary btn-sm" data-action="view" data-id="{{ subscription.id }}">View</button>
+                  {% if subscription.status == 'active' %}
                   <button class="btn btn-outline-danger btn-sm" data-action="cancel" data-id="{{ subscription.id }}">Cancel</button>
+                  {% endif %}
                 </div>
               </td>
             </tr>

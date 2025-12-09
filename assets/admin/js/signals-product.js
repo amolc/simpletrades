@@ -43,18 +43,18 @@ class ProductSignalsManager {
         
         // Signal action events (delegated to handle dynamically added elements)
         document.addEventListener('click', (e) => {
-            const action = e.target.dataset.action;
+            const btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            const action = btn.dataset.action;
+            const signalId = btn.dataset.id || btn.dataset.sid;
             if (!action) return;
-             
-            if (action === 'edit-signal') {
-                const signalId = e.target.dataset.id;
+            if (action === 'edit' || action === 'edit-signal') {
                 this.editSignal(signalId);
-            } else if (action === 'delete-signal') {
-                const signalId = e.target.dataset.id;
+            } else if (action === 'delete' || action === 'delete-signal') {
                 this.deleteSignal(signalId);
-            } else if (action === 'close-signal') {
-                const signalId = e.target.dataset.id;
-                this.showCloseModal(signalId);
+            } else if (action === 'close' || action === 'close-signal') {
+                const symbol = btn.dataset.symbol || '';
+                this.openCloseModal(signalId, symbol, btn);
             } else if (action === 'edit-watchlist') {
                 const watchlistId = e.target.dataset.wid;
                 this.editWatchlist(watchlistId);
@@ -191,9 +191,9 @@ class ProductSignalsManager {
     }
 
     setupFilters() {
-        // Add filter controls to the page if they don't exist
-        const filterContainer = document.querySelector('#signalsTable').parentElement;
-        if (filterContainer && !document.getElementById('signalFilters')) {
+        const tableEl = document.getElementById('productSignalsTable') || document.getElementById('signalsTable');
+        const containerEl = tableEl ? (tableEl.closest('.card-body') || tableEl.parentElement) : (document.querySelector('.card-body') || document.querySelector('.table-responsive'));
+        if (containerEl && !document.getElementById('signalFilters')) {
             const filterHTML = `
                 <div id="signalFilters" class="row mb-3">
                     <div class="col-md-3">
@@ -215,7 +215,15 @@ class ProductSignalsManager {
                     </div>
                 </div>
             `;
-            filterContainer.insertAdjacentHTML('beforebegin', filterHTML);
+            containerEl.insertAdjacentHTML('afterbegin', filterHTML);
+            const statusFilter = document.getElementById('statusFilter');
+            const symbolFilter = document.getElementById('symbolFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const resetFilters = document.getElementById('resetFilters');
+            statusFilter?.addEventListener('change', (e) => this.applyFilter('status', e.target.value));
+            symbolFilter?.addEventListener('input', (e) => this.applyFilter('symbol', e.target.value));
+            dateFilter?.addEventListener('change', (e) => this.applyFilter('date', e.target.value));
+            resetFilters?.addEventListener('click', () => this.resetFilters());
         }
     }
 
@@ -286,7 +294,7 @@ class ProductSignalsManager {
     }
 
     renderFilteredSignals() {
-        const tbody = document.querySelector('#signalsTable tbody');
+        const tbody = document.querySelector('#productSignalsTable tbody') || document.querySelector('#signalsTable tbody');
         if (!tbody) return;
 
         if (this.filteredSignals.length === 0) {
@@ -327,6 +335,66 @@ class ProductSignalsManager {
         
         this.filteredSignals = [...this.signals];
         this.renderFilteredSignals();
+    }
+
+    openCloseModal(signalId, symbol, triggerEl) {
+        const modalEl = document.getElementById('signalCloseModal');
+        if (!modalEl) return;
+        let modal = bootstrap.Modal.getInstance(modalEl);
+        if (!modal) modal = new bootstrap.Modal(modalEl);
+        let entry = '';
+        let target = '';
+        let finalSymbol = symbol || '';
+        const s = this.signals.find(x => x.id == signalId);
+        if (s) {
+            entry = s.entry;
+            target = s.target;
+            finalSymbol = s.symbol || finalSymbol;
+        } else if (triggerEl) {
+            const row = triggerEl.closest('tr');
+            if (row) {
+                const cells = row.querySelectorAll('td');
+                finalSymbol = finalSymbol || (cells[0]?.textContent.trim() || '');
+                const parseAmt = (t) => parseFloat(String(t || '').replace(/Rs\s?|₹/g, ''));
+                entry = parseAmt(cells[2]?.textContent);
+                target = parseAmt(cells[3]?.textContent);
+            }
+        }
+        const idEl = document.getElementById('closeSignalId');
+        const symEl = document.getElementById('closeSignalSymbol');
+        const entryEl = document.getElementById('closeSignalEntry');
+        const targetEl = document.getElementById('closeSignalTarget');
+        const exitEl = document.getElementById('closeExitPrice');
+        if (idEl) idEl.value = signalId;
+        if (symEl) symEl.value = finalSymbol || '';
+        if (entryEl) entryEl.value = entry || '';
+        if (targetEl) targetEl.value = target || '';
+        if (exitEl) exitEl.value = target || '';
+        const btn = document.getElementById('closeSignalBtn');
+        if (btn) {
+            btn.onclick = async () => {
+                const exitPriceVal = parseFloat(exitEl?.value || '');
+                if (isNaN(exitPriceVal)) { this.showError('Enter a valid exit price'); return; }
+                try {
+                    const res = await fetch(`/api/signals/${signalId}/close`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ exitPrice: exitPriceVal })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        this.showSuccess(`Signal closed as ${result.data.status}`);
+                        modal.hide();
+                        setTimeout(() => location.reload(), 1200);
+                    } else {
+                        this.showError(result.error || 'Failed to close signal');
+                    }
+                } catch (err) {
+                    this.showError('Error closing signal');
+                }
+            };
+        }
+        modal.show();
     }
 
     async closeSignal(signalId, symbol) {

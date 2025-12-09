@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const userSummary=document.getElementById('userSummary');
   const subsBody=document.getElementById('subsBody');
   const subsEmpty=document.getElementById('subsEmpty');
-  const fmt=(d)=>new Date(d).toLocaleDateString();
+  const fmt=(d)=>new Date(d).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'});
   const loadProfile=async()=>{
     const res=await fetch(`/api/users/${user.id}`);
     const data=await res.json();

@@ -113,9 +113,9 @@ class ProductSignalsManager {
     }
 
     setupFilters() {
-        // Add filter controls to the page if they don't exist
-        const filterContainer = document.querySelector('#signalsTable').parentElement;
-        if (filterContainer && !document.getElementById('signalFilters')) {
+        const tableEl = document.getElementById('signalsTable');
+        const containerEl = tableEl ? (tableEl.closest('.card-body') || tableEl.parentElement) : (document.querySelector('.card-body') || document.querySelector('.table-responsive'));
+        if (containerEl && !document.getElementById('signalFilters')) {
             const filterHTML = `
                 <div id="signalFilters" class="row mb-3">
                     <div class="col-md-3">
@@ -137,7 +137,15 @@ class ProductSignalsManager {
                     </div>
                 </div>
             `;
-            filterContainer.insertAdjacentHTML('beforebegin', filterHTML);
+            containerEl.insertAdjacentHTML('afterbegin', filterHTML);
+            const statusFilter = document.getElementById('statusFilter');
+            const symbolFilter = document.getElementById('symbolFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const resetFilters = document.getElementById('resetFilters');
+            statusFilter?.addEventListener('change', (e) => this.applyFilter('status', e.target.value));
+            symbolFilter?.addEventListener('input', (e) => this.applyFilter('symbol', e.target.value));
+            dateFilter?.addEventListener('change', (e) => this.applyFilter('date', e.target.value));
+            resetFilters?.addEventListener('click', () => this.resetFilters());
         }
     }
 

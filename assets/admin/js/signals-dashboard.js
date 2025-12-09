@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Populate and show the signal creation modal
         document.getElementById('signalCreateTitle').textContent = `Create ${isBuy ? 'BUY' : 'SELL'} Signal`;
         document.getElementById('signalStock').value = stockName;
-        document.getElementById('signalTime').value = new Date().toLocaleString();
+        document.getElementById('signalTime').value = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
         document.getElementById('signalEntry').value = currentPrice;
         document.getElementById('signalCurrentPrice').value = currentPrice;
         document.getElementById('signalSide').value = isBuy ? 'BUY' : 'SELL';

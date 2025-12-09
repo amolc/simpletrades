@@ -29,7 +29,7 @@
                   <td>{{ user.fullName or 'N/A' }}</td>
                   <td>{{ user.phoneNumber }}</td>
                   <td>{{ user.email or 'N/A' }}</td>
-                  <td>{{ user.createdAt | date("d-m-Y") }}</td>
+                  <td>{{ user.createdAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) }}</td>
                   <td>
                     {% if user.status == 'active' %}
                       <span class="badge bg-success">{{ user.status }}</span>

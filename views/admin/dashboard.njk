@@ -5,7 +5,82 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
-  <h2 class="mt-4">Pending Subscriptions</h2>
+  <div class="mt-4 mb-3 d-flex align-items-center justify-content-between">
+    <h2 class="mb-0">Dashboard</h2>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-end">
+            <div>
+              <div class="text-muted">Total Customers</div>
+              <div class="h4 mb-0" id="totalCustomers">{{ stats.totalCustomers }}</div>
+            </div>
+            <span class="badge bg-primary">Today <span id="todayCustomers">{{ stats.todayCustomers }}</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-end">
+            <div>
+              <div class="text-muted">Total Subscriptions</div>
+              <div class="h4 mb-0" id="totalSubscriptions">{{ stats.totalSubscriptions }}</div>
+            </div>
+            <span class="badge bg-success">Today <span id="todaySubscriptions">{{ stats.todaySubscriptions }}</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Signals by Product</h5>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Total Signals</th>
+              <th>Winners</th>
+              <th>Losers</th>
+              <th>In Progress</th>
+              <th>Total Profit</th>
+              <th>Net Profit</th>
+            </tr>
+          </thead>
+          <tbody id="productStatsBody">
+            {% if productStats and productStats.length > 0 %}
+              {% for p in productStats %}
+                <tr>
+                  <td>{{ p.productName }}</td>
+                  <td>{{ p.totalSignals }}</td>
+                  <td><span class="text-success">{{ p.profitSignals }}</span></td>
+                  <td><span class="text-danger">{{ p.lossSignals }}</span></td>
+                  <td>{{ p.inProgressSignals }}</td>
+                  <td>Rs {{ p.totalProfit.toFixed(2) }}</td>
+                  <td>Rs {{ p.netProfit.toFixed(2) }}</td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="7" class="text-center text-muted">No signal statistics available</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <h4 class="mt-4">Pending Subscriptions</h4>
   <table class="table table-striped">
     <thead>
       <tr>

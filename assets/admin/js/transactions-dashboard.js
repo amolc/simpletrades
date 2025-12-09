@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const transactionModal = new bootstrap.Modal(document.getElementById('transactionModal'));
 
   let allTransactions = []; // Store all transactions for filtering and pagination
+  const fmtIST = (d) => new Date(d).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false });
   
   // Function to render transactions into the table
   function renderTransactions(transactionsToRender) {
@@ -50,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
       row.dataset.customerId = transaction.User ? transaction.User.id : ''; // For customer filtering
       row.innerHTML = `
         <td>${transaction.id}</td>
-        <td>${new Date(transaction.createdAt).toLocaleString()}</td>
+        <td data-ts="${transaction.createdAt}">${fmtIST(transaction.createdAt)}</td>
         <td>${transaction.User ? transaction.User.fullName : 'N/A'}</td>
         <td>Rs ${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</td>
         <td>${transaction.paymentMethod || 'N/A'}</td>
@@ -241,7 +242,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     rows.forEach(row => {
       const transactionId = row.querySelector('td:first-child').textContent.toLowerCase();
-      const dateText = row.querySelector('td:nth-child(2)').textContent;
+      const dateCell = row.querySelector('td:nth-child(2)');
+      const dateText = dateCell.textContent;
+      const ts = dateCell?.dataset?.ts;
       const customerName = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
       const amount = row.querySelector('td:nth-child(4)').textContent;
       const statusBadge = row.querySelector('td:nth-child(6) span').textContent.toLowerCase();
@@ -250,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Date range filter
       if (startDate || endDate) {
-        const transactionDate = new Date(dateText);
+        const transactionDate = ts ? new Date(ts) : new Date(dateText);
         if (startDate && transactionDate < new Date(startDate)) showRow = false;
         if (endDate && transactionDate > new Date(endDate)) showRow = false;
       }

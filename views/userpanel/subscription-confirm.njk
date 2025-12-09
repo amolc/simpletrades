@@ -60,8 +60,8 @@
                 </div>
                 <div class="col-md-6">
                   <p><strong>Amount:</strong> <span class="text-success fw-bold">Rs <span id="planAmount">{{ plan.cost }}</span></span></p>
-                  <p><strong>Start Date:</strong> <span id="startDate">{{ startDate }}</span></p>
-                  <p><strong>End Date:</strong> <span id="endDate">{{ endDate }}</span></p>
+                  <p><strong>Start Date:</strong> <span id="startDate" data-date="{{ startDate }}"></span></p>
+                  <p><strong>End Date:</strong> <span id="endDate" data-date="{{ endDate }}"></span></p>
                 </div>
               </div>
             </div>
@@ -102,6 +102,11 @@
 document.addEventListener('DOMContentLoaded', function() {
   const confirmBtn = document.getElementById('confirmSubscriptionBtn');
   const termsCheck = document.getElementById('termsCheck');
+  const fmtISTDate = (d) => new Date(d).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const sdEl = document.getElementById('startDate');
+  const edEl = document.getElementById('endDate');
+  if (sdEl && sdEl.dataset && sdEl.dataset.date) { sdEl.textContent = fmtISTDate(sdEl.dataset.date); }
+  if (edEl && edEl.dataset && edEl.dataset.date) { edEl.textContent = fmtISTDate(edEl.dataset.date); }
 
   // Enable confirm button by default since checkbox is pre-checked
   confirmBtn.disabled = false;
