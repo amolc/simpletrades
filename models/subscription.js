@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Subscription.init({
+    id: { type: DataTypes.INTEGER, allowNull: false, autoIncrement: true, primaryKey: true },
     userId: DataTypes.INTEGER,
     planId: {
       type: DataTypes.INTEGER,

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 20px; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    #status { margin: 10px 0; font-weight: 500; }
+  </style>
+  </head>
+<body>
+  <h1>{{ title }}</h1>
+  <div id="status">Connecting...</div>
+  <div style="margin-bottom:10px">
+    <label>Exchange: </label><input id="exch" value="{{ (query.exchange or 'BINANCE') }}" />
+    <label style="margin-left:10px">Symbol: </label><input id="sym" value="{{ (query.symbol or 'BTCUSD') }}" />
+    <button id="connectBtn">Connect</button>
+  </div>
+  <table id="data">
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>LP</th>
+        <th>Bid</th>
+        <th>Ask</th>
+        <th>Ch</th>
+        <th>Ch%</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    const status = document.getElementById('status');
+    const tbody = document.querySelector('#data tbody');
+    const exchIn = document.getElementById('exch');
+    const symIn = document.getElementById('sym');
+    const btn = document.getElementById('connectBtn');
+    let ws;
+    function connect(exchange, symbol){
+      if (ws) try { ws.close() } catch(e){}
+      const proto = location.protocol === 'https:' ? 'wss://' : 'ws://'
+      const url = proto + location.host + '/ws/stream?symbol=' + encodeURIComponent(symbol) + '&exchange=' + encodeURIComponent(exchange)
+      status.textContent = 'Connecting to ' + exchange + ':' + symbol + '...'
+      ws = new WebSocket(url)
+      ws.onopen = () => { status.textContent = 'Connected to ' + exchange + ':' + symbol }
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(ev.data)
+          if (msg && msg.type === 'data') {
+            const d = msg.data || {}
+            const tr = document.createElement('tr')
+            const t = new Date().toLocaleTimeString()
+            tr.innerHTML = '<td>'+t+'</td><td>'+(d.lp??'')+'</td><td>'+(d.bid??'')+'</td><td>'+(d.ask??'')+'</td><td>'+(d.ch??'')+'</td><td>'+(d.chp??'')+'</td>'
+            tbody.insertBefore(tr, tbody.firstChild)
+            const max = 100
+            while (tbody.rows.length > max) tbody.deleteRow(tbody.rows.length - 1)
+          } else if (msg && msg.type === 'error') {
+            status.textContent = 'Error: ' + msg.error
+          }
+        } catch (e) {}
+      }
+      ws.onclose = () => { status.textContent = 'Disconnected' }
+      ws.onerror = () => { status.textContent = 'WebSocket error' }
+    }
+    btn.onclick = () => connect(exchIn.value || 'BINANCE', symIn.value || 'BTCUSD')
+    ;(function init(){
+      const p = new URLSearchParams(location.search)
+      const ex = p.get('exchange') || 'BINANCE'
+      const sy = p.get('symbol') || 'BTCUSD'
+      exchIn.value = ex
+      symIn.value = sy
+      connect(ex, sy)
+    })()
+  </script>
+</body>
+</html>

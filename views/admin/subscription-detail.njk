@@ -34,7 +34,11 @@
               <td><strong>Customer</strong></td>
               <td>
                 {% if subscription.User %}
-                  {{ subscription.User.fullName }} ({{ subscription.User.email }})
+                  {% if subscription.User.fullName and subscription.User.fullName|lower != 'undefined' and subscription.User.fullName|lower != 'null' %}
+                    {{ subscription.User.fullName }} ({{ subscription.User.email }})
+                  {% else %}
+                    {{ subscription.User.email or 'N/A' }}
+                  {% endif %}
                 {% else %}
                   N/A (N/A)
                 {% endif %}

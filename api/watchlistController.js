@@ -9,7 +9,7 @@ const watchlistController = {
     try{
       await ensureTable()
       const where={}
-      if(req.query.productName) where.productName = req.query.productName
+      if(req.query.product) where.product = req.query.product
       const list = await db.Watchlist.findAll({ where, order:[['updatedAt','DESC']] })
       // Convert decimal fields to numbers for proper JSON serialization
       const processedList = list.map(item => {
@@ -36,18 +36,20 @@ const watchlistController = {
   async create(req,res){
     try{
       await ensureTable()
-      const required = ['stockName','market','currentPrice','alertPrice']
-      const missing = required.filter(f=> req.body[f]===undefined || req.body[f]==='')
+      const missing = []
+      if (req.body.stockName===undefined || req.body.stockName==='') missing.push('stockName')
+      if (req.body.product===undefined || req.body.product==='') missing.push('product')
       if(missing.length){
         return res.status(400).json({ success:false, error:`Missing required fields: ${missing.join(', ')}` })
       }
-      const item = await db.Watchlist.create({
+      const payload = {
         stockName: req.body.stockName,
-        market: req.body.market,
-        currentPrice: req.body.currentPrice,
-        alertPrice: req.body.alertPrice,
-        productName: req.body.productName || null
-      })
+        product: req.body.product,
+        exchange: req.body.exchange || null
+      }
+      if (req.body.currentPrice !== undefined) payload.currentPrice = req.body.currentPrice
+      if (req.body.alertPrice !== undefined) payload.alertPrice = req.body.alertPrice
+      const item = await db.Watchlist.create(payload)
       res.status(201).json({ success:true, data:item })
     }catch(err){
       res.status(500).json({ success:false, error:err.message })
@@ -58,7 +60,7 @@ const watchlistController = {
       await ensureTable()
       const item = await db.Watchlist.findByPk(req.params.id)
       if(!item) return res.status(404).json({ success:false, error:'Watchlist item not found' })
-      const fields = ['stockName','market','currentPrice','alertPrice','productName']
+      const fields = ['stockName','product','exchange','currentPrice','alertPrice']
       fields.forEach(f=>{ if(req.body[f]!==undefined) item[f]=req.body[f] })
       await item.save()
       res.json({ success:true, data:item })

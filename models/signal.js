@@ -11,15 +11,22 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       Signal.belongsTo(models.User, { foreignKey: 'userId' });
-      Signal.belongsTo(models.Product, { foreignKey: 'product', targetKey: 'name' });
+      Signal.belongsTo(models.Product, { foreignKey: 'productId', as: 'Product' });
     }
   }
   Signal.init({
-    product: {
-      type: DataTypes.STRING,
-      allowNull: false
+    productId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'Products', key: 'id' },
+      onUpdate: 'CASCADE',
+      onDelete: 'RESTRICT'
     },
     symbol: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    exchange: {
       type: DataTypes.STRING,
       allowNull: true
     },
@@ -88,7 +95,7 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       },
       onUpdate: 'CASCADE',
-      onDelete: 'CASCADE',
+      onDelete: 'SET NULL',
       allowNull: true
     }
   }, {

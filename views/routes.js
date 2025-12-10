@@ -121,6 +121,10 @@ router.get('/stocks', (req, res) => {
   res.render('userpanel/stocks.njk', { title: 'Stocks - SimpleIncome' })
 })
 
+router.get('/websocket', (req, res) => {
+  res.render('userpanel/websocket.njk', { title: 'WebSocket Stream - BTCUSD' })
+})
+
 router.get('/contact', (req, res) => {
   res.render('userpanel/contact.njk', { title: 'Contact - SimpleIncome' })
 })

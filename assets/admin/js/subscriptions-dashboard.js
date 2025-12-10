@@ -27,6 +27,123 @@ document.addEventListener('DOMContentLoaded', () => {
   const planSelect = document.getElementById('planSelect');
   const planDetails = document.getElementById('planDetails');
   const planDetailsContent = document.getElementById('planDetailsContent');
+  function formatUserLabel(u){
+    const raw=(u.fullName||u.name||'').trim();
+    const hasName=raw&&raw.toLowerCase()!=='undefined'&&raw.toLowerCase()!=='null';
+    if(hasName){return `${raw} (${u.email||''})`;}
+    if(u.email){return u.email;}
+    if(u.phoneNumber){return u.phoneNumber;}
+    return `User #${u.id}`;
+  }
+
+  // Metrics
+  const metricActiveSubsEl = document.getElementById('metricActiveSubs');
+  const metricMonthlyRevenueEl = document.getElementById('metricMonthlyRevenue');
+  const metricNewThisMonthEl = document.getElementById('metricNewThisMonth');
+  const metricPendingRenewalsEl = document.getElementById('metricPendingRenewals');
+
+  function fmtYmdIST(d){
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  }
+
+  async function updateMetrics(){
+    try {
+      // Overall stats
+      const resAll = await fetch('/api/subscription-stats');
+      if (!resAll.ok) { return; }
+      const dataAll = await resAll.json().catch(()=>null);
+      if (dataAll && dataAll.success && dataAll.data) {
+        const breakdown = dataAll.data.statusBreakdown || [];
+        const getCount = (status) => {
+          const row = breakdown.find(x => x.status === status);
+          const v = row ? (row.count || row.totalAmount || 0) : 0;
+          return typeof v === 'string' ? parseInt(v, 10) || 0 : Number(v) || 0;
+        };
+        const activeCount = getCount('active');
+        const pendingCount = getCount('pending');
+        if (metricActiveSubsEl) metricActiveSubsEl.textContent = activeCount;
+        if (metricPendingRenewalsEl) metricPendingRenewalsEl.textContent = pendingCount;
+      }
+
+      // This month stats in IST
+      const now = new Date();
+      const istMonthStartStr = fmtYmdIST(new Date(now));
+      const startObjIST = new Date(`${istMonthStartStr}T00:00:00+05:30`);
+      startObjIST.setDate(1);
+      const endObjIST = new Date(startObjIST);
+      endObjIST.setMonth(endObjIST.getMonth() + 1);
+      endObjIST.setDate(0);
+      const qStart = fmtYmdIST(startObjIST);
+      const qEnd = fmtYmdIST(endObjIST);
+
+      const resMonth = await fetch(`/api/subscription-stats?startDate=${encodeURIComponent(qStart)}&endDate=${encodeURIComponent(qEnd)}`);
+      if (!resMonth.ok) { return; }
+      const dataMonth = await resMonth.json().catch(()=>null);
+      if (dataMonth && dataMonth.success && dataMonth.data) {
+        const newThisMonth = dataMonth.data.totalSubscriptions || 0;
+        const totalRevenue = dataMonth.data.totalRevenue || 0;
+        if (metricNewThisMonthEl) metricNewThisMonthEl.textContent = newThisMonth;
+        if (metricMonthlyRevenueEl) metricMonthlyRevenueEl.textContent = `Rs ${Number(totalRevenue).toFixed(0)}`;
+      }
+    } catch (e) {
+      console.error('Error updating metrics:', e);
+    }
+  }
+
+  function isWithinCurrentMonthIST(dateStr){
+    if(!dateStr) return false;
+    const d = new Date(dateStr);
+    const now = new Date();
+    const y = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric'}).format(now);
+    const m = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',month:'2-digit'}).format(now);
+    const start = new Date(`${y}-${m}-01T00:00:00+05:30`);
+    const end = new Date(start);
+    end.setMonth(end.getMonth()+1); end.setDate(0); end.setHours(23,59,59,999);
+    return d >= start && d <= end;
+  }
+
+  function updateMetricsFromTable(){
+    const rows = subscriptionsBody.querySelectorAll('tr');
+    if(!rows || rows.length===0) return;
+    let active=0, pending=0, newMonth=0, revenue=0;
+    rows.forEach(r=>{
+      const statusCell = r.querySelector('td[data-col="status"]');
+      const costCell = r.querySelector('td[data-col="cost"]');
+      const createdAt = r.dataset.createdAt;
+      const statusText = statusCell ? statusCell.textContent.trim().toLowerCase() : '';
+      if(statusText==='active') active++;
+      if(statusText==='pending') pending++;
+      if(isWithinCurrentMonthIST(createdAt)){
+        newMonth++;
+        if(costCell){
+          const m = costCell.textContent.match(/([0-9]+(?:\.[0-9]+)?)/);
+          if(m) revenue += Number(m[1]);
+        }
+      }
+    });
+    if (metricActiveSubsEl) metricActiveSubsEl.textContent = active;
+    if (metricPendingRenewalsEl) metricPendingRenewalsEl.textContent = pending;
+    if (metricNewThisMonthEl) metricNewThisMonthEl.textContent = newMonth;
+    if (metricMonthlyRevenueEl) metricMonthlyRevenueEl.textContent = `Rs ${Math.round(revenue)}`;
+  }
+
+  function updateMetricsFromList(){
+    if(!Array.isArray(allSubscriptions) || allSubscriptions.length===0) return;
+    let active=0, pending=0, newMonth=0, revenue=0;
+    allSubscriptions.forEach(s=>{
+      const status = (s.status||'').toLowerCase();
+      if(status==='active') active++;
+      if(status==='pending') pending++;
+      if(isWithinCurrentMonthIST(s.createdAt)){
+        newMonth++;
+        revenue += Number(s.amount || (s.plan && s.plan.cost) || 0) || 0;
+      }
+    });
+    if (metricActiveSubsEl) metricActiveSubsEl.textContent = active;
+    if (metricPendingRenewalsEl) metricPendingRenewalsEl.textContent = pending;
+    if (metricNewThisMonthEl) metricNewThisMonthEl.textContent = newMonth;
+    if (metricMonthlyRevenueEl) metricMonthlyRevenueEl.textContent = `Rs ${Math.round(revenue)}`;
+  }
   
   // Load customers and products for dropdowns
   async function loadDropdownData() {
@@ -46,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
         customersData.data.forEach(customer => {
           const option = document.createElement('option');
           option.value = customer.id;
-          option.textContent = `${customer.fullName} (${customer.email})`;
+          option.textContent = formatUserLabel(customer);
           customerSelect.appendChild(option);
         });
       }
@@ -592,8 +709,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // Check if data is already rendered in template
       const existingRows = subscriptionsBody.querySelectorAll('tr');
       if (existingRows.length > 0 && !existingRows[0].querySelector('.text-center')) {
-        // Data is already rendered, just initialize
         console.log('Using template-rendered subscription data');
+        updateMetricsFromTable();
         return;
       }
 
@@ -605,6 +722,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (result.success) {
         allSubscriptions = result.data.subscriptions;
         renderSubscriptions(allSubscriptions);
+        updateMetricsFromList();
       } else {
         subscriptionsBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading subscriptions: ${result.message || 'Unknown error'}</td></tr>`;
       }
@@ -639,7 +757,7 @@ let selectedPlan;
       row.dataset.startDate = subscription.startDate || '';
       row.innerHTML = `
         <td data-col="id">${subscription.id}</td>
-        <td data-col="customer">${subscription.User ? subscription.User.fullName : 'N/A'}</td>
+        <td data-col="customer">${subscription.User && subscription.User.fullName && subscription.User.fullName.toLowerCase() !== 'undefined' && subscription.User.fullName.toLowerCase() !== 'null' ? subscription.User.fullName : (subscription.User && subscription.User.email ? subscription.User.email : 'N/A')}</td>
         <td data-col="product">${subscription.plan && subscription.plan.Product ? subscription.plan.Product.name : 'N/A'}</td>
         <td data-col="plan">${subscription.plan ? subscription.plan.planName : 'N/A'}</td>
         <td data-col="cost">Rs ${subscription.plan && subscription.plan.cost ? parseFloat(subscription.plan.cost).toFixed(2) : '0.00'}</td>
@@ -660,6 +778,7 @@ let selectedPlan;
   loadDropdownData();
   loadFilterDropdowns();
   loadSubscriptions();
+  updateMetrics();
   
   // Load customers and products for filter dropdowns
   async function loadFilterDropdowns() {
@@ -673,7 +792,7 @@ let selectedPlan;
         customersData.data.forEach(customer => {
           const option = document.createElement('option');
           option.value = customer.id;
-          option.textContent = `${customer.fullName || customer.name || 'N/A'} (${customer.email || ''})`;
+          option.textContent = formatUserLabel(customer);
           customerFilter.appendChild(option);
         });
       }

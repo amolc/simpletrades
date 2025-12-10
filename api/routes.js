@@ -1,4 +1,5 @@
 module.exports = (db) => {
+console.log('API routes initialized from', __filename)
 const express = require('express')
 const planController = require('./planController')
 const { userController } = require('./userController')
@@ -9,6 +10,7 @@ const { watchlistController } = require('./watchlistController')
 const { subscriptionController } = require('./subscriptionController')
 const { transactionController } = require('./transactionController')
 const { settingsController } = require('./settingsController')
+const { priceController } = require('./priceController')
 
 const router = express.Router()
 
@@ -54,11 +56,20 @@ router.get('/subscriptions/pending', subscriptionController.getPendingSubscripti
 router.put('/subscriptions/:id/approve', subscriptionController.approveSubscription)
 router.put('/subscriptions/:id/reject', subscriptionController.rejectSubscription)
 router.get('/subscriptions', subscriptionController.getAllSubscriptions)
+router.get('/subscriptions/stats', subscriptionController.getSubscriptionStats)
+router.get('/subscription-stats', subscriptionController.getSubscriptionStats)
 router.post('/subscriptions', subscriptionController.createSubscription)
 router.get('/subscriptions/:id', subscriptionController.getSubscriptionById)
 router.put('/subscriptions/:id', subscriptionController.updateSubscription)
 router.delete('/subscriptions/:id', subscriptionController.deleteSubscription)
 router.get('/subscriptions/:id/payment-qrcode', subscriptionController.generatePaymentQrCode)
+
+// Price (TradingView adapter)
+router.get('/price', priceController.getQuote)
+console.log('Registered /api/price route')
+
+// Debug ping
+router.get('/ping', (req, res) => res.json({ ok: true }))
 
 // Transaction routes
 router.get('/transactions', transactionController.getAllTransactions)

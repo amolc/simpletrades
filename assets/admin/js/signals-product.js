@@ -22,6 +22,9 @@ class ProductSignalsManager {
         } catch (error) {
             console.warn('Could not load signals from table:', error);
         }
+        try {
+            this.initStreamingForSignals();
+        } catch(e){}
     }
     
     // Initialize event listeners and setup
@@ -42,7 +45,7 @@ class ProductSignalsManager {
         resetFilters?.addEventListener('click', () => this.resetFilters());
         
         // Signal action events (delegated to handle dynamically added elements)
-        document.addEventListener('click', (e) => {
+        document.addEventListener('click', async (e) => {
             const btn = e.target.closest('[data-action]');
             if (!btn) return;
             const action = btn.dataset.action;
@@ -69,15 +72,29 @@ class ProductSignalsManager {
                 const row = e.target.closest('tr');
                 const cells = row.querySelectorAll('td');
                 const stockName = cells[0].textContent;
-                const currentPrice = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
+                const exchangeName = cells[1] ? cells[1].textContent : '';
+                let currentPrice = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
                 
                 // Populate and show the signal creation modal
                 document.getElementById('signalCreateTitle').textContent = `Create ${isBuy ? 'BUY' : 'SELL'} Signal`;
                 document.getElementById('signalStock').value = stockName;
                 document.getElementById('signalTime').value = new Date().toLocaleString();
-                document.getElementById('signalCurrentPrice').value = currentPrice;
-                document.getElementById('signalEntry').value = currentPrice;
+                const setEntry = (p) => {
+                    currentPrice = Number(p) || 0;
+                    document.getElementById('signalCurrentPrice').value = currentPrice;
+                    document.getElementById('signalEntry').value = currentPrice;
+                };
+                if (!Number.isFinite(currentPrice) || currentPrice <= 0) {
+                    try {
+                        const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchangeName)}`);
+                        const d = await r.json();
+                        if (d && d.success && typeof d.price === 'number') setEntry(d.price); else setEntry(0);
+                    } catch(e){ setEntry(0); }
+                } else {
+                    setEntry(currentPrice);
+                }
                 document.getElementById('signalSide').value = isBuy ? 'BUY' : 'SELL';
+                document.getElementById('signalExchange').value = exchangeName;
                 
                 // Set default percentage offsets
                 const targetPctEl = document.getElementById('targetPct');
@@ -152,6 +169,72 @@ class ProductSignalsManager {
                 this.saveWatchlist();
             });
         }
+
+        const genBtn = document.getElementById('generateOptionSymbolsBtn');
+        if (genBtn) {
+            genBtn.addEventListener('click', async () => {
+                const underlying = (document.getElementById('optionUnderlying')?.value || '').trim();
+                const exchange = (document.getElementById('optionExchange')?.value || '').trim();
+                const expiry = document.getElementById('optionExpiry')?.value || '';
+                const stockSelect = document.getElementById('watchlistStockName');
+                if (!underlying || !exchange || !expiry) { alert('Please fill Underlying, Exchange and Expiry'); return; }
+
+                // Fetch underlying price to compute ATM
+                let priceVal = NaN;
+                try {
+                    const resp = await fetch(`/api/price?symbol=${encodeURIComponent(underlying)}&exchange=${encodeURIComponent(exchange)}`);
+                    const d = await resp.json();
+                    if (d && d.success && typeof d.price === 'number') priceVal = d.price;
+                } catch(e){}
+                if (isNaN(priceVal)) { alert('Could not fetch underlying price'); return; }
+
+                const step = (() => {
+                    const sym = underlying.toUpperCase();
+                    if (sym === 'NIFTY') return 50;
+                    if (sym === 'BANKNIFTY') return 100;
+                    if (priceVal < 100) return 5;
+                    if (priceVal < 200) return 10;
+                    if (priceVal < 1000) return 20;
+                    return 50;
+                })();
+
+                const atm = Math.round(priceVal / step) * step;
+                const strikes = [];
+                for (let i = -3; i <= 3; i++) { strikes.push(atm + i * step); }
+
+                const fmtYYMMDD = (dateStr) => {
+                    const d = new Date(dateStr);
+                    const yy = String(d.getFullYear()).slice(-2);
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${yy}${mm}${dd}`;
+                };
+                const expYYMMDD = fmtYYMMDD(expiry);
+                const u = underlying.toUpperCase();
+                const makeSym = (s, cpLetter) => `${u}${expYYMMDD}${cpLetter}${s}`;
+
+                stockSelect.innerHTML = '<option value="">Select an option…</option>';
+                strikes.forEach(s => {
+                    ['C','P'].forEach(cp => {
+                        const val = makeSym(s, cp);
+                        const opt = document.createElement('option');
+                        opt.value = val;
+                        opt.textContent = val;
+                        stockSelect.appendChild(opt);
+                    });
+                });
+
+                stockSelect.value = makeSym(atm, 'C');
+            });
+        }
+
+        // Autofill Current Price from TradingView when underlying/exchange changes
+        async function autofillCurrentPriceTV() { }
+
+        const underlyingEl = document.getElementById('optionUnderlying');
+        const exchangeEl = document.getElementById('optionExchange');
+        if (underlyingEl) underlyingEl.addEventListener('blur', autofillCurrentPriceTV);
+        if (exchangeEl) exchangeEl.addEventListener('change', autofillCurrentPriceTV);
         
         // Signal creation events
         const signalCreateForm = document.getElementById('signalCreateForm');
@@ -244,21 +327,56 @@ class ProductSignalsManager {
                 this.signals.push({
                     id: row.dataset.signalId,
                     symbol: cells[0].textContent.trim(),
-                    signalType: cells[1].textContent.trim(),
-                    entry: parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, '')),
-                    target: parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, '')),
-                    stopLoss: parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, '')),
-                    entryDateTime: cells[5].textContent.trim(),
-                    exitPrice: cells[6].textContent.trim() !== '-' ? parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')) : null,
-                    exitDateTime: cells[7].textContent.trim(),
-                    status: this.getStatusFromBadge(cells[8].innerHTML),
-                    profitLoss: this.getProfitLossFromCell(cells[9]),
-                    createdAt: cells[10].textContent.trim()
+                    exchange: cells[1] ? cells[1].textContent.trim() : '',
+                    signalType: cells[3].textContent.trim(),
+                    entry: parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, '')),
+                    target: parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, '')),
+                    stopLoss: parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')),
+                    entryDateTime: cells[7].textContent.trim(),
+                    exitPrice: cells[8].textContent.trim() !== '-' ? parseFloat(cells[8].textContent.replace(/Rs\s?|₹/g, '')) : null,
+                    exitDateTime: cells[9].textContent.trim(),
+                    status: this.getStatusFromBadge(cells[10].innerHTML),
+                    profitLoss: this.getProfitLossFromCell(cells[11]),
+                    createdAt: cells[12].textContent.trim()
                 });
             }
         });
         
         this.filteredSignals = [...this.signals];
+    }
+
+    initStreamingForSignals() {
+        const tbody = document.querySelector('#productSignalsTable tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const origin = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
+        const sockets = [];
+        const fallbackEx = (txt) => (txt && txt.trim() && txt.trim() !== '-' ? txt.trim() : 'NSE');
+        rows.forEach((row) => {
+            const cells = row.querySelectorAll('td');
+            const symbol = String(cells[0]?.textContent || '').trim();
+            const exchange = fallbackEx(String(cells[1]?.textContent || '').trim());
+            if (!symbol) return;
+            const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
+            try {
+                const ws = new WebSocket(url);
+                ws.onmessage = (ev) => {
+                    try {
+                        const msg = JSON.parse(ev.data);
+                        if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
+                            const price = Number(msg.data.lp);
+                            if (Number.isFinite(price)) {
+                            const priceCell = cells[2];
+                            if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
+                            }
+                        }
+                    } catch(e){}
+                };
+                ws.onerror = () => {};
+                sockets.push(ws);
+            } catch(e){}
+        });
+        window.addEventListener('beforeunload', () => { sockets.forEach(s => { try { s.close() } catch(e){} }) });
     }
 
     getStatusFromBadge(badgeHtml) {
@@ -356,8 +474,8 @@ class ProductSignalsManager {
                 const cells = row.querySelectorAll('td');
                 finalSymbol = finalSymbol || (cells[0]?.textContent.trim() || '');
                 const parseAmt = (t) => parseFloat(String(t || '').replace(/Rs\s?|₹/g, ''));
-                entry = parseAmt(cells[2]?.textContent);
-                target = parseAmt(cells[3]?.textContent);
+                entry = parseAmt(cells[4]?.textContent);
+                target = parseAmt(cells[5]?.textContent);
             }
         }
         const idEl = document.getElementById('closeSignalId');
@@ -373,15 +491,16 @@ class ProductSignalsManager {
         const btn = document.getElementById('closeSignalBtn');
         if (btn) {
             btn.onclick = async () => {
-                const exitPriceVal = parseFloat(exitEl?.value || '');
-                if (isNaN(exitPriceVal)) { this.showError('Enter a valid exit price'); return; }
+                console.log('Product page modal close request start', { signalId });
                 try {
                     const res = await fetch(`/api/signals/${signalId}/close`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ exitPrice: exitPriceVal })
+                        body: JSON.stringify({})
                     });
+                    console.log('Product page modal close response', { ok: res.ok, status: res.status });
                     const result = await res.json();
+                    console.log('Product page modal close parsed', result);
                     if (result.success) {
                         this.showSuccess(`Signal closed as ${result.data.status}`);
                         modal.hide();
@@ -596,9 +715,13 @@ class ProductSignalsManager {
                 const item = result.data;
                 document.getElementById('watchlistId').value = item.id;
                 document.getElementById('watchlistStockName').value = item.stockName;
-                document.getElementById('watchlistMarket').value = item.market;
-                document.getElementById('watchlistCurrentPrice').value = item.currentPrice;
-                document.getElementById('watchlistAlertPrice').value = item.alertPrice;
+                
+                const exchEl = document.getElementById('optionExchange');
+                if (exchEl) exchEl.value = item.exchange || '';
+                const symEl = document.getElementById('optionSymbol');
+                const symExEl = document.getElementById('optionSymbolExchange');
+                if (symEl) symEl.value = item.stockName || '';
+                if (symExEl) symExEl.value = item.exchange || '';
             } else {
                 this.showError('Failed to load watchlist item');
             }
@@ -610,22 +733,31 @@ class ProductSignalsManager {
 
     async saveWatchlist() {
         const watchlistId = document.getElementById('watchlistId').value;
-        const stockName = document.getElementById('watchlistStockName').value.trim();
-        const market = document.getElementById('watchlistMarket').value.trim();
-        const currentPrice = parseFloat(document.getElementById('watchlistCurrentPrice').value);
-        const alertPrice = parseFloat(document.getElementById('watchlistAlertPrice').value);
+        
+        const manualSymbol = (document.getElementById('optionSymbol')?.value || '').trim();
+        const manualExchange = (document.getElementById('optionSymbolExchange')?.value || '').trim();
+        const generatedSymbol = (document.getElementById('watchlistStockName')?.value || '').trim();
+        const generatedExchange = (document.getElementById('optionExchange')?.value || '').trim();
+        const stockName = manualSymbol || generatedSymbol;
+        const exchange = manualExchange || generatedExchange;
 
-        if (!stockName || !market || isNaN(currentPrice) || isNaN(alertPrice)) {
-            this.showError('Please fill in all required fields');
+        if (!stockName || !exchange) {
+            this.showError('Please fill Symbol and Exchange');
             return;
         }
+        let cp = 0;
+        try {
+            const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`);
+            const d = await r.json();
+            if (d && d.success && typeof d.price === 'number') cp = d.price;
+        } catch(e){}
 
         const watchlistData = {
             stockName,
-            market,
-            currentPrice,
-            alertPrice,
-            productName: this.productName
+            product: this.productName,
+            exchange,
+            currentPrice: cp,
+            alertPrice: cp
         };
 
         try {
@@ -657,7 +789,7 @@ class ProductSignalsManager {
     }
 
     editWatchlist(watchlistId) {
-        this.showWatchlistModal(watchlistId);
+                this.showWatchlistModal(watchlistId);
     }
 
     async deleteWatchlist(watchlistId) {
@@ -695,16 +827,17 @@ class ProductSignalsManager {
             return;
         }
 
-        // Get the product name from the page context (passed from the server)
-        const productName = document.body.dataset.productName || 'Crypto'; // Default to Crypto for crypto signals page
+        const productIdStr = document.body.dataset.productId || '';
+        const productId = productIdStr ? parseInt(productIdStr) : null;
+        const productName = document.body.dataset.productName || '';
         
         const signalData = {
-            product: productName,
+            productId,
             symbol: stockName,
+            exchange: (document.getElementById('signalExchange')?.value || '').trim() || null,
             entry: entryPrice,
             target: targetPrice,
             stopLoss: stopLoss,
-            type: productName.toLowerCase(), // This should match the signal type (crypto, stocks, etc.)
             signalType: side,
             notes: notes
         };

@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Plan.init({
+    id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      autoIncrement: true,
+      primaryKey: true
+    },
     productId: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -96,10 +102,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       {
         fields: ['sortOrder']
-      },
-      {
-        unique: true,
-        fields: ['planName', 'productId']
       }
     ]
   });

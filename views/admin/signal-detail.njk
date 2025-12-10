@@ -21,7 +21,6 @@
           <thead>
             <tr>
               <th>Stock</th>
-              <th>Market</th>
               <th>Current Price</th>
               <th>Alert Price</th>
               <th>Actions</th>
@@ -31,7 +30,6 @@
             {% for item in watchlist %}
             <tr>
               <td>{{ item.stockName }}</td>
-              <td>{{ item.market }}</td>
               <td>Rs {{ item.currentPrice.toFixed(2) }}</td>
               <td>Rs {{ item.alertPrice.toFixed(2) }}</td>
               <td>
@@ -127,10 +125,6 @@
             <div class="mb-3">
               <label class="form-label" for="watchStock">Stock Name</label>
               <input class="form-control" id="watchStock" type="text" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="watchMarket">Market</label>
-              <input class="form-control" id="watchMarket" type="text" required>
             </div>
             <div class="mb-3">
               <label class="form-label" for="watchCurrentPrice">Current Price</label>

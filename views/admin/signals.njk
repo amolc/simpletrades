@@ -95,8 +95,10 @@
         <table class="table table-hover mb-0" id="watchlistTable">
           <thead>
             <tr>
-              <th>Stock</th>
-              <th>Market</th>
+              <th>Symbol</th>
+              <th>Product</th>
+              <th>Exchange</th>
+              <th>Live Price</th>
               <th>Current Price</th>
               <th>Alert Price</th>
               <th>Actions</th>
@@ -105,8 +107,23 @@
           <tbody id="watchlistBody">
             {% for item in watchlist %}
             <tr>
-              <td>{{ item.stockName }}</td>
-              <td>{{ item.market }}</td>
+              {% set ex = item.exchange or '-' %}
+              {% if ex == '-' or ex == '' %}
+                {% if item.product and item.product|lower == 'crypto' %}
+                  {% set ex = 'BINANCE' %}
+                {% elif item.product and (item.product|lower == 'stocks' or item.product|lower == 'options') %}
+                  {% set ex = 'NSE' %}
+                {% elif item.product and (item.product|lower == 'forex' or item.product|lower == 'commodity') %}
+                  {% set ex = 'OANDA' %}
+                {% else %}
+                  {% set ex = 'OANDA' %}
+                {% endif %}
+              {% endif %}
+              <td>
+                <a href="https://www.tradingview.com/chart/?symbol={{ ex }}:{{ item.stockName }}" target="_blank" rel="noopener"><strong>{{ item.stockName }}</strong></a>
+              </td>
+              <td>{{ item.product }}</td>
+              <td>{{ item.exchange or '-' }}</td>
               <td>Rs {{ (item.currentPrice|float).toFixed(2) }}</td>
               <td>Rs {{ (item.alertPrice|float).toFixed(2) }}</td>
               <td>
@@ -136,12 +153,15 @@
           <thead>
             <tr>
               <th>Stock</th>
+              <th>Exchange</th>
+              <th>Live Price</th>
               <th>Type</th>
               <th>Entry</th>
               <th>Target</th>
               <th>Stop</th>
               <th>Entry Time</th>
               <th>Exit Price</th>
+              <th>P&L</th>
               <th>Exit Time</th>
               <th>Status</th>
               <th>Created</th>
@@ -152,20 +172,41 @@
           <tbody id="signalsBody">
             {% for signal in signals %}
             <tr>
-              <td>{{ signal.product }}</td>
+              {% set ex2 = signal.exchange or '-' %}
+              {% if ex2 == '-' or ex2 == '' %}
+                {% set ex2 = 'NSE' %}
+              {% endif %}
+              <td>
+                <a href="https://www.tradingview.com/chart/?symbol={{ ex2 }}:{{ signal.symbol }}" target="_blank" rel="noopener">
+                  <strong>{{ signal.symbol }}</strong>
+                </a>
+              </td>
+              <td>{{ signal.exchange or '-' }}</td>
+              <td class="live-price">Rs -</td>
               <td>{{ signal.signalType or signal.type }}</td>
               <td>Rs {{ signal.entry.toFixed(2) }}</td>
               <td>Rs {{ signal.target.toFixed(2) }}</td>
               <td>Rs {{ signal.stopLoss.toFixed(2) }}</td>
               <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td>{% if signal.exitPrice %}Rs {{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
+              <td>
+                {% if signal.profitLoss %}
+                  {% if signal.profitLoss >= 0 %}
+                    <span class="text-success">+Rs {{ signal.profitLoss.toFixed(2) }}</span>
+                  {% else %}
+                    <span class="text-danger">-Rs {{ (-signal.profitLoss).toFixed(2) }}</span>
+                  {% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
               <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
               <td>{{ signal.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}</td>
               <td>{{ signal.updatedAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}</td>
               <td>
                 <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary" data-saction="activate" data-sid="{{ signal.id }}">Activate</button>
+                  <button class="btn btn-outline-primary" data-saction="edit" data-sid="{{ signal.id }}">Edit</button>
                   <button class="btn btn-outline-secondary" data-saction="close" data-sid="{{ signal.id }}">Close</button>
                   <button class="btn btn-outline-danger" data-saction="delete" data-sid="{{ signal.id }}">Delete</button>
                 </div>
@@ -191,33 +232,66 @@
         <div class="modal-body">
           <form id="watchForm">
             <input type="hidden" id="watchId">
-            <div class="mb-3">
-              <label class="form-label" for="watchStock">Stock Name</label>
-              <input class="form-control" id="watchStock" type="text" required>
+            <div id="watchStocksSection" class="mb-3">
+              <div class="row g-3 align-items-end">
+                <div class="col-md-5">
+                  <label class="form-label" for="watchStock">Add Stock</label>
+                  <input class="form-control" id="watchStock" type="text" placeholder="e.g., RELIANCE">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label" for="stockExchange">Exchange</label>
+                  <input class="form-control" id="stockExchange" type="text" placeholder="e.g., NSE">
+                </div>
+                <div class="col-md-2 d-grid">
+                  <button type="button" class="btn btn-primary" id="addStockBtn">Add Stock</button>
+                </div>
+              </div>
+            </div>
+            <div id="watchOptionsSection" class="mb-3">
+              <div class="row g-3 mb-3">
+                <div class="col-md-5">
+                  <label class="form-label" for="optionUnderlying">Add Option Stock</label>
+                  <input class="form-control" id="optionUnderlying" type="text" placeholder="e.g., NIFTY">
+                </div>
+                <div class="col-md-5">
+                  <label class="form-label" for="optionExchange">Exchange</label>
+                  <input class="form-control" id="optionExchange" type="text" placeholder="e.g., NSE">
+                </div>
+                <div class="col-md-2 d-grid">
+                  <button type="button" class="btn btn-secondary" id="addOptionStockBtn">Add Stock</button>
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label" for="optionExpiry">Expiry Date</label>
+                  <input class="form-control" id="optionExpiry" type="date">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="optionAtmOffset">ATM +/-</label>
+                  <input class="form-control" id="optionAtmOffset" type="number" step="1" value="0">
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label" for="optionCpType">Type</label>
+                  <select class="form-select" id="optionCpType">
+                    <option value="CALL">CALL</option>
+                    <option value="PUT">PUT</option>
+                  </select>
+                </div>
+              </div>
             </div>
             <div class="mb-3">
-              <label class="form-label" for="watchMarket">Market</label>
-              <select class="form-select" id="watchMarket" required>
-                <option value="">Select a market...</option>
-                {% for product in products %}
-                <option value="{{ product.name }}">{{ product.name }}</option>
+              <label class="form-label" for="watchProduct">Product</label>
+              <select class="form-select" id="watchProduct">
+                <option value="">Select product</option>
+                {% for p in products %}
+                <option value="{{ p.name }}" data-category="{{ p.category }}">{{ p.name }}</option>
                 {% endfor %}
               </select>
-              <!-- Debug: Available products: {{ products|length }} items -->
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="watchCurrentPrice">Current Price</label>
-              <input class="form-control" id="watchCurrentPrice" type="number" step="0.01" required>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="watchAlertPrice">Alert Price</label>
-              <input class="form-control" id="watchAlertPrice" type="number" step="0.01" required>
             </div>
           </form>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-primary" id="saveWatchBtn">Save</button>
         </div>
       </div>
     </div>
@@ -233,14 +307,15 @@
         </div>
         <div class="modal-body">
           <form id="signalCreateForm">
-            <div class="mb-3">
-              <label class="form-label" for="signalStock">Stock Name</label>
-              <input class="form-control" id="signalStock" type="text" readonly>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="signalTime">Time</label>
-              <input class="form-control" id="signalTime" type="text" readonly>
-            </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalStock">Stock Name</label>
+            <input class="form-control" id="signalStock" type="text" readonly>
+          </div>
+          <input type="hidden" id="signalExchange">
+          <div class="mb-3">
+            <label class="form-label" for="signalTime">Time</label>
+            <input class="form-control" id="signalTime" type="text" readonly>
+          </div>
             <div class="mb-3">
               <label class="form-label" for="signalCurrentPrice">Current Price</label>
               <input class="form-control" id="signalCurrentPrice" type="number" step="0.01" readonly>
@@ -317,6 +392,51 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
           <button type="button" class="btn btn-warning" id="closeSignalBtn">Close Signal</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal Edit Modal -->
+  <div class="modal fade" id="signalEditModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Signal</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="signalEditForm">
+            <div class="mb-3">
+              <label class="form-label" for="editSignalStock">Stock Name</label>
+              <input class="form-control" id="editSignalStock" type="text" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="editSignalType">Signal Type</label>
+              <input class="form-control" id="editSignalType" type="text" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="editSignalEntry">Entry Price</label>
+              <input class="form-control" id="editSignalEntry" type="number" step="0.01">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="editSignalTarget">Target Price</label>
+              <input class="form-control" id="editSignalTarget" type="number" step="0.01">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="editSignalStop">Stop Loss</label>
+              <input class="form-control" id="editSignalStop" type="number" step="0.01">
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="editSignalNotes">Notes</label>
+              <textarea class="form-control" id="editSignalNotes" rows="2" placeholder="Notes..."></textarea>
+            </div>
+            <input type="hidden" id="editSignalId">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveEditSignalBtn">Save Changes</button>
         </div>
       </div>
     </div>

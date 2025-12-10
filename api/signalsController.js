@@ -11,13 +11,14 @@ const getSignals = async (filters = {}) => {
     }
   }
   if (filters.type) whereClause.signalType = filters.type
-  if (filters.product) whereClause.product = { [Op.like]: `%${filters.product}%` }
+  if (filters.productId) whereClause.productId = filters.productId
   if (filters.date) whereClause.date = filters.date
   const signals = await db.Signal.findAll({ where: whereClause, order: [['createdAt', 'DESC']] })
   return signals.map(signal => ({
     id: signal.id,
-    product: signal.product,
+    productId: signal.productId,
     symbol: signal.symbol,
+    exchange: signal.exchange,
     signalType: signal.signalType,
     type: signal.type,
     entry: parseFloat(signal.entry),
@@ -42,8 +43,9 @@ const getSignalById = async (id) => {
   if (!signal) return null
   return {
     id: signal.id,
-    product: signal.product,
+    productId: signal.productId,
     symbol: signal.symbol,
+    exchange: signal.exchange,
     signalType: signal.signalType,
     type: signal.type,
     entry: parseFloat(signal.entry),
@@ -72,11 +74,14 @@ const createSignal = async (signalData) => {
     const anyUser = await db.User.findOne({ order: [['id','ASC']] })
     userId = anyUser ? anyUser.id : null
   }
+  const prod = await db.Product.findByPk(signalData.productId)
+  const typeCat = prod ? String(prod.category||'').toLowerCase() : null
   const newSignal = await db.Signal.create({
-    product: signalData.product,
+    productId: signalData.productId,
     symbol: signalData.symbol || signalData.product,
+    exchange: signalData.exchange || null,
     signalType: signalData.signalType || 'BUY',
-    type: signalData.type,
+    type: typeCat,
     entry: signalData.entry,
     target: signalData.target,
     stopLoss: signalData.stopLoss,
@@ -93,8 +98,9 @@ const createSignal = async (signalData) => {
   })
   return {
     id: newSignal.id,
-    product: newSignal.product,
+    productId: newSignal.productId,
     symbol: newSignal.symbol,
+    exchange: newSignal.exchange,
     signalType: newSignal.signalType,
     type: newSignal.type,
     entry: parseFloat(newSignal.entry),
@@ -127,8 +133,15 @@ const updateSignal = async (id, updateData) => {
     signal.status = updateData.status
   }
   
-  if (updateData.product !== undefined) signal.product = updateData.product
+  if (updateData.productId !== undefined) {
+    signal.productId = updateData.productId
+    try {
+      const prod = await db.Product.findByPk(updateData.productId)
+      if (prod && prod.category) signal.type = String(prod.category).toLowerCase()
+    } catch(e){}
+  }
   if (updateData.symbol !== undefined) signal.symbol = updateData.symbol
+  if (updateData.exchange !== undefined) signal.exchange = updateData.exchange
   if (updateData.signalType !== undefined) signal.signalType = updateData.signalType
   if (updateData.type !== undefined) signal.type = updateData.type
   if (updateData.entry !== undefined) signal.entry = updateData.entry
@@ -158,8 +171,9 @@ const updateSignal = async (id, updateData) => {
   await signal.save()
   return {
     id: signal.id,
-    product: signal.product,
+    productId: signal.productId,
     symbol: signal.symbol,
+    exchange: signal.exchange,
     signalType: signal.signalType,
     type: signal.type,
     entry: parseFloat(signal.entry),
@@ -204,8 +218,9 @@ const activateSignal = async (id) => {
   
   return {
     id: signal.id,
-    product: signal.product,
+    productId: signal.productId,
     symbol: signal.symbol,
+    exchange: signal.exchange,
     signalType: signal.signalType,
     type: signal.type,
     entry: parseFloat(signal.entry),
@@ -225,7 +240,7 @@ const activateSignal = async (id) => {
   }
 }
 
-const closeSignal = async (id, exitPrice = null) => {
+const closeSignal = async (id, exitPrice = null, notes = undefined) => {
   const signal = await db.Signal.findByPk(id)
   if (!signal) return null
   
@@ -236,12 +251,13 @@ const closeSignal = async (id, exitPrice = null) => {
   
   // Set exit price - use provided price or target as fallback
   const finalExitPrice = exitPrice !== null ? exitPrice : signal.target
+  try { console.log('closeSignal compute start', { id, symbol: signal.symbol, exchange: signal.exchange, entry: signal.entry, exitPrice: finalExitPrice, type: signal.signalType }) } catch(e){}
   signal.exitPrice = finalExitPrice
   signal.exitDateTime = new Date()
   
   // Calculate profit/loss based on signal type
   let profitLoss = 0
-  let status = 'LOSS' // default to loss
+  let status = 'LOSS'
   
   if (signal.signalType === 'BUY') {
     // For BUY signals: profit when exit price > entry price
@@ -261,8 +277,10 @@ const closeSignal = async (id, exitPrice = null) => {
     }
   }
   
+  try { console.log('closeSignal compute result', { id, finalExitPrice, profitLoss, status }) } catch(e){}
   signal.profitLoss = profitLoss
   signal.status = status
+  if (notes !== undefined) signal.notes = notes
   
   // Calculate duration
   if (signal.entryDateTime && signal.exitDateTime) {
@@ -273,11 +291,13 @@ const closeSignal = async (id, exitPrice = null) => {
   }
   
   await signal.save()
+  try { console.log('closeSignal saved', { id: signal.id, status: signal.status, exitPrice: signal.exitPrice, profitLoss: signal.profitLoss }) } catch(e){}
   
   return {
     id: signal.id,
-    product: signal.product,
+    productId: signal.productId,
     symbol: signal.symbol,
+    exchange: signal.exchange,
     signalType: signal.signalType,
     type: signal.type,
     entry: parseFloat(signal.entry),
@@ -407,7 +427,7 @@ const signalsController = {
       const filters = {}
       if (req.query.status) filters.status = req.query.status
       if (req.query.type) filters.type = req.query.type
-      if (req.query.product) filters.product = req.query.product
+      if (req.query.productId) filters.productId = parseInt(req.query.productId)
       if (req.query.date) filters.date = req.query.date
       const signalList = await getSignals(filters)
       res.json({ success: true, data: signalList, count: signalList.length })
@@ -444,7 +464,7 @@ const signalsController = {
   },
   async createSignal(req, res) {
     try {
-      const requiredFields = ['product', 'entry', 'target', 'stopLoss', 'type']
+      const requiredFields = ['productId', 'entry', 'target', 'stopLoss']
       const missingFields = requiredFields.filter(field => !req.body[field])
       if (missingFields.length > 0) {
         return res.status(400).json({ success: false, error: `Missing required fields: ${missingFields.join(', ')}` })
@@ -490,13 +510,37 @@ const signalsController = {
   },
   async closeSignal(req, res) {
     try {
-      const { exitPrice } = req.body
-      const signal = await closeSignal(req.params.id, exitPrice)
+      try { console.log('closeSignal route start', { id: req.params.id, body: req.body }) } catch(e){}
+      let { exitPrice, notes } = req.body
+      let sig = null
+      if (exitPrice === undefined || exitPrice === null || Number.isNaN(Number(exitPrice))) {
+        try { sig = await db.Signal.findByPk(req.params.id) } catch(e){}
+        if (!sig) {
+          return res.status(404).json({ success: false, error: 'Signal not found' })
+        }
+        const ex = (sig.exchange || 'NSE')
+        const sy = (sig.symbol || '')
+        const key = `${String(ex).toUpperCase().trim()}:${String(sy).toUpperCase().trim()}`.replace(/\s+/g,'')
+        const cache = req.app?.locals?.priceCache
+        if (cache && cache.get) {
+          const d = cache.get(key)
+          try { console.log('closeSignal cache lookup', { key, has: !!d, lp: d && d.lp }) } catch(e){}
+          if (d && d.lp !== undefined) {
+            const p = Number(d.lp)
+            if (Number.isFinite(p)) exitPrice = p
+          }
+        }
+        if (exitPrice === undefined || exitPrice === null || Number.isNaN(Number(exitPrice))) exitPrice = null
+      }
+      try { console.log('closeSignal route computed exitPrice', { id: req.params.id, exitPrice }) } catch(e){}
+      const signal = await closeSignal(req.params.id, exitPrice, notes)
       if (!signal) {
         return res.status(404).json({ success: false, error: 'Signal not found' })
       }
+      try { console.log('closeSignal route done', { id: signal.id, status: signal.status, exitPrice: signal.exitPrice, profitLoss: signal.profitLoss }) } catch(e){}
       res.json({ success: true, data: signal, message: `Signal closed as ${signal.status}` })
     } catch (error) {
+      try { console.error('closeSignal route error', error && error.stack || error) } catch(e){}
       res.status(500).json({ success: false, error: error.message })
     }
   }
@@ -508,6 +552,7 @@ module.exports = {
   createSignal,
   updateSignal,
   deleteSignal,
+  closeSignal,
   getSignalStats,
   getProductSignalStats,
   signalsController

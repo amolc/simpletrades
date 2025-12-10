@@ -6,10 +6,10 @@ module.exports = (sequelize, DataTypes) => {
   }
   Watchlist.init({
     stockName: { type: DataTypes.STRING, allowNull: false },
-    market: { type: DataTypes.STRING, allowNull: false },
+    product: { type: DataTypes.STRING, allowNull: false },
+    exchange: { type: DataTypes.STRING, allowNull: true },
     currentPrice: { type: DataTypes.DECIMAL(12,2), allowNull: false, defaultValue: 0 },
     alertPrice: { type: DataTypes.DECIMAL(12,2), allowNull: false, defaultValue: 0 },
-    productName: { type: DataTypes.STRING, allowNull: true }
   }, { sequelize, modelName: 'Watchlist' });
   return Watchlist;
 };

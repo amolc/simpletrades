@@ -1,6 +1,12 @@
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   const token=localStorage.getItem('adminToken')
   const productName=decodeURIComponent(window.location.pathname.split('/').pop())
+  let productId=null
+  try {
+    const r=await fetch(`/api/products/${encodeURIComponent(productName)}`)
+    const j=await r.json()
+    if(j && j.success && j.data && j.data.id) productId=j.data.id
+  } catch(e){}
   const watchBody=document.getElementById('watchlistBody')
   const signalsBody=document.getElementById('signalsBody')
   const addBtn=document.getElementById('addWatchBtn')
@@ -21,10 +27,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     const id=document.getElementById('watchId').value
     const body={
       stockName:document.getElementById('watchStock').value,
-      market:document.getElementById('watchMarket').value,
+      product:productName,
       currentPrice:document.getElementById('watchCurrentPrice').value,
       alertPrice:document.getElementById('watchAlertPrice').value,
-      productName
+      exchange:null
     }
     const url=id?`/api/watchlist/${id}`:'/api/watchlist'
     const method=id?'PUT':'POST'
@@ -47,7 +53,6 @@ document.addEventListener('DOMContentLoaded',()=>{
       const w=data.data
       document.getElementById('watchId').value=w.id
       document.getElementById('watchStock').value=w.stockName
-      document.getElementById('watchMarket').value=w.market
       document.getElementById('watchCurrentPrice').value=w.currentPrice
       document.getElementById('watchAlertPrice').value=w.alertPrice
       modal.show()
@@ -111,8 +116,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       alert('Please fill target and stop loss');
       return;
     }
-    const toType=(p)=>({Stocks:'stocks',Crypto:'crypto',Forex:'forex',Commodity:'commodity',Options:'options'})[p]||(p?p.toLowerCase():'stocks')
-    const body={ product: productName, symbol: stock, entry, target, stopLoss, type: toType(productName), signalType:side, notes, userId: adminId }
+    const body={ productId: productId, symbol: stock, entry, target, stopLoss, signalType:side, notes, userId: adminId }
     const res=await fetch('/api/signals',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},body:JSON.stringify(body)})
     if(res.ok){ signalModal.hide(); window.location.reload() } else { const j=await res.json().catch(()=>({})); alert(j.error||'Error creating signal') }
   })

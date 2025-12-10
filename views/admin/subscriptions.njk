@@ -170,7 +170,15 @@
             {% for subscription in subscriptions %}
             <tr data-customer-id="{{ subscription.userId }}" data-product-id="{{ subscription.plan.Product.id or '' }}" data-created-at="{{ subscription.createdAt }}" data-start-date="{{ subscription.startDate }}">
               <td data-col="id">{{ subscription.id }}</td>
-              <td data-col="customer">{{ subscription.User.fullName or 'N/A' }}</td>
+              <td data-col="customer">
+                {% if subscription.User and subscription.User.fullName and subscription.User.fullName|lower != 'undefined' and subscription.User.fullName|lower != 'null' %}
+                  {{ subscription.User.fullName }}
+                {% elif subscription.User and subscription.User.email %}
+                  {{ subscription.User.email }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
               <td data-col="product">{{ subscription.plan.Product.name or 'N/A' }}</td>
               <td data-col="plan">{{ subscription.plan.planName or 'N/A' }}</td>
               <td data-col="cost">Rs {{ subscription.plan.cost or 0 }}</td>

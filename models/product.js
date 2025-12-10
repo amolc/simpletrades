@@ -7,7 +7,8 @@ module.exports = (sequelize, DataTypes) => {
     }
   }
   Product.init({
-    name: { type: DataTypes.STRING, allowNull: false, unique: true },
+    id: { type: DataTypes.INTEGER, allowNull: false, autoIncrement: true, primaryKey: true },
+    name: { type: DataTypes.STRING, allowNull: false },
     description: { type: DataTypes.TEXT, allowNull: true },
     category: { type: DataTypes.STRING, allowNull: false },
     status: { type: DataTypes.ENUM('active','inactive','archived'), allowNull: false, defaultValue: 'active' },

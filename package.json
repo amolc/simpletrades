@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@alandlguo/tradingview-api": "^1.2.5",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "chokidar": "^3.6.0",
@@ -21,6 +22,7 @@
     "nunjucks": "^3.2.4",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
+    "tradingview-api-adapter": "^1.2.2",
     "xlsx": "^0.18.5"
   }
 }

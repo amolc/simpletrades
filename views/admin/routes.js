@@ -362,6 +362,7 @@ router.get('/test-modal', (req, res) => {
 router.get('/signals/:productName', async (req, res) => {
   try {
     const productName = req.params.productName
+    const productRow = await db.Product.findOne({ where: { name: productName } })
     
     // Fetch product signal statistics for this specific product
     let productStats = null
@@ -396,21 +397,12 @@ router.get('/signals/:productName', async (req, res) => {
       }
     }
     
-    // Fetch signals filtered by product type (using type column)
+    // Fetch signals filtered by productId when available
     let filteredSignals = []
     try {
-      // Map product name to signal type
-      const productToTypeMap = {
-        'Stocks': 'stocks',
-        'Crypto': 'crypto', 
-        'Forex': 'forex',
-        'Commodity': 'commodity'
-      }
-      
-      const signalType = productToTypeMap[productName] || productName.toLowerCase()
-      
+      const where = productRow ? { productId: productRow.id } : {}
       const signalsList = await db.Signal.findAll({ 
-        where: { type: signalType },
+        where,
         order: [['createdAt', 'DESC']] 
       })
       
@@ -434,11 +426,11 @@ router.get('/signals/:productName', async (req, res) => {
       console.error('Error fetching filtered signals:', signalsError)
     }
     
-    // Fetch watchlist data filtered by productName
+    // Fetch watchlist data filtered by product
     let watchlistData = []
     try {
       const watchlistList = await db.Watchlist.findAll({
-        where: { productName: productName },
+        where: { product: productName },
         order: [['updatedAt', 'DESC']]
       })
       watchlistData = watchlistList.map(item => {
@@ -455,6 +447,7 @@ router.get('/signals/:productName', async (req, res) => {
     res.render('admin/signals-product.njk', { 
       title: `${productName} Signals - Admin`, 
       productName: productName,
+      product: productRow ? productRow.get({ plain: true }) : null,
       productStats: productStats,
       signals: filteredSignals,
       watchlist: watchlistData
