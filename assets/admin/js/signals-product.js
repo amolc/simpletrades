@@ -324,20 +324,21 @@ class ProductSignalsManager {
         rows.forEach(row => {
             if (row.dataset.signalId) {
                 const cells = row.cells;
+                // Table has ID at index 0, so shift all indices by +1
                 this.signals.push({
                     id: row.dataset.signalId,
-                    symbol: cells[0].textContent.trim(),
-                    exchange: cells[1] ? cells[1].textContent.trim() : '',
-                    signalType: cells[3].textContent.trim(),
-                    entry: parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, '')),
-                    target: parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, '')),
-                    stopLoss: parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')),
-                    entryDateTime: cells[7].textContent.trim(),
-                    exitPrice: cells[8].textContent.trim() !== '-' ? parseFloat(cells[8].textContent.replace(/Rs\s?|₹/g, '')) : null,
-                    exitDateTime: cells[9].textContent.trim(),
-                    status: this.getStatusFromBadge(cells[10].innerHTML),
-                    profitLoss: this.getProfitLossFromCell(cells[11]),
-                    createdAt: cells[12].textContent.trim()
+                    symbol: cells[1].textContent.trim(),
+                    exchange: cells[2] ? cells[2].textContent.trim() : '',
+                    signalType: cells[4].textContent.trim(),
+                    entry: parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, '')),
+                    target: parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')),
+                    stopLoss: parseFloat(cells[7].textContent.replace(/Rs\s?|₹/g, '')),
+                    entryDateTime: cells[8].textContent.trim(),
+                    exitPrice: cells[9].textContent.trim() !== '-' ? parseFloat(cells[9].textContent.replace(/Rs\s?|₹/g, '')) : null,
+                    exitDateTime: cells[10].textContent.trim(),
+                    status: this.getStatusFromBadge(cells[11].innerHTML),
+                    profitLoss: this.getProfitLossFromCell(cells[12]),
+                    createdAt: cells[13].textContent.trim()
                 });
             }
         });
@@ -354,8 +355,8 @@ class ProductSignalsManager {
         const fallbackEx = (txt) => (txt && txt.trim() && txt.trim() !== '-' ? txt.trim() : 'NSE');
         rows.forEach((row) => {
             const cells = row.querySelectorAll('td');
-            const symbol = String(cells[0]?.textContent || '').trim();
-            const exchange = fallbackEx(String(cells[1]?.textContent || '').trim());
+            const symbol = String(cells[1]?.textContent || '').trim();
+            const exchange = fallbackEx(String(cells[2]?.textContent || '').trim());
             if (!symbol) return;
             const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
             try {
@@ -366,7 +367,7 @@ class ProductSignalsManager {
                         if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
                             const price = Number(msg.data.lp);
                             if (Number.isFinite(price)) {
-                            const priceCell = cells[2];
+                            const priceCell = cells[3];
                             if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
                             }
                         }
@@ -474,8 +475,8 @@ class ProductSignalsManager {
                 const cells = row.querySelectorAll('td');
                 finalSymbol = finalSymbol || (cells[0]?.textContent.trim() || '');
                 const parseAmt = (t) => parseFloat(String(t || '').replace(/Rs\s?|₹/g, ''));
-                entry = parseAmt(cells[4]?.textContent);
-                target = parseAmt(cells[5]?.textContent);
+                entry = parseAmt(cells[5]?.textContent);
+                target = parseAmt(cells[6]?.textContent);
             }
         }
         const idEl = document.getElementById('closeSignalId');

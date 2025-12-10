@@ -308,11 +308,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = e.target.closest('tr');
             const cells = row.querySelectorAll('td');
             document.getElementById('editSignalId').value = signalId;
-            document.getElementById('editSignalStock').value = cells[0].textContent.trim();
-            document.getElementById('editSignalType').value = cells[3].textContent.trim();
-            document.getElementById('editSignalEntry').value = parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, '')) || '';
-            document.getElementById('editSignalTarget').value = parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, '')) || '';
-            document.getElementById('editSignalStop').value = parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')) || '';
+            document.getElementById('editSignalStock').value = cells[1].textContent.trim();
+            document.getElementById('editSignalType').value = cells[4].textContent.trim();
+            document.getElementById('editSignalEntry').value = parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, '')) || '';
+            document.getElementById('editSignalTarget').value = parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, '')) || '';
+            document.getElementById('editSignalStop').value = parseFloat(cells[7].textContent.replace(/Rs\s?|₹/g, '')) || '';
             document.getElementById('editSignalNotes').value = '';
             hideLoader();
             signalEditModal.show();
@@ -366,10 +366,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Populate modal with signal data
     document.getElementById('closeSignalId').value = signalId;
-    document.getElementById('closeSignalStock').value = cells[0].textContent;
-    document.getElementById('closeSignalType').value = cells[3].textContent;
-    document.getElementById('closeSignalEntry').value = parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, ''));
-    document.getElementById('closeSignalTarget').value = parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, ''));
+    document.getElementById('closeSignalStock').value = cells[1].textContent;
+    document.getElementById('closeSignalType').value = cells[4].textContent;
+    document.getElementById('closeSignalEntry').value = parseFloat(cells[5].textContent.replace(/Rs\s?|₹/g, ''));
+    document.getElementById('closeSignalTarget').value = parseFloat(cells[6].textContent.replace(/Rs\s?|₹/g, ''));
     document.getElementById('closeExitPrice').value = '';
     document.getElementById('closeSignalNotes').value = '';
     
@@ -504,8 +504,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const fallbackEx = (txt) => (txt && txt.trim() && txt.trim() !== '-' ? txt.trim() : 'NSE');
       rows.forEach((row) => {
         const cells = row.querySelectorAll('td');
-        const symbol = String(cells[0]?.textContent || '').trim();
-        const exchange = fallbackEx(String(cells[1]?.textContent || '').trim());
+        const symbol = String(cells[1]?.textContent || '').trim();
+        const exchange = fallbackEx(String(cells[2]?.textContent || '').trim());
         if (!symbol) return;
         const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
         try {
@@ -516,15 +516,15 @@ document.addEventListener('DOMContentLoaded', () => {
               if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
                 const price = Number(msg.data.lp);
                 if (Number.isFinite(price)) {
-                  const priceCell = cells[2];
+                  const priceCell = cells[3];
                   if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
                   // Update live P/L for IN_PROGRESS rows
-                  const typeTxt = String(cells[3]?.textContent || '').trim().toUpperCase();
-                  const entryVal = parseFloat(String(cells[4]?.textContent || '').replace(/Rs\s?|₹/g, ''));
+                  const typeTxt = String(cells[4]?.textContent || '').trim().toUpperCase();
+                  const entryVal = parseFloat(String(cells[5]?.textContent || '').replace(/Rs\s?|₹/g, ''));
                   if (Number.isFinite(entryVal)) {
                     let pl = 0;
                     if (typeTxt === 'BUY') pl = price - entryVal; else pl = entryVal - price;
-                    const plCell = cells[9];
+                    const plCell = cells[10];
                     if (plCell) {
                       const abs = Math.abs(pl).toFixed(2);
                       plCell.innerHTML = pl >= 0 ? `<span class="text-success">+Rs ${abs}</span>` : `<span class="text-danger">-Rs ${abs}</span>`;

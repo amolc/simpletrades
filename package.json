@@ -4,7 +4,10 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "start:auto": "AUTOMATE_INTERVAL_MS=10000 node server.js",
+    "start:auto:fast": "AUTOMATE_INTERVAL_MS=5000 node server.js",
+    "start:once": "AUTOMATE_INTERVAL_MS=0 node server.js"
   },
   "author": "",
   "license": "ISC",

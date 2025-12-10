@@ -69,7 +69,7 @@
                 {% for item in watchlist %}
                 <tr data-watchlist-id="{{ item.id }}">
                   <td>
-                    <a href="https://www.tradingview.com/chart/?symbol={{ (item.exchange or 'OANDA') }}:{{ item.stockName }}" target="_blank" rel="noopener">
+                    <a href="https://www.tradingview.com/chart/?symbol={{ (item.exchange or 'OANDA') }}:{{ item.stockName }}" target="_blank" rel="noopener noreferrer">
                       <strong>{{ item.stockName }}</strong>
                     </a>
                   </td>
@@ -109,6 +109,7 @@
         <table class="table table-hover mb-0" id="productSignalsTable">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Symbol</th>
               <th>Exchange</th>
               <th>Live Price</th>
@@ -132,8 +133,9 @@
               {% if ex3 == '-' or ex3 == '' %}
                 {% set ex3 = 'NSE' %}
               {% endif %}
+              <td>{{ signal.id }}</td>
               <td>
-                <a href="https://www.tradingview.com/chart/?symbol={{ ex3 }}:{{ signal.symbol }}" target="_blank" rel="noopener">
+                <a href="https://www.tradingview.com/chart/?symbol={{ ex3 }}:{{ signal.symbol }}" target="_blank" rel="noopener noreferrer">
                   <strong>{{ signal.symbol }}</strong>
                 </a>
               </td>
@@ -177,38 +179,38 @@
   </div>
 
   <!-- No Signals Message -->
-  {% if signals.length === 0 %}
+  {% if signals.length == 0 %}
   <div class="alert alert-info mt-3">
     <i class="fas fa-info-circle me-2"></i>No signals found for {{ productName }}. <a href="/admin/signals" class="alert-link">View all signals</a> or add a new signal.
   </div>
   {% endif %}
 
   <!-- No Watchlist Items Message -->
-  {% if watchlist.length === 0 %}
+  {% if watchlist.length == 0 %}
   <div class="alert alert-info mt-3">
     <i class="fas fa-info-circle me-2"></i>No watchlist items for {{ productName }}. Add symbols to your watchlist to track potential trading opportunities.
   </div>
   {% endif %}
 </div>
 
-<!-- Signal Modal -->
-<div class="modal fade" id="signalModal" tabindex="-1">
+<!-- Signal Create Modal -->
+<div class="modal fade" id="signalCreateModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="signalModalTitle">Add Signal</h5>
+        <h5 class="modal-title" id="signalCreateModalTitle">Add Signal</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form id="signalForm">
+        <form id="signalCreateForm">
           <input type="hidden" id="signalId">
           <div class="mb-3">
-            <label class="form-label" for="signalSymbol">Symbol</label>
-            <input class="form-control" id="signalSymbol" type="text" required>
+            <label class="form-label" for="signalStock">Symbol</label>
+            <input class="form-control" id="signalStock" type="text" required>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="signalType">Signal Type</label>
-            <select class="form-select" id="signalType" required>
+            <label class="form-label" for="signalSide">Signal Type</label>
+            <select class="form-select" id="signalSide" required>
               <option value="">Select type...</option>
               <option value="BUY">BUY</option>
               <option value="SELL">SELL</option>
@@ -223,12 +225,16 @@
             <input class="form-control" id="signalTarget" type="number" step="0.01" required>
           </div>
           <div class="mb-3">
-            <label class="form-label" for="signalStopLoss">Stop Loss</label>
-            <input class="form-control" id="signalStopLoss" type="number" step="0.01" required>
+            <label class="form-label" for="signalStop">Stop Loss</label>
+            <input class="form-control" id="signalStop" type="number" step="0.01" required>
           </div>
           <div class="mb-3">
             <label class="form-label" for="signalNotes">Notes</label>
             <textarea class="form-control" id="signalNotes" rows="3" placeholder="Analysis notes..."></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="signalExchange">Exchange</label>
+            <input class="form-control" id="signalExchange" type="text" placeholder="e.g., NSE">
           </div>
         </form>
       </div>

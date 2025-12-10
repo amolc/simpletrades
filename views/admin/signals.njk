@@ -152,6 +152,7 @@
         <table class="table table-hover mb-0" id="signalsTable">
           <thead>
             <tr>
+              <th>ID</th>
               <th>Stock</th>
               <th>Exchange</th>
               <th>Live Price</th>
@@ -176,6 +177,7 @@
               {% if ex2 == '-' or ex2 == '' %}
                 {% set ex2 = 'NSE' %}
               {% endif %}
+              <td>{{ signal.id }}</td>
               <td>
                 <a href="https://www.tradingview.com/chart/?symbol={{ ex2 }}:{{ signal.symbol }}" target="_blank" rel="noopener">
                   <strong>{{ signal.symbol }}</strong>

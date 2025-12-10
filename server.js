@@ -182,6 +182,7 @@ async function start(){
     const httpServer = http.createServer(app);
     app.locals.priceCache = new Map();
     app.locals.streams = new Map();
+    app.locals.metrics = { cacheHits: 0, cacheMisses: 0, cacheStale: 0, priceRequests: 0, priceCacheServed: 0, priceExternalServed: 0, staleEntries: 0, lastStaleAlertTime: 0 };
     // Single TradingView client/session for all market subscriptions to avoid 429 rate limits
     app.locals.tv = { client: null, quote: null };
     try {
@@ -263,17 +264,58 @@ async function start(){
     streamList.forEach(subscribeSeries);
     await resubscribeFromSources();
     setInterval(() => { resubscribeFromSources().catch(()=>{}) }, 30000);
+    const getNum = (v, d) => { const n = parseInt(String(v||d), 10); return Number.isFinite(n) && n > 0 ? n : d };
+    app.get('/api/cached-prices', (req,res) => {
+      try {
+        const symbol = String(req.query.symbol||'').toUpperCase().trim();
+        const exchange = String(req.query.exchange||'NSE').toUpperCase().trim();
+        if (!symbol) return res.status(400).json({ success:false, error:'symbol required' });
+        const key = normalizeKey(`${exchange}:${symbol}`);
+        const maxAgeMs = getNum(req.query.maxAgeMs, getNum(process.env.CACHE_MAX_AGE_MS, 15000));
+        const row = app.locals.priceCache.get(key);
+        if (!row || row.lp === undefined) { app.locals.metrics.cacheMisses++; return res.status(404).json({ success:false, error:'cache_miss' }) }
+        const ageMs = Date.now() - Number(row.ts||0);
+        if (ageMs > maxAgeMs) { app.locals.metrics.cacheStale++; return res.status(504).json({ success:false, error:'stale', ageMs }) }
+        app.locals.metrics.cacheHits++;
+        res.json({ success:true, symbol, exchange, price: Number(row.lp), source: `cache:${key}` });
+      } catch(e) { res.status(500).json({ success:false, error: e.message }) }
+    })
+    app.get('/api/cache/metrics', (req,res) => {
+      res.json({ success:true, data: app.locals.metrics })
+    })
+    const scanIntervalMs = getNum(process.env.CACHE_SCAN_INTERVAL_MS, 15000);
+    setInterval(() => {
+      try {
+        const now = Date.now();
+        const maxAge = getNum(process.env.CACHE_MAX_AGE_MS, 15000);
+        let staleCount = 0;
+        let maxEntryAge = 0;
+        for (const [k, v] of app.locals.priceCache.entries()) {
+          const age = now - Number(v.ts || 0);
+          if (age > maxAge) staleCount++;
+          if (age > maxEntryAge) maxEntryAge = age;
+        }
+        app.locals.metrics.staleEntries = staleCount;
+        const gap = getNum(process.env.CACHE_ALERT_GAP_MS, 60000);
+        if (staleCount > 0 && now - (app.locals.metrics.lastStaleAlertTime || 0) > gap) {
+          app.locals.metrics.lastStaleAlertTime = now;
+          console.warn('cache_stale_alert', { staleCount, maxEntryAge });
+        }
+      } catch(e) {}
+    }, scanIntervalMs);
     app.get('/api/stream/subscriptions', (req,res) => {
       res.json({ success:true, data: Array.from(app.locals.streams.keys()) })
     })
     app.post('/api/stream/resync', async (req,res) => {
       try { await resubscribeFromWatchlist(); res.json({ success:true }) } catch(e){ res.status(500).json({ success:false, error:e.message }) }
     })
+    const automation = require('./automate');
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server is running on http://localhost:${PORT}`);
       console.log(` Static URL pattern: http://localhost:${PORT}/*`);
       const cfg = db.sequelize.config || {};
       console.log(`🔌 DB connected: ${cfg.database}@${cfg.host} (${db.sequelize.getDialect()})`);
+      try { automation.start({ port: PORT }) } catch(e){}
     });
   }catch(e){
     console.error('Failed to start server:', e);
@@ -293,10 +335,12 @@ start();
 // Graceful shutdown
 process.on('SIGTERM', () => {
     console.log('👋 Received SIGTERM, shutting down gracefully');
+    try { require('./automate').stop() } catch(e){}
     process.exit(0);
 });
 
 process.on('SIGINT', () => {
     console.log('👋 Received SIGINT, shutting down gracefully');
+    try { require('./automate').stop() } catch(e){}
     process.exit(0);
 });

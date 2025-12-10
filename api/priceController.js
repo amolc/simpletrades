@@ -21,6 +21,8 @@ async function getQuote(req, res) {
 
     let responded = false
     const debugMode = (typeof req.query.debug !== 'undefined')
+    const metrics = (req.app && req.app.locals) ? req.app.locals.metrics : null
+    if (metrics) metrics.priceRequests = (metrics.priceRequests || 0) + 1
     try { console.log('API /price', { symbol, exchange, debugMode, query: req.query }) } catch(e){}
     const waitDefault = Number(req.query.timeout || req.query.wait || 3500)
     const debug = { candidates: [], tickerAlt: null, events: [] }
@@ -43,6 +45,7 @@ async function getQuote(req, res) {
       responded = true
       const base = { success: true, symbol, exchange, price: Number(cached.lp), source: `cache:${seriesKey}` }
       if (debugMode) base.debug = debug
+      if (metrics) metrics.priceCacheServed = (metrics.priceCacheServed || 0) + 1
       return res.json(base)
     }
 
@@ -103,6 +106,7 @@ async function getQuote(req, res) {
             const base = { success: true, symbol, exchange, price: priceNum, source: `${exch||''}:${series}` }
             if (debugMode) base.debug = debug
             res.json(base)
+            if (metrics) metrics.priceExternalServed = (metrics.priceExternalServed || 0) + 1
             if (s.close) try { s.close() } catch (e) {}
             resolve(true)
           }
@@ -130,6 +134,7 @@ async function getQuote(req, res) {
             const base = { success: true, symbol, exchange, price: priceNum, source: seriesKey }
             if (debugMode) base.debug = debug
             res.json(base)
+            if (metrics) metrics.priceExternalServed = (metrics.priceExternalServed || 0) + 1
             if (ch.close) try { ch.close() } catch (e) {}
             resolve(true)
           }
@@ -220,6 +225,7 @@ async function getQuote(req, res) {
             const base = { success: true, symbol, exchange, price: priceNum, source: seriesKey }
             if (debugMode) base.debug = debug
             res.json(base)
+            if (metrics) metrics.priceExternalServed = (metrics.priceExternalServed || 0) + 1
             try { market.close() } catch(e){}
             try { quote.delete() } catch(e){}
             try { client.end() } catch(e){}
