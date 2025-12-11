@@ -15,6 +15,10 @@ class ProductSignalsManager {
     init() {
         this.bindEvents();
         this.setupFilters();
+        try {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            tooltipTriggerList.forEach(el => { try { new bootstrap.Tooltip(el) } catch(e){} })
+        } catch(e) {}
         
         // Signals are already loaded via server-side rendering
         try {

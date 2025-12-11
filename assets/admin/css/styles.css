@@ -225,6 +225,34 @@ body{line-height:1.5;font-size:14px}
   transform: translateY(-1px);
 }
 
+/* Professional "Add" button variant */
+.btn-add {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.btn-add i { margin-right: .5rem; }
+.btn-add:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn-add:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+.btn-add:focus-visible { outline: 2px solid rgba(79,70,229,.35); outline-offset: 2px; }
+.btn-add.btn-sm { padding: 0.45rem .85rem; font-size: .8125rem; }
+
+/* High-contrast focus state for accessibility */
+.btn:focus-visible { outline: 2px solid rgba(79,70,229,.35); outline-offset: 2px; }
+
+/* Inline spinner sizing for add button */
+.btn-add + .spinner-border {
+  width: 1.25rem; /* ~20px */
+  height: 1.25rem;
+  border-width: .2em;
+}
+
 /* Input group text white bg utility */
 .input-group-text.bg-white {
   background-color: #fff !important;
@@ -235,3 +263,17 @@ body{line-height:1.5;font-size:14px}
   z-index: 1060; /* Higher than modal z-index (1050) */
   position: relative;
 }
+
+/* Modal footer layout enhancement */
+.modal-footer.d-flex.justify-content-between {
+  padding: 1rem 1.25rem;
+}
+
+/* Section headings within modals */
+.modal-body h6 {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+/* Radio group spacing */
+.form-check-inline { margin-right: .75rem; }

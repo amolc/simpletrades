@@ -191,11 +191,27 @@ async function start(){
     } catch(e) { console.warn('TV client init failed:', e.message) }
     const wss = new WebSocket.Server({ server: httpServer, path: '/ws/stream' });
     const normalizeKey = (k) => String(k || '').toUpperCase().replace(/\s+/g,'').trim();
+    const normalizeSymbol = (exchange, symbol) => {
+      const ex = String(exchange||'').toUpperCase().trim();
+      let sym = String(symbol||'').toUpperCase().trim();
+      const m = sym.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{2,6})$/);
+      if (ex === 'NSE' && m) {
+        const u = m[1], yy = m[2], mm = m[3], dd = m[4], cp = m[5], strike = m[6];
+        const dt = new Date(`20${yy}-${mm}-${dd}`);
+        const mon = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][dt.getMonth()];
+        const dd2 = String(dt.getDate()).padStart(2,'0');
+        const yy2 = String(dt.getFullYear()).slice(2);
+        const suf = cp === 'P' ? 'PE' : 'CE';
+        sym = `${u}${dd2}${mon}${yy2}${strike}${suf}`;
+      }
+      return sym;
+    }
     wss.on('connection', (ws, req) => {
       try {
         const u = new URL(req.url, `http://${req.headers.host}`);
-        const symbol = (u.searchParams.get('symbol') || 'BTCUSDT').toUpperCase();
+        const rawSymbol = (u.searchParams.get('symbol') || 'BTCUSDT').toUpperCase();
         const exchange = (u.searchParams.get('exchange') || 'BINANCE').toUpperCase();
+        const symbol = normalizeSymbol(exchange, rawSymbol);
         const seriesKey = normalizeKey(`${exchange}:${symbol}`);
         const send = (obj) => { try { if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj)) } catch(e){} };
         send({ type: 'subscribed', key: seriesKey });
@@ -242,14 +258,16 @@ async function start(){
         // Watchlist subscriptions
         for (const r of watchRows) {
           const ex = (r.exchange || defaultExchangeForProduct(r.product));
-          wanted.add(normalizeKey(`${String(ex).toUpperCase().trim()}:${String(r.stockName).toUpperCase().trim()}`));
+          const sym = normalizeSymbol(ex, r.stockName);
+          wanted.add(normalizeKey(`${String(ex).toUpperCase().trim()}:${String(sym).toUpperCase().trim()}`));
         }
         // Signals (prefer IN_PROGRESS)
         for (const s of sigRows) {
           const ex = (s.exchange || 'NSE');
           // Optional: only stream IN_PROGRESS
           if (!s.status || s.status === 'IN_PROGRESS') {
-            wanted.add(normalizeKey(`${String(ex).toUpperCase().trim()}:${String(s.symbol).toUpperCase().trim()}`));
+            const sym = normalizeSymbol(ex, s.symbol);
+            wanted.add(normalizeKey(`${String(ex).toUpperCase().trim()}:${String(sym).toUpperCase().trim()}`));
           }
         }
         const existing = Array.from(app.locals.streams.keys());

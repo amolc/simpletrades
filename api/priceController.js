@@ -13,7 +13,7 @@ function createTvClient() {
 
 async function getQuote(req, res) {
   try {
-    const symbol = (req.query.symbol || '').toUpperCase().trim()
+    let symbol = (req.query.symbol || '').toUpperCase().trim()
     const exchange = (req.query.exchange || 'NSE').toUpperCase().trim()
     if (!symbol) {
       return res.status(400).json({ success: false, error: 'symbol required' })
@@ -27,7 +27,28 @@ async function getQuote(req, res) {
     const waitDefault = Number(req.query.timeout || req.query.wait || 3500)
     const debug = { candidates: [], tickerAlt: null, events: [] }
 
-    const seriesKey = `${exchange}:${symbol}`
+    const optMatch = symbol.match(/^([A-Z]+)(\d{2})(\d{2})(\d{2})([CP])(\d{2,6})$/)
+    let feedExch = exchange
+    let spacedSymbol = ''
+    if (optMatch && exchange === 'NSE') {
+      const u = optMatch[1]
+      const yy = optMatch[2]
+      const mm = optMatch[3]
+      const dd = optMatch[4]
+      const cp = optMatch[5]
+      const strike = optMatch[6]
+      const dt = new Date(`20${yy}-${mm}-${dd}`)
+      const mmm = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'][dt.getMonth()]
+      const dd2 = String(dt.getDate()).padStart(2,'0')
+      const yy2 = String(dt.getFullYear()).slice(-2)
+      const suf = cp === 'P' ? 'PE' : 'CE'
+      const tvSymbol = `${u}${dd2}${mmm}${yy2}${strike}${suf}`
+      symbol = tvSymbol
+      spacedSymbol = tvSymbol.replace(/(\d+)(CE|PE)$/,' $1 $2')
+      feedExch = 'NFO'
+    }
+    if (!spacedSymbol) spacedSymbol = symbol.replace(/(\d+)(CE|PE)$/,' $1 $2')
+    const seriesKey = `${feedExch}:${symbol}`
     const cacheMap = (req.app && req.app.locals) ? req.app.locals.priceCache : null
     const readCache = (key) => {
       if (!cacheMap) return null
@@ -37,8 +58,8 @@ async function getQuote(req, res) {
       return c
     }
     let cached = readCache(seriesKey)
-    if (!cached && exchange === 'BINANCE' && /USD$/.test(symbol)) {
-      const usdtKey = `${exchange}:${symbol.replace(/USD$/, 'USDT')}`
+    if (!cached && feedExch === 'BINANCE' && /USD$/.test(symbol)) {
+      const usdtKey = `${feedExch}:${symbol.replace(/USD$/, 'USDT')}`
       cached = readCache(usdtKey)
     }
     if (cached) {
@@ -144,12 +165,13 @@ async function getQuote(req, res) {
     })
 
     const candidates = []
-    candidates.push([symbol, exchange])
-    candidates.push([`${exchange}:${symbol}`, undefined])
-    if (exchange === 'BINANCE' && /USD$/.test(symbol)) {
+    candidates.push([symbol, feedExch])
+    candidates.push([`${feedExch}:${symbol}`, undefined])
+    candidates.push([`${feedExch}:${spacedSymbol}`, undefined])
+    if (feedExch === 'BINANCE' && /USD$/.test(symbol)) {
       const usdt = symbol.replace(/USD$/, 'USDT')
-      candidates.push([usdt, exchange])
-      candidates.push([`${exchange}:${usdt}`, undefined])
+      candidates.push([usdt, feedExch])
+      candidates.push([`${feedExch}:${usdt}`, undefined])
     }
     // Index fallbacks
     if (['NIFTY','BANKNIFTY','FINNIFTY'].includes(symbol)) {
@@ -158,33 +180,38 @@ async function getQuote(req, res) {
       candidates.push([`NSE:${symbol}`, ''])
     }
     // Case variations
-    candidates.push([symbol, exchange.toUpperCase()])
-    candidates.push([symbol, exchange.charAt(0).toUpperCase()+exchange.slice(1).toLowerCase()])
-    if (exchange === 'NSE') {
+    candidates.push([symbol, feedExch.toUpperCase()])
+    candidates.push([symbol, feedExch.charAt(0).toUpperCase()+feedExch.slice(1).toLowerCase()])
+    if (feedExch === 'NSE' || feedExch === 'NFO') {
       candidates.push([symbol, 'nse_dly'])
       candidates.push([symbol, 'NSE_DLY'])
       candidates.push([`nse_dly:${symbol}`, undefined])
       candidates.push([`NSE_DLY:${symbol}`, undefined])
+      candidates.push([`NSE:${symbol}`, undefined])
+      candidates.push([`NFO:${symbol}`, undefined])
     }
 
     // Try to discover alt feed from TickerDetails (e.g., nse_dly)
-    const alt = await resolveFeedPrefix(symbol, exchange)
+    const alt = await resolveFeedPrefix(symbol, feedExch)
     if (alt) {
       candidates.push([symbol, alt])
       candidates.push([`${alt}:${symbol}`, undefined])
     }
 
     const tv2Candidates = []
-    tv2Candidates.push(`${exchange}:${symbol}`)
+    tv2Candidates.push(`${feedExch}:${symbol}`)
+    tv2Candidates.push(`${feedExch}:${spacedSymbol}`)
     tv2Candidates.push(symbol)
-    if (exchange === 'BINANCE' && /USD$/.test(symbol)) {
+    if (feedExch === 'BINANCE' && /USD$/.test(symbol)) {
       const usdt = symbol.replace(/USD$/, 'USDT')
-      tv2Candidates.push(`${exchange}:${usdt}`)
+      tv2Candidates.push(`${feedExch}:${usdt}`)
       tv2Candidates.push(usdt)
     }
-    if (exchange === 'NSE') {
+    if (feedExch === 'NSE' || feedExch === 'NFO') {
       tv2Candidates.push(`nse_dly:${symbol}`)
       tv2Candidates.push(`NSE_DLY:${symbol}`)
+      tv2Candidates.push(`NSE:${symbol}`)
+      tv2Candidates.push(`NFO:${symbol}`)
     }
     if (['NIFTY','BANKNIFTY','FINNIFTY'].includes(symbol)) {
       tv2Candidates.push(`INDEX:${symbol}`)
@@ -192,7 +219,16 @@ async function getQuote(req, res) {
     tv2Candidates.push(`BSE:${symbol}`)
 
     try {
-      const sr = await TradingView.searchMarket(symbol, 'stock', exchange, 'IN', '', 'IN', 0)
+      const ids = []
+      const types = optMatch ? ['', 'option', 'derivative', 'futures'] : ['stock']
+      for (let ti = 0; ti < types.length; ti++) {
+        // eslint-disable-next-line no-await-in-loop
+        const sr = await TradingView.searchMarket(symbol, types[ti], feedExch, 'IN', '', 'IN', 0)
+        if (sr && sr.symbols && Array.isArray(sr.symbols)) {
+          sr.symbols.slice(0, 5).forEach((s) => { if (s && s.id) ids.push(s.id) })
+        }
+      }
+      ids.forEach(id => tv2Candidates.push(id))
       if (sr && sr.symbols && Array.isArray(sr.symbols)) {
         sr.symbols.slice(0, 5).forEach((s) => {
           if (s && s.id) tv2Candidates.push(s.id)
@@ -270,7 +306,7 @@ async function getQuote(req, res) {
         if (ok) break
       }
       if (!responded) {
-        const combined = [`${exchange}:${symbol}`, `NSE:${symbol}`, `INDEX:${symbol}`]
+        const combined = [`${feedExch}:${symbol}`, `${feedExch}:${spacedSymbol}`, `NSE:${symbol}`, `NFO:${symbol}`, `NFO:${spacedSymbol}`, `INDEX:${symbol}`]
         for (let i = 0; i < combined.length && !responded; i++) {
           // eslint-disable-next-line no-await-in-loop
           const ok = await tryChannel(combined[i], waitDefault)

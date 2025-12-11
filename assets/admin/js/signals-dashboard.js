@@ -6,30 +6,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const watchlistBody = document.getElementById('watchlistBody');
   const addStockBtn = document.getElementById('addStockBtn');
   const addOptionStockBtn = document.getElementById('addOptionStockBtn');
+  const stockSection = document.getElementById('watchStocksSection');
+  const optionSection = document.getElementById('watchOptionsSection');
+  const modeStock = document.getElementById('modeStock');
+  const modeOption = document.getElementById('modeOption');
+  const watchSubmitBtn = document.getElementById('watchSubmitBtn');
+  const watchSubmitLabel = document.getElementById('watchSubmitLabel');
 
-  const ensureLoader = () => {
-    let overlay = document.getElementById('pageLoader');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'pageLoader';
-      overlay.style.position = 'fixed';
-      overlay.style.top = '0';
-      overlay.style.left = '0';
-      overlay.style.right = '0';
-      overlay.style.bottom = '0';
-      overlay.style.background = 'rgba(255,255,255,0.8)';
-      overlay.style.display = 'none';
-      overlay.style.alignItems = 'center';
-      overlay.style.justifyContent = 'center';
-      overlay.style.zIndex = '1056';
-      overlay.style.backdropFilter = 'blur(2px)';
-      overlay.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
-      document.body.appendChild(overlay);
-    }
-    return overlay;
+  const inlineSpinner = document.getElementById('watchSubmitSpinner');
+  const showInlineLoader = () => {
+    inlineSpinner?.classList.remove('d-none');
+    watchSubmitBtn?.setAttribute('aria-busy','true');
+    watchSubmitBtn?.classList.add('disabled');
   };
-  const showLoader = () => { const el = ensureLoader(); el.style.display = 'flex'; };
-  const hideLoader = () => { const el = document.getElementById('pageLoader'); if (el) el.style.display = 'none'; };
+  const hideInlineLoader = () => {
+    inlineSpinner?.classList.add('d-none');
+    watchSubmitBtn?.removeAttribute('aria-busy');
+    watchSubmitBtn?.classList.remove('disabled');
+  };
+  // No-op global loader to remove full page overlay usage everywhere
+  const showLoader = () => {};
+  const hideLoader = () => {};
   function getSelectedProduct(){ const sel=document.getElementById('watchProduct'); const name=(sel?.value||'').trim(); const cat=(sel?.selectedOptions&&sel.selectedOptions[0]&&sel.selectedOptions[0].dataset? sel.selectedOptions[0].dataset.category : '')||''; return { name, category: cat.trim() }; }
 
   // Add watchlist item
@@ -37,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
     addWatchBtn.addEventListener('click', () => {
       document.getElementById('watchId').value = '';
       watchForm.reset();
+      if (modeStock) modeStock.checked = true;
+      updateWatchMode();
+      updateSubmitLabel();
       watchModal.show();
     });
   }
@@ -49,13 +49,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let price = NaN;
     try { const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`); const d = await r.json(); if (d && d.success && typeof d.price === 'number') price = d.price; } catch(e){}
     try {
-      showLoader();
+      showInlineLoader();
       const cp = Number.isFinite(price) ? price : 0;
       const body = { stockName, product: sel.name || 'Stocks', exchange, currentPrice: cp, alertPrice: cp };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
-      if (json && json.success) { watchModal.hide(); window.location.reload(); } else { hideLoader(); alert('Error: ' + (json.error||'Unknown')); }
-    } catch(e){ hideLoader(); alert('Network error'); }
+      if (json && json.success) { hideInlineLoader(); watchModal.hide(); window.location.reload(); } else { hideInlineLoader(); alert('Error: ' + (json.error||'Unknown')); }
+    } catch(e){ hideInlineLoader(); alert('Network error'); }
   }
   async function addOptionATM(){
     const underlying = (document.getElementById('optionUnderlying')?.value || '').trim();
@@ -87,18 +87,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const cpLetter = cpType === 'PUT' ? 'P' : 'C';
     const sym = `${underlying.toUpperCase()}${fmt(expiry)}${cpLetter}${strike}`;
     try {
-      showLoader();
+      showInlineLoader();
       let cp = NaN;
       try { const r2 = await fetch(`/api/price?symbol=${encodeURIComponent(sym)}&exchange=${encodeURIComponent(exchange)}`); const d2 = await r2.json(); if (d2 && d2.success && typeof d2.price === 'number') cp = d2.price; } catch(e){}
       const priceFinal = Number.isFinite(cp) ? cp : 0;
       const body = { stockName: sym, product: sel.name || 'Options', exchange, currentPrice: priceFinal, alertPrice: priceFinal };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
-      if (json && json.success) { watchModal.hide(); window.location.reload(); } else { hideLoader(); alert('Error: ' + (json.error||'Unknown')); }
-    } catch(e){ hideLoader(); alert('Network error'); }
+      if (json && json.success) { hideInlineLoader(); watchModal.hide(); window.location.reload(); } else { hideInlineLoader(); alert('Error: ' + (json.error||'Unknown')); }
+    } catch(e){ hideInlineLoader(); alert('Network error'); }
   }
   addStockBtn?.addEventListener('click', addStockSimple);
   addOptionStockBtn?.addEventListener('click', addOptionATM);
+  watchSubmitBtn?.addEventListener('click', () => {
+    const isStock = modeStock?.checked;
+    if (isStock) return addStockSimple();
+    return addOptionATM();
+  });
+
+  function updateWatchMode(){
+    const isStock = modeStock?.checked;
+    if (stockSection) stockSection.classList.toggle('d-none', !isStock);
+    if (optionSection) optionSection.classList.toggle('d-none', !!isStock);
+    updateSubmitLabel();
+  }
+  function updateSubmitLabel(){
+    const isStock = modeStock?.checked;
+    if (watchSubmitLabel) watchSubmitLabel.textContent = isStock ? 'Add Stock' : 'Add Option';
+  }
+  modeStock?.addEventListener('change', updateWatchMode);
+  modeOption?.addEventListener('change', updateWatchMode);
+  // Initialize visibility on load
+  updateWatchMode();
 
   
 
@@ -616,3 +636,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // When user changes selected generated option, fetch its price
   // Removed price autofill to form; prices are fetched when needed
+  // Enable Bootstrap tooltips for buttons
+  try {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    tooltipTriggerList.forEach(el => { try { new bootstrap.Tooltip(el) } catch(e){} })
+  } catch(e) {}

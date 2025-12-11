@@ -35,8 +35,8 @@
         <div class="col-12 col-md-6">
           <table class="table table-sm text-start align-middle">
             <tr>
-              <td class="text-muted">Customer</td>
-              <td class="fw-semibold">
+              <td class="text-muted fw-bold">Customer</td>
+              <td>
                 {% if subscription.User %}
                   <a href="/admin/customers/{{ subscription.User.id }}" class="text-primary">
                     {% if subscription.User.fullName and subscription.User.fullName|lower != 'undefined' and subscription.User.fullName|lower != 'null' %}
@@ -52,8 +52,8 @@
               </td>
             </tr>
             <tr>
-              <td class="text-muted">Product</td>
-              <td class="fw-semibold">
+              <td class="text-muted fw-bold">Product</td>
+              <td>
                 {% if subscription.plan and subscription.plan.Product %}
                   {{ subscription.plan.Product.name }}
                 {% else %}
@@ -62,8 +62,8 @@
               </td>
             </tr>
             <tr>
-              <td class="text-muted">Plan Type</td>
-              <td class="fw-semibold">
+              <td class="text-muted fw-bold">Plan Type</td>
+              <td>
                 {% if subscription.plan %}
                   {{ subscription.plan.planName }}
                 {% else %}
