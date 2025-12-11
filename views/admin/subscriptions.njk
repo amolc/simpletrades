@@ -20,8 +20,12 @@
         </div>
         <div class="modal-body text-center">
           <p>Subscription ID: <strong id="paymentSubscriptionId"></strong></p>
-          <p>Amount Due: <strong id="paymentAmountDue"></strong></p>
-          <div id="qrcode" class="mb-3"></div>
+          <div id="paymentAmountDueGroup" class="mb-2">
+            <p class="mb-1">Amount Due: <strong id="paymentAmountDue"></strong></p>
+          </div>
+          <div id="qrcodeGroup" class="mb-3">
+            <div id="qrcode"></div>
+          </div>
           <p>Scan the QR code above to make the payment, or use the details below:</p>
           <div class="text-start mb-3">
             <p class="mb-1"><strong>Bank Name:</strong> Example Bank</p>
@@ -33,7 +37,7 @@
             After making the payment, please enter the transaction reference number below.
           </div>
           <form id="linkPaymentForm">
-            <div class="mb-3">
+            <div class="mb-3" id="transactionReferenceGroup">
               <label for="transactionReference" class="form-label">Transaction Reference Number</label>
               <input type="text" class="form-control" id="transactionReference" required>
             </div>
@@ -190,6 +194,9 @@
                   <button class="btn btn-outline-primary btn-sm" data-action="view" data-id="{{ subscription.id }}">View</button>
                   {% if subscription.status == 'active' %}
                   <button class="btn btn-outline-danger btn-sm" data-action="cancel" data-id="{{ subscription.id }}">Cancel</button>
+                  {% endif %}
+                  {% if subscription.paymentStatus == 'pending' %}
+                  <button class="btn btn-outline-success btn-sm" data-action="link-payment" data-id="{{ subscription.id }}">Link Payment</button>
                   {% endif %}
                 </div>
               </td>

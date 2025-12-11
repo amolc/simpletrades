@@ -129,11 +129,40 @@
             <tr data-customer-id="{{ transaction.userId }}" data-status="{{ transaction.paymentStatus }}" data-amount="{{ transaction.amount }}">
               <td>{{ transaction.id }}</td>
               <td>{% if transaction.createdAt %}{{ transaction.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
-              <td>{{ transaction.customer.name or 'N/A' }}</td>
+              <td>
+                {% if transaction.customer %}
+                  <a href="/admin/customers/{{ transaction.customer.id }}" class="text-primary">
+                    {{ transaction.customer.fullName or 'N/A' }}
+                  </a>
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
               <td>Rs {{ transaction.amount|round(2) if transaction.amount else '0.00' }}</td>
               <td>{{ transaction.paymentMethod or 'N/A' }}</td>
               <td><span class="badge {% if transaction.paymentStatus == 'completed' %}bg-success{% elif transaction.paymentStatus == 'pending' %}bg-warning{% elif transaction.paymentStatus == 'failed' %}bg-danger{% elif transaction.paymentStatus == 'refunded' %}bg-info{% else %}bg-secondary{% endif %}">{{ transaction.paymentStatus|upper }}</span></td>
-              <td>{{ transaction.subscription.id or 'N/A' }}</td>
+              <td>
+                {% if transaction.subscription %}
+                  {% set plan = transaction.subscription.plan %}
+                  {% set productName = 'N/A' %}
+                  {% if plan %}
+                    {% if plan.Product %}
+                      {% set productName = plan.Product.name %}
+                    {% elif plan.productName %}
+                      {% set productName = plan.productName %}
+                    {% endif %}
+                  {% endif %}
+                  {% set planName = 'N/A' %}
+                  {% if plan and plan.planName %}
+                    {% set planName = plan.planName %}
+                  {% endif %}
+                  <a href="/admin/subscriptions/{{ transaction.subscription.id }}" class="text-primary">
+                    {{ productName }} — {{ planName }}
+                  </a>
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
               <td>
                 <div class="btn-group btn-group-sm d-flex flex-column flex-sm-row" role="group">
                   <button class="btn btn-outline-primary btn-sm" data-action="view" data-id="{{ transaction.id }}">View</button>

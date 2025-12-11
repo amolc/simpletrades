@@ -1,0 +1,118 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Customer Details - Admin{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="mt-4 mb-3 d-flex justify-content-between align-items-center">
+    <div>
+      <h2 class="mb-1">Customer Details</h2>
+      <small class="text-muted">View subscriptions and information</small>
+    </div>
+    <div>
+      <a href="/admin/customers" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-1"></i> Back to Customers
+      </a>
+    </div>
+  </div>
+
+  {% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+  {% endif %}
+
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <h5 class="mb-0">Customer Information</h5>
+    </div>
+    <div class="card-body">
+      {% if user %}
+        <div class="row">
+          <div class="col-md-6">
+            <table class="table table-sm">
+              <tr><td><strong>Name</strong></td><td>{{ user.fullName or 'N/A' }}</td></tr>
+              <tr><td><strong>Email</strong></td><td>{{ user.email or 'N/A' }}</td></tr>
+              <tr><td><strong>Phone</strong></td><td>{{ user.phoneNumber or 'N/A' }}</td></tr>
+              <tr><td><strong>Status</strong></td><td>{{ user.status or 'active' }}</td></tr>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <table class="table table-sm">
+              <tr><td><strong>User ID</strong></td><td>{{ user.id }}</td></tr>
+              <tr><td><strong>Created</strong></td><td>{{ user.createdAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) }}</td></tr>
+              <tr><td><strong>Updated</strong></td><td>{{ user.updatedAt.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) }}</td></tr>
+            </table>
+          </div>
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">No customer information available.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Subscriptions</h5>
+      <small class="text-muted">Total: {{ subscriptions.length }}</small>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Product</th>
+              <th>Plan</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Start</th>
+              <th>End</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% if subscriptions and subscriptions.length > 0 %}
+              {% for s in subscriptions %}
+                <tr>
+                  <td>{{ s.id }}</td>
+                  <td>
+                    {% if s.plan and s.plan.Product %}
+                      {{ s.plan.Product.name }}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if s.plan %}
+                      {{ s.plan.planName }}
+                    {% else %}
+                      N/A
+                    {% endif %}
+                  </td>
+                  <td>
+                    Rs {% if s.amount is defined %}{{ s.amount.toFixed(2) }}{% else %}0.00{% endif %}
+                  </td>
+                  <td>
+                    <span class="badge {% if s.status == 'active' %}bg-success{% elif s.status == 'pending' %}bg-warning{% elif s.status == 'cancelled' %}bg-danger{% else %}bg-secondary{% endif %}">{{ s.status|upper }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {% if s.paymentStatus == 'completed' or s.paymentStatus == 'paid' %}bg-success{% elif s.paymentStatus == 'pending' %}bg-warning{% elif s.paymentStatus == 'failed' %}bg-danger{% else %}bg-secondary{% endif %}">{{ s.paymentStatus|upper }}</span>
+                  </td>
+                  <td>{% if s.startDate %}{{ s.startDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) }}{% else %}-{% endif %}</td>
+                  <td>{% if s.endDate %}{{ s.endDate.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) }}{% else %}-{% endif %}</td>
+                  <td>
+                    <a class="btn btn-sm btn-outline-primary" href="/admin/subscriptions/{{ s.id }}">View</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            {% else %}
+              <tr>
+                <td colspan="9" class="text-center text-muted py-4">No subscriptions found for this customer</td>
+              </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{% endblock %}

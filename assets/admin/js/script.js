@@ -182,7 +182,8 @@ function initProductForm() {
 
             try {
                 const isEdit = productForm.dataset.mode === 'edit';
-                const url = isEdit ? `/api/products/${formData.name}` : '/api/products';
+                const originalName = productForm.dataset.originalName || formData.name;
+                const url = isEdit ? `/api/products/${originalName}` : '/api/products';
                 const method = isEdit ? 'PUT' : 'POST';
 
                 const res = await fetch(url, {
@@ -283,7 +284,7 @@ async function editProduct(name) {
 
                 if (productName) {
                     productName.value = p.name;
-                    productName.readOnly = true;
+                    productName.readOnly = false;
                 }
                 if (productCategory) productCategory.value = p.category || '';
                 if (productDescription) productDescription.value = p.description || '';
@@ -293,6 +294,11 @@ async function editProduct(name) {
                 if (sortOrder) sortOrder.value = p.sortOrder || 0;
                 
                 console.log('Form populated successfully');
+
+                // Preserve original name for update API path
+                if (form) {
+                    form.dataset.originalName = p.name;
+                }
                 
                 // Populate plans for editing (but make them read-only since we can't edit plans here)
                 if (p.plans && p.plans.length > 0) {

@@ -92,7 +92,19 @@ async function createProduct(productData) {
 async function updateProduct(name, updateData) {
   const row = await db.Product.findOne({ where: { name } })
   if (!row) throw new Error('Product not found')
-  const payload = fromDto({ ...toDto(row), ...updateData, name })
+
+  const requestedName = (updateData && updateData.name ? String(updateData.name).trim() : '')
+  const newName = requestedName || name
+
+  if (newName !== row.name) {
+    const existing = await db.Product.findOne({ where: { name: newName } })
+    if (existing) throw new Error('Product name already exists')
+    row.name = newName
+  }
+
+  const payload = fromDto({ ...toDto(row), ...updateData, name: row.name })
+  // Avoid overriding name again from payload
+  delete payload.name
   Object.keys(payload).forEach(k => { row[k] = payload[k] })
   await row.save()
   return toDto(row)

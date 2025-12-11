@@ -26,7 +26,11 @@
               {% for user in customers %}
                 <tr>
                   <td>{{ loop.index }}</td>
-                  <td>{{ user.fullName or 'N/A' }}</td>
+                  <td>
+                    <a href="/admin/customers/{{ user.id }}" class="text-primary fw-medium">
+                      {{ user.fullName or 'N/A' }}
+                    </a>
+                  </td>
                   <td>{{ user.phoneNumber }}</td>
                   <td>{{ user.email or 'N/A' }}</td>
                   <td>{{ user.createdAt.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' }) }}</td>

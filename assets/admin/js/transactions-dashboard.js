@@ -48,21 +48,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     transactionsToRender.forEach(transaction => {
       const row = document.createElement('tr');
-      row.dataset.customerId = transaction.User ? transaction.User.id : ''; // For customer filtering
+      const customer = transaction.customer || transaction.User || null;
+      const sub = transaction.subscription || null;
+      const plan = sub && sub.plan ? sub.plan : null;
+      const productName = plan && (plan.Product ? plan.Product.name : (plan.productName || 'N/A'));
+      const planName = plan && plan.planName ? plan.planName : 'N/A';
+      row.dataset.customerId = customer ? customer.id : '';
       row.innerHTML = `
         <td>${transaction.id}</td>
         <td data-ts="${transaction.createdAt}">${fmtIST(transaction.createdAt)}</td>
-        <td>${transaction.User ? transaction.User.fullName : 'N/A'}</td>
+        <td>${customer ? `<a href="/admin/customers/${customer.id}" class="text-primary">${customer.fullName || 'N/A'}</a>` : 'N/A'}</td>
         <td>Rs ${transaction.amount ? parseFloat(transaction.amount).toFixed(2) : '0.00'}</td>
         <td>${transaction.paymentMethod || 'N/A'}</td>
         <td><span class="badge bg-${transaction.paymentStatus === 'completed' ? 'success' : transaction.paymentStatus === 'pending' ? 'warning' : 'danger'}">${transaction.paymentStatus}</span></td>
+        <td>${sub ? `<a href="/admin/subscriptions/${sub.id}" class="text-primary">${productName} — ${planName}</a>` : 'N/A'}</td>
         <td>
           <button class="btn btn-sm btn-info view-transaction-btn" data-id="${transaction.id}" data-action="view" data-bs-toggle="modal" data-bs-target="#transactionModal">View</button>
           ${transaction.paymentStatus === 'completed' ? `<button class="btn btn-sm btn-warning refund-transaction-btn" data-id="${transaction.id}" data-action="refund">Refund</button>` : ''}
         </td>
       `;
-                transactionsBody.appendChild(row);
-});
+      transactionsBody.appendChild(row);
+    });
     updateSummaryMetrics(transactionsToRender);
     updatePagination(Array.from(transactionsBody.children).filter(child => child.tagName === 'TR'));
   }
@@ -135,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.data.forEach(customer => {
           const option = document.createElement('option');
           option.value = customer.id;
-          option.textContent = `${customer.name} (${customer.email})`;
+          option.textContent = `${customer.fullName || customer.name || 'N/A'} (${customer.email || 'N/A'})`;
           customerFilter.appendChild(option);
         });
       } else {

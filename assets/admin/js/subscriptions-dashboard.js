@@ -567,10 +567,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const transactionReferenceInput = document.getElementById('transactionReference');
         const submitPaymentBtn = document.getElementById('submitPaymentBtn');
 
-        // Hide all input fields and labels within the form initially
-        linkPaymentForm.querySelectorAll('.form-group, .mb-3').forEach(element => {
-          element.classList.add('d-none');
-        });
+        // Hide the reference input initially, then show it after QR loads
+        const refGroup = document.getElementById('transactionReferenceGroup');
+        if (refGroup) refGroup.classList.add('d-none');
 
         // Clear previous QR code and form data
         qrcodeDiv.innerHTML = '';
@@ -601,8 +600,11 @@ document.addEventListener('DOMContentLoaded', () => {
                   correctLevel : QRCode.CorrectLevel.H
                 });
                 // Show only the QR code and amount due
-                document.getElementById('paymentAmountDueGroup').classList.remove('d-none'); // Assuming a group for amount due
-                document.getElementById('qrcodeGroup').classList.remove('d-none'); // Assuming a group for QR code
+                const amountGroup = document.getElementById('paymentAmountDueGroup');
+                if (amountGroup) amountGroup.classList.remove('d-none');
+                const qrGroup = document.getElementById('qrcodeGroup');
+                if (qrGroup) qrGroup.classList.remove('d-none');
+                if (refGroup) refGroup.classList.remove('d-none');
 
               } else {
                 console.error('Error fetching payment QR code:', paymentResult.message);
@@ -649,9 +651,9 @@ document.addEventListener('DOMContentLoaded', () => {
                   alert('Payment linked successfully!');
                   linkPaymentModal.hide();
                   // Update payment status in UI
-                  const row = document.querySelector(`button[data-id="${id}"][data-action="link-payment"]`).closest('tr');
+                  const row = document.querySelector(`button[data-id="${id}"][data-action="link-payment"]`)?.closest('tr');
                   if (row) {
-                    const paymentStatusCell = row.querySelector('td:nth-child(7)');
+                    const paymentStatusCell = row.querySelector('td[data-col="paymentStatus"]') || row.querySelector('td:nth-child(8)');
                     if (paymentStatusCell) {
                       paymentStatusCell.innerHTML = '<span class="badge bg-success">completed</span>';
                     }

@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   const form=document.getElementById('staffForm')
   const modalEl=document.getElementById('staffModal')
   const detailsModalEl=document.getElementById('userDetailsModal')
-  const modal=new bootstrap.Modal(modalEl)
-  const detailsModal=new bootstrap.Modal(detailsModalEl)
+  const modal = modalEl ? new bootstrap.Modal(modalEl) : null
+  const detailsModal = detailsModalEl ? new bootstrap.Modal(detailsModalEl) : null
 
   // Add password reset modal elements
   const passwordResetModalEl = document.getElementById('passwordResetModal')
@@ -49,82 +49,102 @@ document.addEventListener('DOMContentLoaded',()=>{
   addBtn.addEventListener('click',()=>{
     console.log('Add staff button clicked')
     form.reset()
+    document.getElementById('staffFullName').value=''
+    document.getElementById('staffEmail').value=''
+    document.getElementById('staffPhone').value=''
+    document.getElementById('staffPassword').value=''
+    document.getElementById('staffStatus').value='active'
     document.getElementById('staffId').value=''
     document.querySelector('#staffModal .modal-title').textContent='Add Staff'
     document.getElementById('staffPasswordGroup').style.display='block'
-    modal.show()
+    if (modal) {
+      modal.show()
+    }
     console.log('Modal should be showing')
   })
 
-  saveBtn.addEventListener('click',async()=>{
+  const performSave = async () => {
     console.log('Save button clicked')
-    const id=document.getElementById('staffId').value
-    const payload={
-      email:document.getElementById('staffEmail').value,
-      phoneNumber:document.getElementById('staffPhone').value,
-      fullName:document.getElementById('staffFullName').value,
-      status:document.getElementById('staffStatus').value
+    const id = document.getElementById('staffId').value
+    const payload = {
+      email: document.getElementById('staffEmail').value,
+      phoneNumber: document.getElementById('staffPhone').value,
+      fullName: document.getElementById('staffFullName').value,
+      status: document.getElementById('staffStatus').value
     }
 
     console.log('Payload:', payload)
     console.log('ID:', id)
 
-    if(!payload.fullName){showError('Full name is required');return}
-    if(!payload.email){showError('Email is required');return}
-    if(!payload.phoneNumber){showError('Phone number is required');return}
+    if (!payload.fullName) { showError('Full name is required'); return }
+    if (!payload.email) { showError('Email is required'); return }
+    if (!payload.phoneNumber) { showError('Phone number is required'); return }
 
     try {
-      if(!id){
+      if (!id) {
         console.log('Creating new staff with payload:', payload)
-        const password=document.getElementById('staffPassword').value
-        if(!password){showError('Password is required');return}
+        const password = document.getElementById('staffPassword').value
+        if (!password) { showError('Password is required'); return }
 
         const requestBody = {
-          phoneNumber:payload.phoneNumber,
-          email:payload.email,
+          phoneNumber: payload.phoneNumber,
+          email: payload.email,
           password,
-          fullName:payload.fullName,
-          userType:'staff'
+          fullName: payload.fullName,
+          userType: 'staff'
         }
         console.log('Request body:', requestBody)
 
-        const res=await fetch('/api/users/register',{
-          method:'POST',
-          headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-          body:JSON.stringify(requestBody)
+        const headers = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch('/api/users/register', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(requestBody)
         })
 
         console.log('Response status:', res.status)
-        const responseData = await res.json().catch(()=>({}))
+        const responseData = await res.json().catch(() => ({}))
         console.log('Response data:', responseData)
 
-        if(res.ok){
-          modal.hide()
+        if (res.ok) {
+          if (modal) modal.hide()
           showSuccess('Staff member created successfully!')
           setTimeout(() => window.location.reload(), 1000)
-        }else{
-          showError(responseData.message||responseData.error||'Error creating staff')
+        } else {
+          showError(responseData.message || responseData.error || 'Error creating staff')
         }
-      }else{
-        const res=await fetch(`/api/users/${id}`,{
-          method:'PUT',
-          headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
-          body:JSON.stringify(payload)
+      } else {
+        const headers = { 'Content-Type': 'application/json' }
+        if (token) headers['Authorization'] = `Bearer ${token}`
+
+        const res = await fetch(`/api/users/${id}`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(payload)
         })
 
-        if(res.ok){
-          modal.hide()
+        const j = await res.json().catch(() => ({}))
+        if (res.ok) {
+          if (modal) modal.hide()
           showSuccess('Staff member updated successfully!')
           setTimeout(() => window.location.reload(), 1000)
-        }else{
-          const j=await res.json().catch(()=>({}))
-          showError(j.error||'Error updating staff')
+        } else {
+          showError(j.error || j.message || 'Error updating staff')
         }
       }
     } catch (error) {
       showError('Network error: ' + error.message)
     }
-  })
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', performSave)
+  }
+  if (form) {
+    form.addEventListener('submit', (e) => { e.preventDefault(); performSave() })
+  }
 
   // Handle password reset functionality
   const handlePasswordReset = async () => {
@@ -188,6 +208,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   tbody.addEventListener('click',async(e)=>{
     const btn=e.target.closest('button')
     if(!btn)return
+    if(btn.classList.contains('reset-password')){
+      const id=btn.dataset.userId
+      const name=btn.dataset.fullName||''
+      if (passwordResetModal) {
+        document.getElementById('resetUserId').value = id
+        document.getElementById('resetUserName').textContent = name
+        passwordResetModal.show()
+      }
+      return
+    }
     
     // Check for edit-staff class
     if(btn.classList.contains('edit-staff')){

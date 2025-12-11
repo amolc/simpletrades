@@ -50,7 +50,12 @@ async function getAllTransactions(req, res) {
           include: [{
             model: db.Plan,
             as: 'plan',
-            attributes: ['id', 'planName']
+            attributes: ['id', 'planName', 'cost'],
+            include: [{
+              model: db.Product,
+              as: 'Product',
+              attributes: ['id', 'name']
+            }]
           }]
         }
       ],
@@ -59,11 +64,22 @@ async function getAllTransactions(req, res) {
       offset: parseInt(offset)
     })
 
+    // Normalize for templates and clients
+    const transactions = rows.map(tx => {
+      const t = tx.get({ plain: true })
+      const plan = t.subscription?.plan
+      t.displayProductName = (plan && plan.Product && plan.Product.name) || (plan && plan.productName) || 'N/A'
+      t.displayPlanName = (plan && plan.planName) || 'N/A'
+      // Ensure dates are Date objects
+      t.createdAt = t.createdAt instanceof Date ? t.createdAt : (t.createdAt ? new Date(t.createdAt) : null)
+      return t
+    })
+
     console.log('DEBUG: Found', count, 'transactions, returning', rows.length, 'rows')
     res.status(200).json({
       success: true,
       data: {
-        transactions: rows,
+        transactions,
         pagination: {
           total: count,
           page: parseInt(page),
@@ -100,7 +116,12 @@ async function getTransactionById(req, res) {
           include: [{
             model: db.Plan,
             as: 'plan',
-            attributes: ['id', 'planName', 'planDescription']
+            attributes: ['id', 'planName', 'planDescription', 'cost'],
+            include: [{
+              model: db.Product,
+              as: 'Product',
+              attributes: ['id', 'name']
+            }]
           }]
         }
       ]
@@ -142,6 +163,7 @@ async function createTransaction(req, res) {
 
     // Get the intended payment status from the body, but don't use it for initial transaction creation
     const incomingPaymentStatus = req.body.paymentStatus;
+    console.log('DEBUG createTransaction incomingPaymentStatus:', incomingPaymentStatus, 'subscriptionId:', subscriptionId)
 
     // Validate required fields
     if (!userId || !amount || !paymentMethod) {
@@ -166,13 +188,18 @@ async function createTransaction(req, res) {
       gatewayResponse
     })
 
-    // If a subscriptionId is provided and the incoming payment status indicates success, update the subscription's payment status
-    if (subscriptionId && incomingPaymentStatus === 'paid') { // Check for 'paid' from frontend
+    // If a subscriptionId is provided and the incoming payment status indicates success, update states
+    if (subscriptionId && (incomingPaymentStatus === 'paid' || incomingPaymentStatus === 'completed')) {
+      console.log('DEBUG marking subscription and transaction completed for subscriptionId', subscriptionId)
       const subscription = await db.Subscription.findByPk(subscriptionId);
       if (subscription) {
-        subscription.paymentStatus = 'completed'; // Update to 'completed' for subscription
+        subscription.paymentStatus = 'completed';
         await subscription.save();
       }
+      // Also mark transaction as completed immediately if frontend confirmed payment
+      transaction.paymentStatus = 'completed';
+      transaction.processedAt = new Date();
+      await transaction.save();
     }
 
     res.status(201).json({

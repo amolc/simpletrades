@@ -4,7 +4,7 @@
 <div class="container-fluid">
   <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
     <h2 class="mb-0">Staff Management</h2>
-    <button class="btn btn-primary" id="addStaffBtn">Add Staff</button>
+    <button class="btn btn-primary" id="addStaffBtn" type="button" data-bs-toggle="modal" data-bs-target="#staffModal">Add Staff</button>
   </div>
   <div class="card">
     <div class="card-body p-0">
@@ -18,6 +18,7 @@
               <th>Email</th>
               <th>Date of Joining</th>
               <th>Status</th>
+              <th>Password</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -40,6 +41,12 @@
                     {% endif %}
                   </td>
                   <td>
+                    <span class="text-muted">••••••</span>
+                    <button class="btn btn-sm btn-outline-warning ms-2 reset-password" data-user-id="{{ user.id }}" data-full-name="{{ user.fullName }}">
+                      <i class="fas fa-key"></i> Reset
+                    </button>
+                  </td>
+                  <td>
                     <button class="btn btn-sm btn-outline-primary view-user" data-user-id="{{ user.id }}">View</button>
                     <button class="btn btn-sm btn-outline-secondary edit-staff" data-user-id="{{ user.id }}" data-full-name="{{ user.fullName }}" data-email="{{ user.email }}" data-phone="{{ user.phoneNumber }}" data-status="{{ user.status }}">Edit</button>
                     <button class="btn btn-sm btn-outline-danger delete-staff" data-user-id="{{ user.id }}">Delete</button>
@@ -48,7 +55,7 @@
               {% endfor %}
             {% else %}
               <tr>
-                <td colspan="7" class="text-center text-muted">No staff members found</td>
+                <td colspan="8" class="text-center text-muted">No staff members found</td>
               </tr>
             {% endif %}
           </tbody>
@@ -65,27 +72,27 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <form id="staffForm">
+        <form id="staffForm" autocomplete="off">
           <input type="hidden" id="staffId">
           <div class="mb-3">
             <label class="form-label" for="staffFullName">Full Name</label>
-            <input class="form-control" id="staffFullName" type="text">
+            <input class="form-control" id="staffFullName" name="staffFullName" type="text" autocomplete="off">
           </div>
           <div class="mb-3">
             <label class="form-label" for="staffEmail">Email</label>
-            <input class="form-control" id="staffEmail" type="email" required>
+            <input class="form-control" id="staffEmail" name="staffEmail" type="email" required autocomplete="off">
           </div>
           <div class="mb-3">
             <label class="form-label" for="staffPhone">Phone Number</label>
-            <input class="form-control" id="staffPhone" type="text" required>
+            <input class="form-control" id="staffPhone" name="staffPhone" type="text" required autocomplete="off">
           </div>
           <div class="mb-3" id="staffPasswordGroup">
             <label class="form-label" for="staffPassword">Password</label>
-            <input class="form-control" id="staffPassword" type="password" required>
+            <input class="form-control" id="staffPassword" name="staffPassword" type="password" required autocomplete="new-password">
           </div>
           <div class="mb-3">
             <label class="form-label" for="staffStatus">Status</label>
-            <select class="form-select" id="staffStatus">
+            <select class="form-select" id="staffStatus" name="staffStatus" autocomplete="off">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
               <option value="suspended">Suspended</option>

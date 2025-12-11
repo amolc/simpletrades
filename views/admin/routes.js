@@ -265,11 +265,38 @@ router.get('/transactions', async (req, res) => {
     // Create a mock request object for the transactionController
     const mockReq = { query: { page: 1, limit: 50 } }
     const mockRes = {
-      json: (data) => {
+      json: async (data) => {
         if (data.success) {
+          // Enrich transactions with product/plan names when missing
+          const enrichTransactions = async (transactions) => {
+            const enriched = []
+            for (const t of transactions) {
+              const subId = t?.subscription?.id
+              const plan = t?.subscription?.plan
+              const hasProduct = plan && plan.Product && plan.Product.name
+              if (subId && !hasProduct) {
+                try {
+                  const sub = await db.Subscription.findByPk(subId, {
+                    include: [{
+                      model: db.Plan,
+                      as: 'plan',
+                      include: [{ model: db.Product, as: 'Product' }]
+                    }]
+                  })
+                  if (sub) {
+                    t.subscription.plan = sub.plan
+                  }
+                } catch (e) {}
+              }
+              enriched.push(t)
+            }
+            return enriched
+          }
+          const transactions = await enrichTransactions(data.data.transactions)
+
           res.render('admin/transactions.njk', { 
             title: 'Transactions - Admin',
-            transactions: data.data.transactions,
+            transactions,
             pagination: data.data.pagination
           })
         } else {
@@ -347,6 +374,60 @@ router.get('/customers', async (req, res) => {
     res.render('admin/customers.njk', {
       title: 'Customers - Admin',
       customers: [],
+      error: error.message
+    })
+  }
+})
+
+router.get('/customers/:id', async (req, res) => {
+  try {
+    const id = req.params.id
+    const user = await db.User.findByPk(id)
+    if (!user) {
+      return res.render('admin/customer-detail.njk', {
+        title: 'Customer Details - Admin',
+        user: null,
+        subscriptions: [],
+        error: 'Customer not found'
+      })
+    }
+
+    const subs = await db.Subscription.findAll({
+      where: { userId: id },
+      include: [
+        { model: db.User, attributes: ['id', 'fullName', 'email', 'phoneNumber'] },
+        { model: db.Plan, as: 'plan', attributes: ['id', 'planName', 'cost', 'numberOfDays'], include: [{ model: db.Product, as: 'Product', attributes: ['id', 'name', 'category'] }] }
+      ],
+      order: [['createdAt', 'DESC']]
+    })
+
+    const subscriptions = subs.map(s => {
+      const o = s.get({ plain: true })
+      o.amount = o.amount != null ? parseFloat(o.amount) : 0
+      o.startDate = o.startDate ? new Date(o.startDate) : null
+      o.endDate = o.endDate ? new Date(o.endDate) : null
+      return o
+    })
+
+    const userData = user.get({ plain: true })
+    try {
+      userData.createdAt = userData.createdAt instanceof Date ? userData.createdAt : new Date(userData.createdAt)
+    } catch(e) { userData.createdAt = null }
+    try {
+      userData.updatedAt = userData.updatedAt instanceof Date ? userData.updatedAt : new Date(userData.updatedAt)
+    } catch(e) { userData.updatedAt = null }
+
+    res.render('admin/customer-detail.njk', {
+      title: 'Customer Details - Admin',
+      user: userData,
+      subscriptions
+    })
+  } catch (error) {
+    console.error('Error fetching customer details:', error)
+    res.render('admin/customer-detail.njk', {
+      title: 'Customer Details - Admin',
+      user: null,
+      subscriptions: [],
       error: error.message
     })
   }
