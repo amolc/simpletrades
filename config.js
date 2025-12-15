@@ -42,7 +42,7 @@ const config = {
     port: process.env.PORT || 3000,
     environment: process.env.NODE_ENV || 'development',
     cors: {
-      origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+      origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://sendsignals.online', 'http://sendsignals.online'],
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization']

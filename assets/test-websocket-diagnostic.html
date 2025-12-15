@@ -102,6 +102,10 @@
             }
 
             loadWebSocketManager() {
+                const configScript = document.createElement('script');
+                configScript.src = '/assets/js/websocket-config.js';
+                document.head.appendChild(configScript);
+                
                 const script = document.createElement('script');
                 script.src = '/assets/js/websocketManager.js';
                 script.onload = () => {

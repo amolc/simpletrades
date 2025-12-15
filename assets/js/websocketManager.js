@@ -29,7 +29,9 @@ class WebSocketManager {
         return new Promise((resolve, reject) => {
             try {
                 const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                const wsUrl = `${protocol}//${window.location.host}/ws/stream`;
+                // Allow configuration of WebSocket host via global variable or environment
+                const wsHost = (typeof window.WEBSOCKET_HOST !== 'undefined') ? window.WEBSOCKET_HOST : window.location.host;
+                const wsUrl = `${protocol}//${wsHost}/ws/stream`;
                 
                 this.ws = new WebSocket(wsUrl);
                 
