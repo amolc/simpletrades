@@ -12,11 +12,11 @@ const config = {
     dialect: 'mysql',
     
     // Database connection details
-    host: 'localhost',
+    host: 'quantbots.co',
     port: 3306,
-    database: 'stockagent',
-    username: 'root',
-    password: '',
+    database: 'stockagent_db',
+    username: 'simpletrades',
+    password: '10gXWOqeaf!',
     
     // Connection pool settings
     pool: {
@@ -83,7 +83,7 @@ const config = {
   // Security Settings
   security: {
     // JWT Secret (generate a strong random string)
-    jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-this',
+    jwtSecret: process.env.JWT_SECRET || 'your_jwt_secret_key',
     
     // Session settings
     sessionTimeout: 24 * 60 * 60 * 1000, // 24 hours in milliseconds

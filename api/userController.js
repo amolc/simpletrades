@@ -5,8 +5,11 @@ const { Op } = require('sequelize');
 // Get database instance
 const db = require('../models');
 
-// JWT secret from environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+// Load configuration from config.js
+const config = require('../config');
+
+// JWT secret from configuration
+const JWT_SECRET = process.env.JWT_SECRET || config.security.jwtSecret || 'your-secret-key';
 
 /**
  * User authentication and management controller

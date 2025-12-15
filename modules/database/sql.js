@@ -6,24 +6,27 @@
 const { Sequelize, QueryTypes } = require('sequelize');
 const logger = require('../utils/helpers').logger;
 
+// Load configuration from config.js
+const config = require('../../config');
+
 /**
  * Database connection pool configuration
  */
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  database: process.env.DB_NAME || 'stockagent',
-  username: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || '',
-  dialect: 'mysql',
-  pool: {
+  host: process.env.DB_HOST || config.database.host || 'localhost',
+  port: process.env.DB_PORT || config.database.port || 3306,
+  database: process.env.DB_NAME || config.database.database || 'stockagent',
+  username: process.env.DB_USER || config.database.username || 'root',
+  password: process.env.DB_PASSWORD || config.database.password || '',
+  dialect: config.database.dialect || 'mysql',
+  pool: config.database.pool || {
     max: 10,
     min: 0,
     acquire: 30000,
     idle: 10000
   },
-  logging: process.env.NODE_ENV === 'development' ? logger.debug : false,
-  retry: {
+  logging: process.env.NODE_ENV === 'development' ? logger.debug : (config.database.logging || false),
+  retry: config.database.retry || {
     max: 3,
     backoffBase: 1000,
     backoffExponent: 1.5

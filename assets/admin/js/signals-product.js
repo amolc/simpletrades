@@ -815,19 +815,56 @@ class ProductSignalsManager {
             this.showError('Please fill Symbol and Exchange');
             return;
         }
+
+        // Show loading state
+        const saveBtn = document.getElementById('saveWatchlistBtn');
+        const originalBtnText = saveBtn?.textContent || 'Save';
+        if (saveBtn) {
+            saveBtn.textContent = 'Fetching Price...';
+            saveBtn.disabled = true;
+        }
+
         let cp = 0;
+        let priceFetchSuccess = false;
+        
         try {
+            console.log(`[Watchlist] Fetching price for ${exchange}:${stockName}`);
             const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`);
             const d = await r.json();
-            if (d && d.success && typeof d.price === 'number') cp = d.price;
-        } catch(e){}
+            
+            if (d && d.success && typeof d.price === 'number') {
+                cp = d.price;
+                priceFetchSuccess = true;
+                console.log(`[Watchlist] Price fetched successfully: ${cp}`);
+            } else {
+                console.error(`[Watchlist] Price fetch failed: ${d.error || 'Unknown error'}`);
+                this.showError(`Price not available: ${d.error || 'Unable to fetch price for this symbol'}`);
+                
+                // Restore button state
+                if (saveBtn) {
+                    saveBtn.textContent = originalBtnText;
+                    saveBtn.disabled = false;
+                }
+                return;
+            }
+        } catch(e) {
+            console.error(`[Watchlist] Price fetch error: ${e.message}`);
+            this.showError('Failed to fetch price - please check your symbol and exchange');
+            
+            // Restore button state
+            if (saveBtn) {
+                saveBtn.textContent = originalBtnText;
+                saveBtn.disabled = false;
+            }
+            return;
+        }
 
         const watchlistData = {
             stockName,
             product: this.productName,
             exchange,
             currentPrice: cp,
-            alertPrice: cp
+            alertPrice: cp  // Set alert price to match current price
         };
 
         try {
@@ -855,6 +892,12 @@ class ProductSignalsManager {
         } catch (error) {
             console.error('Error saving watchlist item:', error);
             this.showError('Error saving watchlist item');
+        } finally {
+            // Restore button state
+            if (saveBtn) {
+                saveBtn.textContent = originalBtnText;
+                saveBtn.disabled = false;
+            }
         }
     }
 

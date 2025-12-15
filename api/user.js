@@ -2,11 +2,15 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
+// Load configuration from config.js
+const config = require('../config');
+const JWT_SECRET = process.env.JWT_SECRET || config.security.jwtSecret;
+
 const authenticate = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (authHeader) {
         const token = authHeader.split(' ')[1];
-        jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+        jwt.verify(token, JWT_SECRET, (err, user) => {
             if (err) {
                 // If token is invalid, redirect to login
                 return res.redirect('/admin/login');
@@ -43,7 +47,7 @@ const userController = (db) => {
                     return res.status(401).json({ message: 'Invalid credentials' });
                 }
 
-                const token = jwt.sign({ id: user.id, role: user.role || 'user' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+                const token = jwt.sign({ id: user.id, role: user.role || 'user' }, JWT_SECRET, { expiresIn: '24h' });
 
                 res.json({
                     token,
@@ -89,7 +93,7 @@ const userController = (db) => {
                 console.log('newUser.role before JWT sign:', newUser.role);
 
                 // Optionally, generate a token for the newly registered user
-                const token = jwt.sign({ id: newUser.id, role: role || 'user' }, process.env.JWT_SECRET, { expiresIn: '24h' });
+                const token = jwt.sign({ id: newUser.id, role: role || 'user' }, JWT_SECRET, { expiresIn: '24h' });
 
                 res.status(201).json({
                     message: 'User registered successfully',
@@ -128,7 +132,7 @@ const userController = (db) => {
                     return res.status(401).json({ message: 'Invalid credentials' });
                 }
 
-                const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '24h' });
+                const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
 
                 res.json({
                     token,

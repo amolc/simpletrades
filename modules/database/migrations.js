@@ -279,6 +279,7 @@ class SchemaMigrations {
             stockName VARCHAR(255) NOT NULL,
             exchange VARCHAR(50) DEFAULT 'NSE',
             product VARCHAR(50),
+            currentPrice DECIMAL(10,2),
             alertPrice DECIMAL(10,2),
             isActive BOOLEAN DEFAULT true,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -290,6 +291,28 @@ class SchemaMigrations {
       },
       async () => {
         await dbManager.execute('DROP TABLE IF EXISTS Watchlists');
+      }
+    );
+
+    // Fix watchlists table - add currentPrice field
+    this.migrationManager.registerMigration(
+      'add_currentPrice_to_watchlists',
+      async () => {
+        // Check if currentPrice column exists
+        const checkColumn = await dbManager.query(
+          "SELECT COUNT(*) as count FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'Watchlists' AND column_name = 'currentPrice'"
+        );
+        
+        if (checkColumn[0].count === 0) {
+          const sql = 'ALTER TABLE Watchlists ADD COLUMN currentPrice DECIMAL(10,2) AFTER product';
+          await dbManager.execute(sql);
+          logger.info('currentPrice column added to Watchlists table');
+        } else {
+          logger.info('currentPrice column already exists in Watchlists table');
+        }
+      },
+      async () => {
+        await dbManager.execute('ALTER TABLE Watchlists DROP COLUMN IF EXISTS currentPrice');
       }
     );
 

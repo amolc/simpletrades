@@ -37,14 +37,22 @@ const watchlistController = {
       }
       const payload = {
         stockName: (typeof req.body.stockName === 'string' ? req.body.stockName.trim() : req.body.stockName),
-        product: req.body.product,
-        exchange: req.body.exchange || null
+        product: (typeof req.body.product === 'string' ? req.body.product.trim() : req.body.product),
+        exchange: (typeof req.body.exchange === 'string' ? req.body.exchange.trim() : req.body.exchange) || null
       }
-      if (req.body.currentPrice !== undefined) payload.currentPrice = req.body.currentPrice
-      if (req.body.alertPrice !== undefined) payload.alertPrice = req.body.alertPrice
+      if (req.body.currentPrice !== undefined) {
+        payload.currentPrice = req.body.currentPrice;
+        console.log(`Creating watchlist with currentPrice: ${req.body.currentPrice}`);
+      }
+      if (req.body.alertPrice !== undefined) {
+        payload.alertPrice = req.body.alertPrice;
+        console.log(`Creating watchlist with alertPrice: ${req.body.alertPrice}`);
+      }
       const item = await db.Watchlist.create(payload)
+      console.log(`Watchlist created successfully: ${item.id} with currentPrice: ${item.currentPrice}, alertPrice: ${item.alertPrice}`);
       res.status(201).json({ success:true, data:item })
     }catch(err){
+      console.error('Watchlist creation error:', err);
       res.status(500).json({ success:false, error:err.message })
     }
   },
@@ -53,10 +61,24 @@ const watchlistController = {
       const item = await db.Watchlist.findByPk(req.params.id)
       if(!item) return res.status(404).json({ success:false, error:'Watchlist item not found' })
       const fields = ['stockName','product','exchange','currentPrice','alertPrice']
-      fields.forEach(f=>{ if(req.body[f]!==undefined) item[f] = (f === 'stockName' && typeof req.body[f] === 'string') ? req.body[f].trim() : req.body[f] })
+      fields.forEach(f=>{ 
+        if(req.body[f]!==undefined) {
+          const oldValue = item[f];
+          if (f === 'stockName' || f === 'product' || f === 'exchange') {
+            item[f] = typeof req.body[f] === 'string' ? req.body[f].trim() : req.body[f];
+          } else {
+            item[f] = req.body[f];
+          }
+          if (f === 'currentPrice' || f === 'alertPrice') {
+            console.log(`Updating ${f} for watchlist ${item.id}: ${oldValue} -> ${item[f]}`);
+          }
+        }
+      })
       await item.save()
+      console.log(`Watchlist updated successfully: ${item.id} with currentPrice: ${item.currentPrice}, alertPrice: ${item.alertPrice}`);
       res.json({ success:true, data:item })
     }catch(err){
+      console.error('Watchlist update error:', err);
       res.status(500).json({ success:false, error:err.message })
     }
   },
@@ -72,7 +94,11 @@ const watchlistController = {
 }
 
 // Ensure table exists on startup (async)
-db.Watchlist.sync({ alter: true }).catch(err => console.error('Watchlist sync error:', err));
+db.Watchlist.sync({ alter: true }).catch(err => {
+  console.error('Watchlist sync error:', err);
+  // If sync fails, try without alter to at least ensure table exists
+  db.Watchlist.sync().catch(err2 => console.error('Watchlist basic sync also failed:', err2));
+});
 
 
 module.exports = { watchlistController }

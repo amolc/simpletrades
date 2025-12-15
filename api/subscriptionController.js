@@ -2,7 +2,10 @@ const jwt = require('jsonwebtoken')
 const db = require('../models')
 const { Op } = require('sequelize')
 
-const JWT_SECRET = process.env.JWT_SECRET
+// Load configuration from config.js
+const config = require('../config')
+
+const JWT_SECRET = process.env.JWT_SECRET || config.security.jwtSecret
 
 async function createSubscription(req, res) {
   try {

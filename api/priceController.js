@@ -60,9 +60,10 @@ async function getQuote(req, res) {
     }
 
     const debugMode = (typeof req.query.debug !== 'undefined')
+    console.log(`[Price API] Fetching price for ${exchange}:${symbol}`)
     if (debugMode) console.log('WebSocket Price API called:', { symbol, exchange })
 
-    // INSTANT RESPONSE: Return cached price or fallback immediately
+    // Check cache first
     const cacheMap = (req.app && req.app.locals) ? req.app.locals.priceCache : null
     const readCache = (key) => {
       if (!cacheMap) return null
@@ -80,43 +81,82 @@ async function getQuote(req, res) {
     }
     
     if (cached) {
+      console.log(`[Price API] Cache hit for ${seriesKey}: ${cached.lp}`)
       const base = { success: true, symbol, exchange, price: Number(cached.lp), source: `cache:${seriesKey}` }
       if (debugMode) base.debug = { message: 'cache-hit' }
       return res.json(base)
     }
 
-    // Return instant fallback price for immediate response
-    const instantResult = { 
-      success: true, 
-      symbol, 
-      exchange, 
-      price: 150.00, // Instant fallback price
-      source: 'instant-fallback',
-      timestamp: Date.now()
-    }
-    if (debugMode) instantResult.debug = { message: 'instant-response' }
-    res.json(instantResult)
+    console.log(`[Price API] No cache found for ${seriesKey}, attempting real-time fetch`)
 
-    // Background: Try to get real price via WebSocket (non-blocking)
-    setTimeout(async () => {
-      try {
-        const wsInitialized = await tvWsAdapter.initializeConnection()
-        if (wsInitialized) {
-          const symbols = [{ symbol, exchange }]
-          await tvWsAdapter.startWebSocketFeed(symbols, (data) => {
-            if (data && data.lastPrice !== undefined && cacheMap) {
+    // Try to get real price via WebSocket first (blocking for accuracy)
+    try {
+      const wsInitialized = await tvWsAdapter.initializeConnection()
+      if (wsInitialized) {
+        console.log(`[Price API] WebSocket connection initialized, fetching real-time price`)
+        
+        return new Promise((resolve) => {
+          let priceFound = false
+          
+          tvWsAdapter.startWebSocketFeed([{ symbol, exchange }], (data) => {
+            if (data && data.lastPrice !== null && data.lastPrice !== undefined && !priceFound) {
+              priceFound = true
+              console.log(`[Price API] Real-time price received: ${data.lastPrice}`)
+              
               // Update cache for next time
-              cacheMap.set(seriesKey, { lp: data.lastPrice, timestamp: Date.now() })
-              if (debugMode) console.log('Updated cache with real price:', { symbol, price: data.lastPrice })
+              if (cacheMap) {
+                cacheMap.set(seriesKey, { lp: data.lastPrice, timestamp: Date.now() })
+                console.log(`[Price API] Updated cache for ${seriesKey}`)
+              }
+              
+              const result = { 
+                success: true, 
+                symbol, 
+                exchange, 
+                price: data.lastPrice,
+                source: 'real-time',
+                timestamp: Date.now()
+              }
+              if (debugMode) result.debug = { message: 'real-time-price' }
+              
+              resolve(res.json(result))
             }
           })
-        }
-      } catch (wsError) {
-        if (debugMode) console.log('Background WebSocket update failed:', wsError.message)
+          
+          // Timeout after 5 seconds if no price received
+          setTimeout(() => {
+            if (!priceFound) {
+              console.log(`[Price API] Timeout waiting for real-time price`)
+              const result = { 
+                success: false, 
+                error: 'Price not available - timeout waiting for real-time data',
+                symbol, 
+                exchange 
+              }
+              if (debugMode) result.debug = { message: 'real-time-timeout' }
+              resolve(res.status(404).json(result))
+            }
+          }, 5000)
+        })
       }
-    }, 0) // Run immediately in background
+    } catch (wsError) {
+      console.log(`[Price API] WebSocket error: ${wsError.message}`)
+    }
+
+    // If WebSocket fails or not available, return proper error
+    console.log(`[Price API] Price not available for ${exchange}:${symbol}`)
+    const errorResult = { 
+      success: false, 
+      error: `Price not available for ${exchange}:${symbol}`,
+      symbol, 
+      exchange 
+    }
+    if (debugMode) errorResult.debug = { message: 'price-not-available' }
+    
+    return res.status(404).json(errorResult)
 
   } catch (error) {
+    console.error(`[Price API] Internal error: ${error.message}`)
     const base = { success: false, error: error.message }
     if (['1','true','yes','on'].includes(String((req.query||{}).debug||'').toLowerCase())) base.debug = { message: 'internal error' }
     res.status(500).json(base)

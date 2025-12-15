@@ -8,8 +8,8 @@ module.exports = (sequelize, DataTypes) => {
     stockName: { type: DataTypes.STRING, allowNull: false },
     product: { type: DataTypes.STRING, allowNull: false },
     exchange: { type: DataTypes.STRING, allowNull: true },
-    currentPrice: { type: DataTypes.DECIMAL(12,2), allowNull: false, defaultValue: 0 },
-    alertPrice: { type: DataTypes.DECIMAL(12,2), allowNull: false, defaultValue: 0 },
+    currentPrice: { type: DataTypes.DECIMAL(12,2), allowNull: true },
+    alertPrice: { type: DataTypes.DECIMAL(12,2), allowNull: true },
   }, { sequelize, modelName: 'Watchlist' });
   return Watchlist;
 };

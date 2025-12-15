@@ -518,7 +518,7 @@ class ProductSignalsManager {
                 watchlistBtn.innerHTML = '<i class="fas fa-star"></i>';
                 watchlistBtn.title = 'Add to Watchlist';
                 watchlistBtn.addEventListener('click', () => {
-                    this.addToWatchlist(signal.symbol, 'NSE', signal.entry, signal.target);
+                    this.addToWatchlist(signal.symbol, 'NSE');
                 });
                 actionCell.insertBefore(watchlistBtn, actionCell.firstChild);
             }
@@ -663,12 +663,35 @@ class ProductSignalsManager {
         });
     }
 
-    async addToWatchlist(stockName, exchange = 'NSE', currentPrice = 0, alertPrice = 0) {
+    async addToWatchlist(stockName, exchange = 'NSE') {
+        console.log(`[Watchlist] Adding ${exchange}:${stockName} to watchlist`);
+        
+        // Fetch current price dynamically
+        let currentPrice = 0;
+        try {
+            console.log(`[Watchlist] Fetching price for ${exchange}:${stockName}`);
+            const response = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`);
+            const data = await response.json();
+            
+            if (data && data.success && typeof data.price === 'number') {
+                currentPrice = data.price;
+                console.log(`[Watchlist] Price fetched successfully: ${currentPrice}`);
+            } else {
+                console.error(`[Watchlist] Price fetch failed: ${data.error || 'Unknown error'}`);
+                this.showError(`Cannot add to watchlist: ${data.error || 'Price not available for this symbol'}`);
+                return;
+            }
+        } catch (error) {
+            console.error(`[Watchlist] Price fetch error: ${error.message}`);
+            this.showError('Cannot add to watchlist: Failed to fetch price - please check your symbol and exchange');
+            return;
+        }
+
         const watchlistData = {
             stockName,
             exchange,
             currentPrice,
-            alertPrice,
+            alertPrice: currentPrice, // Set alert price to match current price
             product: this.productName
         };
 
