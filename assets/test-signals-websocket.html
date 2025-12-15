@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Signals WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .log { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .error { background-color: #ffebee; color: #c62828; border: 1px solid #ef5350; }
+        .success { background-color: #e8f5e8; color: #2e7d32; border: 1px solid #66bb6a; }
+        .info { background-color: #e3f2fd; color: #1565c0; border: 1px solid #42a5f5; }
+        .warning { background-color: #fff3e0; color: #e65100; border: 1px solid #ffa726; }
+    </style>
+</head>
+<body>
+    <h1>Test Signals WebSocket Connection</h1>
+    <div id="status"></div>
+    <div id="logs"></div>
+    
+    <script>
+        class WebSocketTester {
+            constructor() {
+                this.logs = document.getElementById('logs');
+                this.status = document.getElementById('status');
+                this.testWebSocket();
+            }
+            
+            log(message, type = 'info') {
+                const timestamp = new Date().toLocaleTimeString();
+                const logEntry = document.createElement('div');
+                logEntry.className = `log ${type}`;
+                logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+                this.logs.appendChild(logEntry);
+                this.logs.scrollTop = this.logs.scrollHeight;
+            }
+            
+            testWebSocket() {
+                this.log('Testing WebSocket connection to signals page...', 'info');
+                
+                try {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const wsUrl = `${protocol}//${window.location.host}/ws/stream?symbol=BTCUSD&exchange=BINANCE`;
+                    
+                    this.log(`Connecting to: ${wsUrl}`, 'info');
+                    this.status.innerHTML = '<div class="log info">Connecting...</div>';
+                    
+                    const ws = new WebSocket(wsUrl);
+                    
+                    ws.onopen = () => {
+                        this.log('WebSocket connected successfully!', 'success');
+                        this.status.innerHTML = '<div class="log success">Connected</div>';
+                    };
+                    
+                    ws.onmessage = (event) => {
+                        this.log(`Message received: ${event.data}`, 'success');
+                        try {
+                            const data = JSON.parse(event.data);
+                            if (data.type === 'data' && data.data && data.data.lp) {
+                                this.log(`Price update: ${data.data.lp}`, 'success');
+                            }
+                        } catch (e) {
+                            this.log(`Error parsing message: ${e.message}`, 'error');
+                        }
+                    };
+                    
+                    ws.onerror = (error) => {
+                        this.log(`WebSocket error: ${error}`, 'error');
+                        this.status.innerHTML = '<div class="log error">Connection Error</div>';
+                    };
+                    
+                    ws.onclose = () => {
+                        this.log('WebSocket connection closed', 'warning');
+                        this.status.innerHTML = '<div class="log warning">Disconnected</div>';
+                    };
+                    
+                    // Close after 30 seconds for testing
+                    setTimeout(() => {
+                        ws.close();
+                        this.log('Test completed - connection closed after 30 seconds', 'info');
+                    }, 30000);
+                    
+                } catch (error) {
+                    this.log(`Failed to create WebSocket: ${error.message}`, 'error');
+                    this.status.innerHTML = '<div class="log error">Failed to create connection</div>';
+                }
+            }
+        }
+        
+        // Start the test when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebSocketTester();
+        });
+    </script>
+</body>
+</html>

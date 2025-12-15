@@ -42,60 +42,118 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function addStockSimple(){
-    const stockName = (document.getElementById('watchStock')?.value || '').trim();
-    const exchange = (document.getElementById('stockExchange')?.value || '').trim();
-    const sel = getSelectedProduct();
-    if (!stockName || !exchange) { alert('Please enter stock and exchange'); return; }
-    let price = NaN;
-    try { const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`); const d = await r.json(); if (d && d.success && typeof d.price === 'number') price = d.price; } catch(e){}
+    showInlineLoader();
     try {
-      showInlineLoader();
-      const cp = Number.isFinite(price) ? price : 0;
-      const body = { stockName, product: sel.name || 'Stocks', exchange, currentPrice: cp, alertPrice: cp };
+      const stockName = (document.getElementById('watchStock')?.value || '').trim();
+      const exchange = (document.getElementById('stockExchange')?.value || '').trim();
+      const sel = getSelectedProduct();
+      if (!stockName || !exchange) { 
+        alert('Please enter stock and exchange'); 
+        return; 
+      }
+      
+      let price = 0;
+      try { 
+        // Use a timeout for price fetch so it doesn't hang forever
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`, {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const d = await r.json(); 
+        if (d && d.success && typeof d.price === 'number') price = d.price; 
+      } catch(e){
+        console.warn('Price fetch failed, proceeding with 0:', e);
+      }
+
+      const body = { stockName, product: sel.name || 'Stocks', exchange, currentPrice: price, alertPrice: price };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
-      if (json && json.success) { hideInlineLoader(); watchModal.hide(); window.location.reload(); } else { hideInlineLoader(); alert('Error: ' + (json.error||'Unknown')); }
-    } catch(e){ hideInlineLoader(); alert('Network error'); }
+      
+      if (json && json.success) { 
+        watchModal.hide(); 
+        window.location.reload(); 
+      } else { 
+        alert('Error: ' + (json.error||'Unknown')); 
+      }
+    } catch(e){ 
+      console.error('Add stock error:', e);
+      alert('Network error or server unavailable'); 
+    } finally {
+      hideInlineLoader();
+    }
   }
+  
   async function addOptionATM(){
-    const underlying = (document.getElementById('optionUnderlying')?.value || '').trim();
-    const exchange = (document.getElementById('optionExchange')?.value || '').trim();
-    const expiry = document.getElementById('optionExpiry')?.value || '';
-    const offset = parseInt(document.getElementById('optionAtmOffset')?.value || '0', 10) || 0;
-    const sel = getSelectedProduct();
-    if (!underlying || !exchange || !expiry) { alert('Please enter option stock, exchange and expiry'); return; }
-    let price = NaN;
+    showInlineLoader();
     try {
-      const r = await fetch(`/api/price?symbol=${encodeURIComponent(underlying)}&exchange=${encodeURIComponent(exchange)}`);
-      const d = await r.json();
-      if (d && d.success && typeof d.price === 'number') price = d.price;
-    } catch(e){}
-    if (isNaN(price)) { alert('Could not fetch underlying price'); return; }
-    const step = (() => {
-      const s = underlying.toUpperCase();
-      if (s === 'NIFTY') return 50;
-      if (s === 'BANKNIFTY') return 100;
-      if (price < 100) return 5;
-      if (price < 200) return 10;
-      if (price < 1000) return 20;
-      return 50;
-    })();
-    const atm = Math.round(price / step) * step;
-    const strike = atm + offset * step;
-    const fmt = (ds) => { const d = new Date(ds); const yy = String(d.getFullYear()).slice(-2); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${yy}${mm}${dd}`; };
-    const cpType = (document.getElementById('optionCpType')?.value || 'CALL').toUpperCase();
-    const cpLetter = cpType === 'PUT' ? 'P' : 'C';
-    const sym = `${underlying.toUpperCase()}${fmt(expiry)}${cpLetter}${strike}`;
-    try {
-      showInlineLoader();
-      let cp = NaN;
-      try { const r2 = await fetch(`/api/price?symbol=${encodeURIComponent(sym)}&exchange=${encodeURIComponent(exchange)}`); const d2 = await r2.json(); if (d2 && d2.success && typeof d2.price === 'number') cp = d2.price; } catch(e){}
-      const priceFinal = Number.isFinite(cp) ? cp : 0;
-      const body = { stockName: sym, product: sel.name || 'Options', exchange, currentPrice: priceFinal, alertPrice: priceFinal };
+      const underlying = (document.getElementById('optionUnderlying')?.value || '').trim();
+      const exchange = (document.getElementById('optionExchange')?.value || '').trim();
+      const expiry = document.getElementById('optionExpiry')?.value || '';
+      const offset = parseInt(document.getElementById('optionAtmOffset')?.value || '0', 10) || 0;
+      const sel = getSelectedProduct();
+      
+      if (!underlying || !exchange || !expiry) { 
+        alert('Please enter option stock, exchange and expiry'); 
+        return; 
+      }
+      
+      let price = NaN;
+      try {
+        const r = await fetch(`/api/price?symbol=${encodeURIComponent(underlying)}&exchange=${encodeURIComponent(exchange)}`);
+        const d = await r.json();
+        if (d && d.success && typeof d.price === 'number') price = d.price;
+      } catch(e){
+        console.error('Underlying price fetch error:', e);
+      }
+      
+      if (isNaN(price)) { 
+        alert('Could not fetch underlying price. Cannot calculate ATM strike.'); 
+        return; 
+      }
+      
+      const step = (() => {
+        const s = underlying.toUpperCase();
+        if (s === 'NIFTY') return 50;
+        if (s === 'BANKNIFTY') return 100;
+        if (price < 100) return 5;
+        if (price < 200) return 10;
+        if (price < 1000) return 20;
+        return 50;
+      })();
+      
+      const atm = Math.round(price / step) * step;
+      const strike = atm + offset * step;
+      const fmt = (ds) => { const d = new Date(ds); const yy = String(d.getFullYear()).slice(-2); const mm = String(d.getMonth()+1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${yy}${mm}${dd}`; };
+      const cpType = (document.getElementById('optionCpType')?.value || 'CALL').toUpperCase();
+      const cpLetter = cpType === 'PUT' ? 'P' : 'C';
+      const sym = `${underlying.toUpperCase()}${fmt(expiry)}${cpLetter}${strike}`;
+      
+      let cp = 0;
+      try { 
+        const r2 = await fetch(`/api/price?symbol=${encodeURIComponent(sym)}&exchange=${encodeURIComponent(exchange)}`); 
+        const d2 = await r2.json(); 
+        if (d2 && d2.success && typeof d2.price === 'number') cp = d2.price; 
+      } catch(e){}
+      
+      const body = { stockName: sym, product: sel.name || 'Options', exchange, currentPrice: cp, alertPrice: cp };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
-      if (json && json.success) { hideInlineLoader(); watchModal.hide(); window.location.reload(); } else { hideInlineLoader(); alert('Error: ' + (json.error||'Unknown')); }
-    } catch(e){ hideInlineLoader(); alert('Network error'); }
+      
+      if (json && json.success) { 
+        watchModal.hide(); 
+        window.location.reload(); 
+      } else { 
+        alert('Error: ' + (json.error||'Unknown')); 
+      }
+    } catch(e){ 
+      console.error('Add option error:', e);
+      alert('Network error'); 
+    } finally {
+      hideInlineLoader();
+    }
   }
   addStockBtn?.addEventListener('click', addStockSimple);
   addOptionStockBtn?.addEventListener('click', addOptionATM);
@@ -471,96 +529,118 @@ document.addEventListener('DOMContentLoaded', () => {
   watchModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
   signalCreateModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
   signalCloseModalEl?.addEventListener('hidden.bs.modal', () => { window.location.reload() })
-  try {
-    const tbl = document.getElementById('watchlistBody');
-    if (tbl) {
-      const rows = Array.from(tbl.querySelectorAll('tr'));
-      const sockets = [];
-      const origin = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
-      function mapDefaultExchange(prod){
+  // WebSocket Integration using wsManager
+  async function initWebSockets() {
+    if (!window.wsManager) {
+      console.warn('wsManager not found, skipping WebSocket initialization');
+      return;
+    }
+
+    try {
+      await window.wsManager.connect();
+    } catch (err) {
+      console.error('Failed to connect WebSocket:', err);
+    }
+
+    const subscriptions = [];
+    const symbolMap = new Map(); // Map "exchange:symbol" to array of callback functions
+
+    function mapDefaultExchange(prod) {
         const s = String(prod||'').toLowerCase();
         if (s === 'crypto') return 'BINANCE';
         if (s === 'stocks' || s === 'options') return 'NSE';
         if (s === 'forex') return 'FOREX';
         if (s === 'commodity') return 'COMEX';
-        return 'BINANCE';
-      }
-      rows.forEach((row) => {
+        return 'NSE'; // Default fallback
+    }
+
+    // 1. Process Watchlist Table
+    const watchlistTbl = document.getElementById('watchlistBody');
+    if (watchlistTbl) {
+      const rows = Array.from(watchlistTbl.querySelectorAll('tr'));
+      rows.forEach(row => {
         const cells = row.querySelectorAll('td');
         const symbol = String(cells[0]?.textContent || '').trim();
         const product = String(cells[1]?.textContent || '').trim();
         const exCell = String(cells[2]?.textContent || '').trim();
         const exchange = exCell && exCell !== '-' ? exCell : mapDefaultExchange(product);
-        if (!symbol) return;
-        const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
-        try {
-          const ws = new WebSocket(url);
-          ws.onmessage = (ev) => {
-            try {
-              const msg = JSON.parse(ev.data);
-              if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
-                const price = Number(msg.data.lp);
-                if (Number.isFinite(price)) {
-                  const priceCell = cells[3];
-                  if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
-                }
-              }
-            } catch(e){}
-          };
-          ws.onerror = () => {};
-          sockets.push(ws);
-        } catch(e){}
-      });
-      window.addEventListener('beforeunload', () => { sockets.forEach(s => { try { s.close() } catch(e){} }) });
-    }
-  } catch(e){}
+        const priceCell = cells[3];
 
-  try {
-    const sTbl = document.getElementById('signalsBody');
-    if (sTbl) {
-      const rows = Array.from(sTbl.querySelectorAll('tr'));
-      const sockets = [];
-      const origin = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
-      const fallbackEx = (txt) => (txt && txt.trim() && txt.trim() !== '-' ? txt.trim() : 'NSE');
-      rows.forEach((row) => {
+        if (symbol && priceCell) {
+          subscriptions.push({ symbol, exchange });
+          const key = `${exchange}:${symbol}`.toUpperCase().replace(/\s+/g, '');
+          if (!symbolMap.has(key)) symbolMap.set(key, []);
+          
+          symbolMap.get(key).push((data) => {
+             if (Number.isFinite(data.price)) {
+               priceCell.textContent = `Rs ${data.price.toFixed(2)}`;
+             }
+          });
+        }
+      });
+    }
+
+    // 2. Process Signals Table
+    const signalsTbl = document.getElementById('signalsBody');
+    if (signalsTbl) {
+      const rows = Array.from(signalsTbl.querySelectorAll('tr'));
+      rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        const symbol = String(cells[1]?.textContent || '').trim();
-        const exchange = fallbackEx(String(cells[2]?.textContent || '').trim());
-        if (!symbol) return;
-        const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
-        try {
-          const ws = new WebSocket(url);
-          ws.onmessage = (ev) => {
-            try {
-              const msg = JSON.parse(ev.data);
-              if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
-                const price = Number(msg.data.lp);
-                if (Number.isFinite(price)) {
-                  const priceCell = cells[3];
-                  if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
-                  // Update live P/L for IN_PROGRESS rows
-                  const typeTxt = String(cells[4]?.textContent || '').trim().toUpperCase();
-                  const entryVal = parseFloat(String(cells[5]?.textContent || '').replace(/Rs\s?|₹/g, ''));
-                  if (Number.isFinite(entryVal)) {
-                    let pl = 0;
-                    if (typeTxt === 'BUY') pl = price - entryVal; else pl = entryVal - price;
-                    const plCell = cells[10];
-                    if (plCell) {
-                      const abs = Math.abs(pl).toFixed(2);
-                      plCell.innerHTML = pl >= 0 ? `<span class="text-success">+Rs ${abs}</span>` : `<span class="text-danger">-Rs ${abs}</span>`;
-                    }
-                  }
+        const symbolCell = cells[1]; // Symbol is in 2nd column
+        const symbol = String(symbolCell?.textContent || '').trim();
+        const exCell = String(cells[2]?.textContent || '').trim();
+        const exchange = exCell && exCell !== '-' ? exCell : 'NSE';
+        const priceCell = cells[3]; // Live Price is in 4th column
+        
+        if (symbol && priceCell) {
+           subscriptions.push({ symbol, exchange });
+           const key = `${exchange}:${symbol}`.toUpperCase().replace(/\s+/g, '');
+           if (!symbolMap.has(key)) symbolMap.set(key, []);
+           
+           symbolMap.get(key).push((data) => {
+              const price = data.price;
+              if (Number.isFinite(price)) {
+                priceCell.textContent = `Rs ${price.toFixed(2)}`;
+                
+                // Update P&L
+                const typeTxt = String(cells[4]?.textContent || '').trim().toUpperCase();
+                const entryVal = parseFloat(String(cells[5]?.textContent || '').replace(/Rs\s?|₹/g, ''));
+                const plCell = cells[10];
+                
+                if (Number.isFinite(entryVal) && plCell) {
+                   let pl = 0;
+                   if (typeTxt === 'BUY') pl = price - entryVal;
+                   else if (typeTxt === 'SELL') pl = entryVal - price;
+                   
+                   const abs = Math.abs(pl).toFixed(2);
+                   plCell.innerHTML = pl >= 0 
+                     ? `<span class="text-success">+Rs ${abs}</span>`
+                     : `<span class="text-danger">-Rs ${abs}</span>`;
                 }
               }
-            } catch(e){}
-          };
-          ws.onerror = () => {};
-          sockets.push(ws);
-        } catch(e){}
+           });
+        }
       });
-      window.addEventListener('beforeunload', () => { sockets.forEach(s => { try { s.close() } catch(e){} }) });
     }
-  } catch(e){}
+
+    // 3. Subscribe and Listen
+    if (subscriptions.length > 0) {
+      window.wsManager.subscribe(subscriptions);
+      
+      window.wsManager.on('price_update', (data) => {
+        // Log received price for debugging
+        console.log(`[Price Update] ${data.exchange}:${data.symbol} = Rs ${data.price}`);
+        
+        const key = `${data.exchange}:${data.symbol}`.toUpperCase().replace(/\s+/g, '');
+        const handlers = symbolMap.get(key);
+        if (handlers) {
+          handlers.forEach(handler => handler(data));
+        }
+      });
+    }
+  }
+
+  initWebSockets();
 });
   // Option symbol generation for dashboard modal
   const genBtn = document.getElementById('generateOptionSymbolsBtn');

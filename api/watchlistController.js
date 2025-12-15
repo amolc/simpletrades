@@ -1,13 +1,8 @@
 const db = require('../models')
 
-async function ensureTable(){
-  await db.Watchlist.sync({ alter: true })
-}
-
 const watchlistController = {
   async getAll(req,res){
     try{
-      await ensureTable()
       const where={}
       if(req.query.product) where.product = req.query.product
       const list = await db.Watchlist.findAll({ where, order:[['updatedAt','DESC']] })
@@ -25,7 +20,6 @@ const watchlistController = {
   },
   async getById(req,res){
     try{
-      await ensureTable()
       const item = await db.Watchlist.findByPk(req.params.id)
       if(!item) return res.status(404).json({ success:false, error:'Watchlist item not found' })
       res.json({ success:true, data:item })
@@ -35,7 +29,6 @@ const watchlistController = {
   },
   async create(req,res){
     try{
-      await ensureTable()
       const missing = []
       if (req.body.stockName===undefined || req.body.stockName==='') missing.push('stockName')
       if (req.body.product===undefined || req.body.product==='') missing.push('product')
@@ -43,7 +36,7 @@ const watchlistController = {
         return res.status(400).json({ success:false, error:`Missing required fields: ${missing.join(', ')}` })
       }
       const payload = {
-        stockName: req.body.stockName,
+        stockName: (typeof req.body.stockName === 'string' ? req.body.stockName.trim() : req.body.stockName),
         product: req.body.product,
         exchange: req.body.exchange || null
       }
@@ -57,11 +50,10 @@ const watchlistController = {
   },
   async update(req,res){
     try{
-      await ensureTable()
       const item = await db.Watchlist.findByPk(req.params.id)
       if(!item) return res.status(404).json({ success:false, error:'Watchlist item not found' })
       const fields = ['stockName','product','exchange','currentPrice','alertPrice']
-      fields.forEach(f=>{ if(req.body[f]!==undefined) item[f]=req.body[f] })
+      fields.forEach(f=>{ if(req.body[f]!==undefined) item[f] = (f === 'stockName' && typeof req.body[f] === 'string') ? req.body[f].trim() : req.body[f] })
       await item.save()
       res.json({ success:true, data:item })
     }catch(err){
@@ -70,7 +62,6 @@ const watchlistController = {
   },
   async remove(req,res){
     try{
-      await ensureTable()
       const count = await db.Watchlist.destroy({ where:{ id:req.params.id } })
       if(!count) return res.status(404).json({ success:false, error:'Watchlist item not found' })
       res.json({ success:true, message:'Deleted' })
@@ -79,5 +70,9 @@ const watchlistController = {
     }
   }
 }
+
+// Ensure table exists on startup (async)
+db.Watchlist.sync({ alter: true }).catch(err => console.error('Watchlist sync error:', err));
+
 
 module.exports = { watchlistController }

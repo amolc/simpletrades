@@ -1,0 +1,12 @@
+{
+  "name": "tradingview-selenium-login",
+  "version": "1.0.0",
+  "description": "Selenium-based TradingView login automation",
+  "main": "tradingview-selenium-login.js",
+  "scripts": {
+    "login": "node tradingview-selenium-login.js"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.15.0"
+  }
+}

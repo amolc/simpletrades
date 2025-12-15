@@ -3,8 +3,17 @@
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/e2e",
+    "test:verbose": "jest --verbose",
+    "lint": "eslint modules/ server.js --ext .js",
+    "lint:fix": "eslint modules/ server.js --ext .js --fix",
     "start": "node server.js",
+    "start:dev": "nodemon server.js",
     "start:auto": "AUTOMATE_INTERVAL_MS=10000 node server.js",
     "start:auto:fast": "AUTOMATE_INTERVAL_MS=5000 node server.js",
     "start:once": "AUTOMATE_INTERVAL_MS=0 node server.js"
@@ -20,12 +29,26 @@
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
     "express": "^5.1.0",
+    "https-proxy-agent": "^7.0.6",
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.15.3",
     "nunjucks": "^3.2.4",
+    "selenium-webdriver": "^4.39.0",
     "sequelize": "^6.37.7",
     "sequelize-cli": "^6.6.3",
+    "socket.io-client": "^4.8.1",
+    "supertest": "^6.3.3",
     "tradingview-api-adapter": "^1.2.2",
+    "tradingview-ws": "^0.0.3",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.0",
+    "babel-jest": "^29.7.0",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "jest-watch-typeahead": "^2.2.2",
+    "nodemon": "^3.0.1"
   }
 }

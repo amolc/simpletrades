@@ -10,6 +10,9 @@ class ProductSignalsManager {
             symbol: '',
             date: ''
         };
+        this.watchlistItems = [];
+        this.watchlistSubscriptions = new Set();
+        this.unsubscribeWatchlistUpdates = null;
         this.init();
     }
 
@@ -19,6 +22,8 @@ class ProductSignalsManager {
         this.setupFilters();
         // Signals are already loaded via server-side rendering
         this.loadSignalsFromTable();
+        this.loadWatchlist();
+        this.setupWebSocket();
     }
 
     bindEvents() {
@@ -157,7 +162,7 @@ class ProductSignalsManager {
         rows.forEach(row => {
             if (row.dataset.signalId) {
                 const cells = row.cells;
-                this.signals.push({
+                const signal = {
                     id: row.dataset.signalId,
                     symbol: cells[0].textContent.trim(),
                     signalType: cells[1].textContent.trim(),
@@ -170,7 +175,9 @@ class ProductSignalsManager {
                     status: this.getStatusFromBadge(cells[8].innerHTML),
                     profitLoss: this.getProfitLossFromCell(cells[9]),
                     createdAt: cells[10].textContent.trim()
-                });
+                };
+                this.signals.push(signal);
+                this.addQuickWatchlistButton(signal);
             }
         });
         
@@ -440,13 +447,29 @@ class ProductSignalsManager {
             const result = await response.json();
             if (result.success) {
                 this.showSuccess(watchlistId ? 'Watchlist item updated successfully' : 'Watchlist item added successfully');
-                // Close modal and reload page
+                
+                // Update local watchlist items and subscribe to new symbol
+                if (!watchlistId) {
+                    // New item added
+                    this.watchlistItems.push(result.data);
+                    this.subscribeToWatchlistItems();
+                    this.updateWatchlistDisplay();
+                } else {
+                    // Existing item updated
+                    const index = this.watchlistItems.findIndex(item => item.id == watchlistId);
+                    if (index !== -1) {
+                        this.watchlistItems[index] = result.data;
+                        this.subscribeToWatchlistItems();
+                        this.updateWatchlistDisplay();
+                    }
+                }
+                
+                // Close modal
                 const modalElement = document.getElementById('watchlistModal');
                 const modal = bootstrap.Modal.getInstance(modalElement);
                 if (modal) {
                     modal.hide();
                 }
-                setTimeout(() => location.reload(), 1500);
             } else {
                 this.showError(result.message || 'Failed to save watchlist item');
             }
@@ -471,8 +494,10 @@ class ProductSignalsManager {
             const result = await response.json();
             if (result.success) {
                 this.showSuccess('Watchlist item deleted successfully');
-                // Reload the page to show updated data
-                setTimeout(() => location.reload(), 1500);
+                // Remove from local watchlist items
+                this.watchlistItems = this.watchlistItems.filter(item => item.id != watchlistId);
+                this.subscribeToWatchlistItems();
+                this.updateWatchlistDisplay();
             } else {
                 this.showError('Failed to delete watchlist item');
             }
@@ -481,11 +506,195 @@ class ProductSignalsManager {
             this.showError('Error deleting watchlist item');
         }
     }
+
+    addQuickWatchlistButton(signal) {
+        // Add a quick "Add to Watchlist" button to signal rows
+        const signalRow = document.querySelector(`tr[data-signal-id="${signal.id}"]`);
+        if (signalRow && !signalRow.querySelector('.watchlist-btn')) {
+            const actionCell = signalRow.querySelector('td:last-child');
+            if (actionCell) {
+                const watchlistBtn = document.createElement('button');
+                watchlistBtn.className = 'btn btn-sm btn-outline-info watchlist-btn ms-1';
+                watchlistBtn.innerHTML = '<i class="fas fa-star"></i>';
+                watchlistBtn.title = 'Add to Watchlist';
+                watchlistBtn.addEventListener('click', () => {
+                    this.addToWatchlist(signal.symbol, 'NSE', signal.entry, signal.target);
+                });
+                actionCell.insertBefore(watchlistBtn, actionCell.firstChild);
+            }
+        }
+    }
+
+    destroy() {
+        // Cleanup WebSocket subscriptions
+        if (this.unsubscribeWatchlistUpdates) {
+            this.unsubscribeWatchlistUpdates();
+        }
+        
+        // Unsubscribe from all watchlist symbols
+        if (window.wsManager && window.wsManager.isConnected()) {
+            const symbols = Array.from(this.watchlistSubscriptions).map(key => {
+                const [exchange, symbol] = key.split(':');
+                return { symbol, exchange };
+            });
+            if (symbols.length > 0) {
+                window.wsManager.unsubscribe(symbols);
+            }
+        }
+    }
     
     // Test function to manually trigger watchlist modal
     testWatchlistModal() {
         console.log('Testing watchlist modal manually...');
         this.showWatchlistModal();
+    }
+
+    // WebSocket and Watchlist Integration Methods
+    setupWebSocket() {
+        if (!window.wsManager) {
+            setTimeout(() => this.setupWebSocket(), 100);
+            return;
+        }
+        
+        window.wsManager.connect().then(() => {
+            console.log('Product Signals WebSocket connected');
+            this.subscribeToWatchlistItems();
+            this.unsubscribeWatchlistUpdates = window.wsManager.on('price_update', (data) => {
+                this.handleWatchlistPriceUpdate(data);
+            });
+        }).catch(error => {
+            console.error('Failed to connect WebSocket for product signals:', error);
+        });
+    }
+
+    async loadWatchlist() {
+        try {
+            const response = await fetch(`/api/watchlist?product=${encodeURIComponent(this.productName)}`);
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                this.watchlistItems = result.data;
+                this.subscribeToWatchlistItems();
+                this.updateWatchlistDisplay();
+            }
+        } catch (error) {
+            console.error('Error loading watchlist:', error);
+        }
+    }
+
+    subscribeToWatchlistItems() {
+        if (!window.wsManager || !window.wsManager.isConnected() || this.watchlistItems.length === 0) {
+            return;
+        }
+
+        const symbols = this.watchlistItems.map(item => ({
+            symbol: item.stockName,
+            exchange: item.exchange || 'NSE'
+        }));
+
+        if (symbols.length > 0) {
+            const subscribedSymbols = window.wsManager.subscribe(symbols);
+            subscribedSymbols.forEach(({ symbol, exchange }) => {
+                const seriesKey = `${exchange}:${symbol}`.toUpperCase().replace(/\s+/g, '');
+                this.watchlistSubscriptions.add(seriesKey);
+            });
+            console.log('Subscribed to watchlist symbols:', subscribedSymbols);
+        }
+    }
+
+    handleWatchlistPriceUpdate(data) {
+        if (!data || !data.key) return;
+
+        // Update watchlist items with new prices
+        this.watchlistItems.forEach(item => {
+            const seriesKey = `${item.exchange || 'NSE'}:${item.stockName}`.toUpperCase().replace(/\s+/g, '');
+            if (seriesKey === data.key) {
+                item.currentPrice = data.price;
+                this.updateWatchlistDisplay();
+            }
+        });
+    }
+
+    updateWatchlistDisplay() {
+        // Update watchlist table if it exists
+        const watchlistTable = document.querySelector('#watchlistTable');
+        if (watchlistTable) {
+            const tbody = watchlistTable.querySelector('tbody');
+            if (tbody) {
+                tbody.innerHTML = this.watchlistItems.map(item => `
+                    <tr data-watchlist-id="${item.id}">
+                        <td>${item.stockName}</td>
+                        <td>${item.exchange || 'NSE'}</td>
+                        <td>₹${item.currentPrice ? item.currentPrice.toFixed(2) : '0.00'}</td>
+                        <td>₹${item.alertPrice ? item.alertPrice.toFixed(2) : '0.00'}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" data-action="edit-watchlist" data-wid="${item.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" data-action="delete-watchlist" data-wid="${item.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Update any watchlist price displays in signal rows
+        this.watchlistItems.forEach(item => {
+            const priceElements = document.querySelectorAll(`[data-watchlist-price="${item.stockName}"]`);
+            priceElements.forEach(element => {
+                element.textContent = `₹${item.currentPrice ? item.currentPrice.toFixed(2) : '0.00'}`;
+                element.classList.add('text-success');
+            });
+        });
+
+        // Update live price cells for watchlist items
+        this.watchlistItems.forEach(item => {
+            const livePriceCells = document.querySelectorAll(`#productSignalsTable tr[data-signal-id] td:nth-child(4)`);
+            livePriceCells.forEach(cell => {
+                const row = cell.closest('tr');
+                const symbol = row.querySelector('td:nth-child(2) a strong')?.textContent;
+                if (symbol === item.stockName) {
+                    cell.textContent = `₹${item.currentPrice ? item.currentPrice.toFixed(2) : '0.00'}`;
+                    cell.classList.add('text-success');
+                }
+            });
+        });
+    }
+
+    async addToWatchlist(stockName, exchange = 'NSE', currentPrice = 0, alertPrice = 0) {
+        const watchlistData = {
+            stockName,
+            exchange,
+            currentPrice,
+            alertPrice,
+            product: this.productName
+        };
+
+        try {
+            const response = await fetch('/api/watchlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(watchlistData)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                // Add to local watchlist items
+                this.watchlistItems.push(result.data);
+                this.subscribeToWatchlistItems();
+                this.updateWatchlistDisplay();
+                this.showSuccess('Added to watchlist successfully');
+            } else {
+                this.showError('Failed to add to watchlist');
+            }
+        } catch (error) {
+            console.error('Error adding to watchlist:', error);
+            this.showError('Error adding to watchlist');
+        }
     }
 }
 

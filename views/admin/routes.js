@@ -379,6 +379,18 @@ router.get('/customers', async (req, res) => {
   }
 })
 
+router.get('/debug', (req, res) => {
+  try {
+    const q = {
+      symbol: (req.query && req.query.symbol) || '',
+      exchange: (req.query && req.query.exchange) || 'NSE'
+    }
+    res.render('admin/debug.njk', { title: 'Debug - Admin', q })
+  } catch (error) {
+    res.render('admin/debug.njk', { title: 'Debug - Admin', error: error.message, q: { symbol: '', exchange: 'NSE' } })
+  }
+})
+
 router.get('/customers/:id', async (req, res) => {
   try {
     const id = req.params.id

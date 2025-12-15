@@ -143,17 +143,7 @@ const plansController = {
         });
       }
 
-      // Check if plan name already exists
-      const existingPlan = await db.Plan.findOne({
-        where: { planName: planName }
-      });
-
-      if (existingPlan) {
-        return res.status(409).json({
-          success: false,
-          error: 'Plan with this name already exists'
-        });
-      }
+      
 
       // Resolve product reference
       let resolvedProductId = productId
@@ -228,18 +218,7 @@ const plansController = {
         });
       }
 
-      // Validate plan name uniqueness if being changed
-      if (planName && planName !== plan.planName) {
-        const existingPlan = await db.Plan.findOne({
-          where: { planName: planName }
-        });
-        if (existingPlan) {
-          return res.status(409).json({
-            success: false,
-            error: 'Plan with this name already exists'
-          });
-        }
-      }
+      
 
       // Validate numberOfDays if provided
       if (numberOfDays && (numberOfDays < 1 || numberOfDays > 3650)) {

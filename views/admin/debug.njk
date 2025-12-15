@@ -1,0 +1,182 @@
+{% extends "admin/layout.njk" %}
+{% block title %}Debug - Admin{% endblock %}
+{% block content %}
+<div class="container-fluid">
+  <div class="mt-4 mb-3 d-flex justify-content-between align-items-center">
+    <h2 class="mb-0">Market Debug</h2>
+    <a href="/admin/signals" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-1"></i>Back</a>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">Query Price</h5></div>
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label" for="dbgSymbol">Symbol</label>
+          <input class="form-control" id="dbgSymbol" type="text" value="{{ q.symbol }}" placeholder="e.g., INFY251216C1600 or INFY30DEC251600CE">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="dbgExchange">Exchange</label>
+          <select class="form-select" id="dbgExchange">
+            <option value="NSE" {% if q.exchange=='NSE' %}selected{% endif %}>NSE</option>
+            <option value="NFO" {% if q.exchange=='NFO' %}selected{% endif %}>NFO</option>
+            <option value="INDEX" {% if q.exchange=='INDEX' %}selected{% endif %}>INDEX</option>
+            <option value="BINANCE" {% if q.exchange=='BINANCE' %}selected{% endif %}>BINANCE</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <button id="dbgQueryBtn" class="btn btn-primary">Fetch /api/price (debug)</button>
+        </div>
+      </div>
+      <div class="mt-3">
+        <pre id="dbgOutput" class="border rounded p-3" style="min-height:160px; background:#f8fafc"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">TradingView Session</h5></div>
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+          <label class="form-label" for="tvToken">TV Session Token</label>
+          <input class="form-control" id="tvToken" type="text" value="" placeholder="tv_session">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label" for="tvSig">TV Signature (optional)</label>
+          <input class="form-control" id="tvSig" type="text" value="" placeholder="tv_signature">
+        </div>
+        <div class="col-md-2">
+          <button id="tvSetBtn" class="btn btn-outline-primary">Set Session</button>
+        </div>
+      </div>
+      <div class="mt-3">
+        <pre id="tvSetOut" class="border rounded p-3" style="min-height:120px; background:#f8fafc"></pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">TradingView Adapter Feed (Singleton)</h5></div>
+    <div class="card-body">
+      <div class="d-flex gap-2 mb-3">
+        <button id="adapterStartBtn" class="btn btn-success btn-sm">Start Feed</button>
+        <button id="adapterStopBtn" class="btn btn-danger btn-sm">Stop Feed</button>
+        <button id="adapterStatusBtn" class="btn btn-outline-secondary btn-sm">Get Status</button>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="adapterExtraSymbols">Extra Symbols (JSON array)</label>
+        <textarea class="form-control" id="adapterExtraSymbols" rows="2" placeholder='[{"symbol": "NIFTY", "exchange": "NSE"}]'>[{"symbol": "NIFTY", "exchange": "NSE"}]</textarea>
+      </div>
+      <pre id="adapterOutput" class="border rounded p-3" style="min-height:120px; background:#f8fafc"></pre>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">Active Stream Subscriptions</h5></div>
+    <div class="card-body">
+      <div class="d-flex gap-2 mb-3">
+        <button id="dbgReloadSubs" class="btn btn-outline-secondary btn-sm">Reload</button>
+      </div>
+      <pre id="dbgSubs" class="border rounded p-3" style="min-height:120px; background:#f8fafc"></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const out = (el, obj) => { el.textContent = typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2) }
+  const symEl = document.getElementById('dbgSymbol')
+  const exEl = document.getElementById('dbgExchange')
+  const outEl = document.getElementById('dbgOutput')
+  const subsEl = document.getElementById('dbgSubs')
+  const btn = document.getElementById('dbgQueryBtn')
+  const reloadBtn = document.getElementById('dbgReloadSubs')
+  const tvSetBtn = document.getElementById('tvSetBtn')
+  const tvTokenEl = document.getElementById('tvToken')
+  const tvSigEl = document.getElementById('tvSig')
+  const tvOutEl = document.getElementById('tvSetOut')
+  async function fetchPrice(){
+    const s = (symEl.value||'').trim()
+    const e = (exEl.value||'').trim()
+    if (!s){ out(outEl, 'Enter symbol'); return }
+    try{
+      const r = await fetch(`/api/price?symbol=${encodeURIComponent(s)}&exchange=${encodeURIComponent(e)}&debug=1`)
+      const j = await r.json()
+      out(outEl, j)
+    }catch(err){ out(outEl, { success:false, error: String(err&&err.message||err) }) }
+  }
+  async function loadSubs(){
+    try{
+      const r = await fetch('/api/stream/subscriptions')
+      const j = await r.json()
+      out(subsEl, j)
+    }catch(err){ out(subsEl, { success:false, error: String(err&&err.message||err) }) }
+  }
+  btn?.addEventListener('click', fetchPrice)
+  reloadBtn?.addEventListener('click', loadSubs)
+  tvSetBtn?.addEventListener('click', async () => {
+    const t = (tvTokenEl.value||'').trim()
+    const s = (tvSigEl.value||'').trim()
+    if (!t){ out(tvOutEl, 'Enter tv_session token'); return }
+    try{
+      const r = await fetch('/api/tradingview/token', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ token:t, signature:s }) })
+      const j = await r.json().catch(()=>({ success:false, error:'no_json' }))
+      out(tvOutEl, j)
+    }catch(err){ out(tvOutEl, { success:false, error: String(err&&err.message||err) }) }
+  })
+  
+  // Adapter Feed Controls
+  const adapterStartBtn = document.getElementById('adapterStartBtn')
+  const adapterStopBtn = document.getElementById('adapterStopBtn')
+  const adapterStatusBtn = document.getElementById('adapterStatusBtn')
+  const adapterExtraSymbolsEl = document.getElementById('adapterExtraSymbols')
+  const adapterOutputEl = document.getElementById('adapterOutput')
+  
+  adapterStartBtn?.addEventListener('click', async () => {
+    try {
+      let extraSymbols = []
+      try {
+        const val = adapterExtraSymbolsEl.value.trim()
+        if (val) extraSymbols = JSON.parse(val)
+      } catch (e) {
+        out(adapterOutputEl, { success: false, error: 'Invalid JSON in extra symbols: ' + e.message })
+        return
+      }
+      const r = await fetch('/api/adapter/feed/start', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ extraSymbols }) 
+      })
+      const j = await r.json()
+      out(adapterOutputEl, j)
+    } catch (err) { 
+      out(adapterOutputEl, { success: false, error: String(err && err.message || err) }) 
+    }
+  })
+  
+  adapterStopBtn?.addEventListener('click', async () => {
+    try {
+      const r = await fetch('/api/adapter/feed/stop', { method: 'POST' })
+      const j = await r.json()
+      out(adapterOutputEl, j)
+    } catch (err) { 
+      out(adapterOutputEl, { success: false, error: String(err && err.message || err) }) 
+    }
+  })
+  
+  adapterStatusBtn?.addEventListener('click', async () => {
+    try {
+      const r = await fetch('/api/adapter/feed')
+      const j = await r.json()
+      out(adapterOutputEl, j)
+    } catch (err) { 
+      out(adapterOutputEl, { success: false, error: String(err && err.message || err) }) 
+    }
+  })
+  
+  loadSubs()
+})
+</script>
+{% endblock %}

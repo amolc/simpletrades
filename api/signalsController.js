@@ -78,7 +78,7 @@ const createSignal = async (signalData) => {
   const typeCat = prod ? String(prod.category||'').toLowerCase() : null
   const newSignal = await db.Signal.create({
     productId: signalData.productId,
-    symbol: signalData.symbol || signalData.product,
+    symbol: (typeof (signalData.symbol || signalData.product) === 'string' ? (signalData.symbol || signalData.product).trim() : (signalData.symbol || signalData.product)),
     exchange: signalData.exchange || null,
     signalType: signalData.signalType || 'BUY',
     type: typeCat,
@@ -140,7 +140,7 @@ const updateSignal = async (id, updateData) => {
       if (prod && prod.category) signal.type = String(prod.category).toLowerCase()
     } catch(e){}
   }
-  if (updateData.symbol !== undefined) signal.symbol = updateData.symbol
+  if (updateData.symbol !== undefined) signal.symbol = (typeof updateData.symbol === 'string' ? updateData.symbol.trim() : updateData.symbol)
   if (updateData.exchange !== undefined) signal.exchange = updateData.exchange
   if (updateData.signalType !== undefined) signal.signalType = updateData.signalType
   if (updateData.type !== undefined) signal.type = updateData.type
@@ -358,18 +358,7 @@ const getProductSignalStats = async () => {
     const productTypes = await db.Signal.findAll({
       attributes: ['type'],
       group: ['type'],
-      order: [['type', 'ASC']],
-      include: [{
-        model: db.Product,
-        attributes: ['name'],
-        required: false,
-        on: {
-          [db.Sequelize.Op.or]: [
-            { name: db.Sequelize.col('Signal.type') },
-            { name: 'Stocks' }
-          ]
-        }
-      }]
+      order: [['type', 'ASC']]
     })
 
     const productStats = []

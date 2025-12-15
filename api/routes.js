@@ -11,6 +11,9 @@ const { subscriptionController } = require('./subscriptionController')
 const { transactionController } = require('./transactionController')
 const { settingsController } = require('./settingsController')
 const { priceController } = require('./priceController')
+const { tvAdapterController } = require('./tvAdapterController')
+const { tradexController } = require('./tradexController')
+const nseOptionsController = require('./nseOptionsController')
 
 const router = express.Router()
 
@@ -67,6 +70,37 @@ router.get('/subscriptions/:id/payment-qrcode', subscriptionController.generateP
 // Price (TradingView adapter)
 router.get('/price', priceController.getQuote)
 console.log('Registered /api/price route')
+
+// Price (TradingView API adapter - new)
+router.get('/price/adapter', tvAdapterController.getQuote)
+console.log('Registered /api/price/adapter route')
+
+router.post('/tradingview/login', priceController.loginTradingView)
+router.post('/tradingview/token', priceController.setTradingViewSession)
+router.post('/tradingview/selenium-login', priceController.seleniumLoginTradingView)
+router.post('/tradingview/auto-login', async (req, res) => {
+  try {
+    const ok = await priceController.autoLoginFromEnv(req.app)
+    if (ok) return res.json({ success:true })
+    res.status(400).json({ success:false, error:'missing_env_or_login_failed' })
+  } catch(e){ res.status(500).json({ success:false, error: e && e.message }) }
+})
+
+router.post('/tradex/login', tradexController.login)
+router.get('/tradex/currency', tradexController.getCurrency)
+router.post('/tradex/feed/start', tradexController.startFeed)
+router.post('/tradex/feed/stop', tradexController.stopFeed)
+router.get('/tradex/feed', tradexController.getFeed)
+
+// TradingView adapter feed routes (singleton subscription manager)
+router.post('/adapter/feed/start', tvAdapterController.startAdapterFeed)
+router.post('/adapter/feed/stop', tvAdapterController.stopAdapterFeed)
+router.get('/adapter/feed', tvAdapterController.getAdapterFeed)
+console.log('Registered /api/adapter/feed routes')
+
+// NSE Options dedicated service
+router.get('/nse-options/price', nseOptionsController.getPrice)
+console.log('Registered /api/nse-options/price route')
 
 // Debug ping
 router.get('/ping', (req, res) => res.json({ ok: true }))

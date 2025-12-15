@@ -350,38 +350,103 @@ class ProductSignalsManager {
         this.filteredSignals = [...this.signals];
     }
 
-    initStreamingForSignals() {
-        const tbody = document.querySelector('#productSignalsTable tbody');
-        if (!tbody) return;
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        const origin = (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
-        const sockets = [];
-        const fallbackEx = (txt) => (txt && txt.trim() && txt.trim() !== '-' ? txt.trim() : 'NSE');
-        rows.forEach((row) => {
-            const cells = row.querySelectorAll('td');
-            const symbol = String(cells[1]?.textContent || '').trim();
-            const exchange = fallbackEx(String(cells[2]?.textContent || '').trim());
+    async initStreamingForSignals() {
+        if (!window.wsManager) {
+            console.warn('wsManager not found, skipping WebSocket initialization');
+            return;
+        }
+
+        try {
+            await window.wsManager.connect();
+        } catch (e) {
+            console.error('WS Connect error', e);
+        }
+
+        const subscriptions = [];
+        const symbolMap = new Map(); // key -> callbacks
+
+        // Helper to add subscription
+        const addSub = (symbol, exchange, callback) => {
             if (!symbol) return;
-            const url = `${origin}/ws/stream?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`;
-            try {
-                const ws = new WebSocket(url);
-                ws.onmessage = (ev) => {
-                    try {
-                        const msg = JSON.parse(ev.data);
-                        if (msg && msg.type === 'data' && msg.data && typeof msg.data.lp === 'number') {
-                            const price = Number(msg.data.lp);
-                            if (Number.isFinite(price)) {
-                            const priceCell = cells[3];
-                            if (priceCell) priceCell.textContent = `Rs ${price.toFixed(2)}`;
+            const key = `${exchange}:${symbol}`.toUpperCase().replace(/\s+/g, '');
+            subscriptions.push({ symbol, exchange });
+            if (!symbolMap.has(key)) symbolMap.set(key, []);
+            symbolMap.get(key).push(callback);
+        };
+
+        // 1. Signals Table
+        const signalsBody = document.querySelector('#productSignalsTable tbody');
+        if (signalsBody) {
+            const rows = Array.from(signalsBody.querySelectorAll('tr'));
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                // 0: ID, 1: Symbol, 2: Exchange, 3: Live Price, 4: Type, 5: Entry, 12: P&L
+                const symbolCell = cells[1];
+                const symbol = String(symbolCell?.textContent || '').trim();
+                const exCell = String(cells[2]?.textContent || '').trim();
+                const exchange = exCell && exCell !== '-' ? exCell : 'NSE';
+                const priceCell = cells[3];
+                
+                if (symbol && priceCell) {
+                    addSub(symbol, exchange, (data) => {
+                        const price = data.price;
+                        if (Number.isFinite(price)) {
+                            priceCell.textContent = `Rs ${price.toFixed(2)}`;
+                            
+                            // Update P&L
+                            const typeTxt = String(cells[4]?.textContent || '').trim().toUpperCase();
+                            const entryVal = parseFloat(String(cells[5]?.textContent || '').replace(/Rs\s?|₹/g, ''));
+                            const plCell = cells[12];
+                            
+                            if (Number.isFinite(entryVal) && plCell) {
+                                let pl = 0;
+                                if (typeTxt === 'BUY') pl = price - entryVal;
+                                else if (typeTxt === 'SELL') pl = entryVal - price;
+                                
+                                const abs = Math.abs(pl).toFixed(2);
+                                plCell.innerHTML = pl >= 0 
+                                    ? `<span class="text-success">+Rs ${abs}</span>`
+                                    : `<span class="text-danger">-Rs ${abs}</span>`;
                             }
                         }
-                    } catch(e){}
-                };
-                ws.onerror = () => {};
-                sockets.push(ws);
-            } catch(e){}
-        });
-        window.addEventListener('beforeunload', () => { sockets.forEach(s => { try { s.close() } catch(e){} }) });
+                    });
+                }
+            });
+        }
+
+        // 2. Watchlist Table
+        const watchlistBody = document.getElementById('productWatchlistBody');
+        if (watchlistBody) {
+             const rows = Array.from(watchlistBody.querySelectorAll('tr'));
+             rows.forEach(row => {
+                 const cells = row.querySelectorAll('td');
+                 // 0: Stock Name, 1: Exchange, 2: Current Price
+                 const symbol = String(cells[0]?.textContent || '').trim();
+                 const exCell = String(cells[1]?.textContent || '').trim();
+                 const exchange = exCell && exCell !== '-' ? exCell : 'NSE';
+                 const priceCell = cells[2];
+                 
+                 if (symbol && priceCell) {
+                     addSub(symbol, exchange, (data) => {
+                         if (Number.isFinite(data.price)) {
+                             priceCell.textContent = `Rs ${data.price.toFixed(2)}`;
+                         }
+                     });
+                 }
+             });
+        }
+
+        if (subscriptions.length > 0) {
+            window.wsManager.subscribe(subscriptions);
+            window.wsManager.on('price_update', (data) => {
+                // Log received price for debugging
+                console.log(`[Product Price Update] ${data.exchange}:${data.symbol} = Rs ${data.price}`);
+
+                const key = `${data.exchange}:${data.symbol}`.toUpperCase().replace(/\s+/g, '');
+                const handlers = symbolMap.get(key);
+                if (handlers) handlers.forEach(h => h(data));
+            });
+        }
     }
 
     getStatusFromBadge(badgeHtml) {
