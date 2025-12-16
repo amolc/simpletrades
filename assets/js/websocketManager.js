@@ -33,6 +33,10 @@ class WebSocketManager {
                 const wsHost = (typeof window.WEBSOCKET_HOST !== 'undefined') ? window.WEBSOCKET_HOST : window.location.host;
                 const wsUrl = `${protocol}//${wsHost}/ws/stream`;
                 
+                console.log('Attempting WebSocket connection to:', wsUrl);
+                console.log('WebSocket host configuration:', wsHost);
+                console.log('Protocol:', protocol);
+                
                 this.ws = new WebSocket(wsUrl);
                 
                 this.ws.onopen = () => {
@@ -82,6 +86,13 @@ class WebSocketManager {
                 
                 this.ws.onerror = (error) => {
                     console.error('WebSocket error:', error);
+                    console.error('WebSocket connection failed to:', wsUrl);
+                    console.error('Connection details:', {
+                        protocol: protocol,
+                        host: wsHost,
+                        fullUrl: wsUrl,
+                        timestamp: new Date().toISOString()
+                    });
                     this.isConnecting = false;
                     reject(error);
                 };

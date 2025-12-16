@@ -16,7 +16,23 @@
         // Environment detection
         getEnvHost: function() {
             // Check if we're in a production environment
-            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            const hostname = window.location.hostname;
+            const isProduction = hostname !== 'localhost' && hostname !== '127.0.0.1';
+            
+            if (isProduction) {
+                // List of known production domains
+                const productionDomains = [
+                    'sendsignals.online',
+                    'www.sendsignals.online',
+                    'simpleincome.co',
+                    'www.simpleincome.co'
+                ];
+                
+                // If current hostname is in our production list, use it
+                if (productionDomains.includes(hostname)) {
+                    return hostname;
+                }
+                
                 // For production, you might want to use a specific host
                 // return 'your-production-host.com:3000';
             }
@@ -29,6 +45,9 @@
             window.WEBSOCKET_HOST = this.host || this.getEnvHost() || window.location.host;
             
             console.log('WebSocket configured to connect to:', window.WEBSOCKET_HOST);
+            console.log('Current hostname:', window.location.hostname);
+            console.log('Current protocol:', window.location.protocol);
+            console.log('Current port:', window.location.port);
         }
     };
     

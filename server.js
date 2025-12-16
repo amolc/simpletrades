@@ -69,13 +69,27 @@ app.set('view engine', 'njk');
  * Middleware Configuration
  */
 
+// Trust proxy headers (important for WebSocket connections behind nginx)
+app.set('trust proxy', true);
+
 // Parse JSON request bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS configuration
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'https://sendsignals.online', 'http://sendsignals.online'],
+    origin: [
+        'http://localhost:3000', 
+        'http://127.0.0.1:3000', 
+        'https://sendsignals.online', 
+        'http://sendsignals.online',
+        'https://www.sendsignals.online',
+        'http://www.sendsignals.online',
+        'https://simpleincome.co',
+        'http://simpleincome.co',
+        'https://www.simpleincome.co',
+        'http://www.simpleincome.co'
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']

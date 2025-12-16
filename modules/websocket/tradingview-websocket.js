@@ -92,15 +92,14 @@ class TradingViewWebSocket {
     }
 
     try {
-      // Normalize inputs
-      exchange = (exchange || 'NSE').toUpperCase();
+      // Normalize inputs - but keep original case for exchange
+      exchange = exchange || 'NSE';
       symbol = (symbol || '').trim();
 
-      // Fix NSE exchange code for adapter if needed (though adapter usually handles it)
-      // but let's keep it standard. 
-      // Note: TvApiAdapter usually expects 'NSE', 'MCX' etc.
-
+      // Create subscription key with original case
       const subscriptionKey = `${exchange}:${symbol}`;
+      
+      logger.info('Attempting subscription', { symbol, exchange, subscriptionKey });
       
       if (this.subscriptions.has(subscriptionKey)) {
         logger.warn('Already subscribed to', subscriptionKey);
@@ -108,28 +107,80 @@ class TradingViewWebSocket {
       }
 
       const fields = ['lp', 'ask', 'bid', 'ch', 'chp', 'volume', 'trade'];
+      logger.info('Creating TradingView quote', { symbol, exchange, fields });
       const quote = this.adapter.Quote(symbol, exchange, fields);
+
+      // Listen for permission denied events
+      quote.$adapter.on('permission_denied', (permissionData) => {
+        logger.warn('Permission denied for symbol, retrying with alternative', { 
+          symbol, 
+          exchange, 
+          permissionData 
+        });
+        
+        // For NSE exchange, ignore permission denied and continue with current exchange
+        if (exchange.toUpperCase() === 'NSE') {
+          logger.info('Permission denied for NSE exchange, continuing with current exchange (data will come automatically)', { 
+            symbol, 
+            exchange, 
+            alternative: permissionData.alternative 
+          });
+          return; // Don't retry, just continue with current exchange
+        }
+        
+        // For other exchanges, check if alternative is different
+        const alternativeExchange = permissionData.alternative;
+        if (alternativeExchange && alternativeExchange.toLowerCase() !== exchange.toLowerCase()) {
+          // Unsubscribe from current symbol
+          this.unsubscribe(symbol, exchange);
+          
+          logger.info('Retrying with alternative exchange', { symbol, alternativeExchange });
+          
+          setTimeout(() => {
+            this.subscribe(symbol, alternativeExchange, callback);
+          }, 1000);
+        } else {
+          logger.info('Permission denied but alternative is same as current exchange, continuing with current exchange', { 
+            symbol, 
+            exchange, 
+            alternative: alternativeExchange 
+          });
+        }
+      });
 
       // Listen for data
       quote.listen((data) => {
         this.metrics.messagesReceived++;
         this.metrics.lastMessageTime = Date.now();
         
+        logger.info('Received quote data', { symbol, exchange, data: JSON.stringify(data) });
+        
+        // Check if we received an error or empty data
+        if (!data || Object.keys(data).length === 0) {
+          logger.warn('Received empty or invalid data from TradingView', { symbol, exchange, data });
+          return;
+        }
+        
         // Transform data to match expected format
         const transformedData = {
           s: symbol,
-          lp: data.lp || data.price, // Last price
+          lp: data.lp || data.price || (data.trade && data.trade.price), // Last price
           ask: data.ask,
           bid: data.bid,
           ch: data.ch,
           chp: data.chp,
-          volume: data.volume,
+          volume: data.volume || (data.trade && data.trade.size),
           exchange: exchange
         };
+        
+        logger.info('Transformed quote data', { symbol, exchange, transformedData });
 
         // Only callback if we have a price
         if (transformedData.lp !== undefined && transformedData.lp !== null) {
+          logger.info('Calling callback with price data', { symbol, exchange, lp: transformedData.lp });
           callback(transformedData);
+        } else {
+          logger.warn('No valid price data received', { symbol, exchange, lp: transformedData.lp, availableFields: Object.keys(data) });
         }
       });
 
@@ -365,6 +416,8 @@ class TradingViewWebSocket {
       return;
     }
 
+    logger.info('Processing subscription request', { symbolCount: symbols.length, symbols: symbols.map(s => `${s.exchange}:${s.symbol}`) });
+
     symbols.forEach(symbolData => {
       const { symbol, exchange = 'NSE' } = symbolData;
       
@@ -378,14 +431,19 @@ class TradingViewWebSocket {
 
       try {
         const subscriptionKey = `${exchange}:${symbol}`;
+        logger.info('Processing individual symbol subscription', { symbol, exchange, subscriptionKey });
+        
         ws.subscriptions.add(subscriptionKey);
         
         // Subscribe to TradingView if not already subscribed
         if (!this.subscriptions.has(subscriptionKey)) {
+          logger.info('New subscription to TradingView', { symbol, exchange, subscriptionKey });
           this.subscribe(symbol, exchange, (priceData) => {
             // Broadcast to all subscribed clients
             this.broadcastToSubscribers(subscriptionKey, priceData);
           });
+        } else {
+          logger.info('Already subscribed to TradingView', { symbol, exchange, subscriptionKey });
         }
 
         ws.send(JSON.stringify({ 
@@ -481,13 +539,15 @@ class TradingViewWebSocket {
   broadcastToSubscribers(subscriptionKey, priceData) {
     if (!this.wss) return;
     
+    logger.info('Broadcasting price update', { subscriptionKey, priceData });
+    
     this.wss.clients.forEach(client => {
       if (client.readyState === WebSocket.OPEN && client.subscriptions && client.subscriptions.has(subscriptionKey)) {
         try {
           const [exchange, ...symbolParts] = subscriptionKey.split(':');
           const symbol = symbolParts.join(':');
           
-          client.send(JSON.stringify({
+          const message = {
             type: 'price_update',
             data: {
               ...priceData,
@@ -496,10 +556,20 @@ class TradingViewWebSocket {
               seriesKey: subscriptionKey
             },
             timestamp: Date.now()
-          }));
+          };
+          
+          logger.info('Sending price update to client', { subscriptionKey, symbol, exchange, clientReadyState: client.readyState });
+          client.send(JSON.stringify(message));
         } catch (error) {
           logger.error('Broadcast error:', error);
         }
+      } else {
+        logger.debug('Client not eligible for broadcast', { 
+          subscriptionKey, 
+          clientReadyState: client.readyState,
+          hasSubscriptions: !!client.subscriptions,
+          hasSubscription: client.subscriptions && client.subscriptions.has(subscriptionKey)
+        });
       }
     });
   }

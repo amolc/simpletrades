@@ -208,13 +208,14 @@ async function buildSymbolsList(req) {
       if (symbolData.symbol && symbolData.exchange) {
         let { symbol, exchange } = symbolData;
         
-        // Keep NSE exchange code as is (not NSE_DLY)
-        // if (exchange.toUpperCase() === 'NSE') {
-        //   exchange = 'NSE_DLY';
-        // }
-        
-        // Keep NSE symbols as-is (including options) - TradingView expects original format
-        // No normalization needed for NSE symbols
+        // Handle NSE exchange mapping - keep as NSE for stocks
+        if (exchange.toUpperCase() === 'NSE') {
+          // Use NSE exchange as-is for stocks - data will come automatically
+          exchange = 'NSE';
+        } else {
+          // For other exchanges, use uppercase
+          exchange = exchange.toUpperCase();
+        }
         
         // Normalize MCX symbols
         if (exchange.toUpperCase() === 'MCX') {
@@ -223,7 +224,7 @@ async function buildSymbolsList(req) {
         
         symbols.push({
           symbol: symbol,
-          exchange: exchange.toUpperCase()
+          exchange: exchange
         });
       }
     }
@@ -235,10 +236,14 @@ async function buildSymbolsList(req) {
       let exchange = row.exchange || 'NSE';
       let symbol = row.stockName;
       
-      // Keep NSE exchange code as is (not NSE_DLY)
-      // if (exchange.toUpperCase() === 'NSE') {
-      //   exchange = 'NSE_DLY';
-      // }
+      // Handle NSE exchange mapping - keep as NSE for stocks
+      if (exchange.toUpperCase() === 'NSE') {
+        // Use NSE exchange as-is for stocks - data will come automatically
+        exchange = 'NSE';
+      } else {
+        // For other exchanges, use uppercase
+        exchange = exchange.toUpperCase();
+      }
       
       // Normalize MCX symbols
       if (exchange.toUpperCase() === 'MCX') {
@@ -247,7 +252,7 @@ async function buildSymbolsList(req) {
       
       symbols.push({
         symbol: symbol,
-        exchange: exchange.toUpperCase(),
+        exchange: exchange,
         watchlistId: row.id
       });
     }
