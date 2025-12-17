@@ -179,15 +179,29 @@
             
             // Close modal first
             closeLoginModal();
-            
+
             // Update UI immediately
             updateUI();
-            
-            // Small delay then reload to ensure everything is clean
-            setTimeout(() => {
-              console.log('Reloading page...');
-              window.location.reload();
-            }, 100);
+
+            // Check for pending subscription and handle it
+            if (sessionStorage.getItem('pendingSubscription')) {
+              const pending = JSON.parse(sessionStorage.getItem('pendingSubscription'));
+              sessionStorage.removeItem('pendingSubscription');
+
+              console.log('Processing pending subscription after login:', pending);
+
+              // Small delay to ensure UI is updated
+              setTimeout(async () => {
+                // Simulate the subscription process
+                const productId = pending.productId;
+                const planId = pending.planId;
+                const planName = pending.planName;
+                const planDays = pending.planDays;
+
+                // Redirect to confirmation page
+                window.location.href = `/subscription/confirm?productId=${productId}&planId=${planId}&authToken=${data.token}`;
+              }, 500);
+            }
             
           } else {
             console.log('Login failed:', data.message || 'Unknown error');

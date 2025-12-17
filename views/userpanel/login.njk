@@ -6,58 +6,96 @@
 <section class="py-5" style="padding-top: 100px;">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card shadow-sm">
+      <div class="col-lg-6">
+        <div class="card shadow-lg">
+          <div class="card-header bg-primary text-white text-center">
+            <h3 class="mb-0"><i class="fas fa-sign-in-alt me-2"></i>Login to SimpleIncome</h3>
+          </div>
           <div class="card-body">
-            <h4 class="mb-3">Login</h4>
             <form id="loginForm">
               <div class="mb-3">
-                <label class="form-label">Phone Number</label>
-                <input type="text" class="form-control" name="phoneNumber" required>
+                <label for="phoneNumber" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="phoneNumber" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" class="form-control" name="password" required>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" required>
               </div>
-              <button type="submit" class="btn btn-primary">Login</button>
+              <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="rememberMe">
+                <label class="form-check-label" for="rememberMe">Remember me</label>
+              </div>
+              <button type="submit" class="btn btn-primary w-100" id="loginBtn">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+              </button>
             </form>
-            <div class="mt-3" id="loginMsg"></div>
+            <div class="text-center mt-3">
+              <p>Don't have an account? <a href="/register">Register here</a></p>
+            </div>
           </div>
         </div>
-        <p class="mt-3">Don't have an account? <a href="/register">Register</a></p>
       </div>
     </div>
   </div>
-}</section>
-{% endblock %}
+</section>
 
-{% block scripts %}
 <script>
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-  const payload = {
-    phoneNumber: form.phoneNumber.value.trim(),
-    password: form.password.value
-  };
-  const msg = document.getElementById('loginMsg');
-  try {
-    const res = await fetch('/api/users/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (res.ok && data.success) {
-      localStorage.setItem('authToken', data.data.token);
-      msg.innerHTML = '<div class="alert alert-success">Login successful</div>';
-      setTimeout(() => window.location.href = '/', 800);
-    } else {
-      msg.innerHTML = '<div class="alert alert-danger">' + (data.error || data.message || 'Login failed') + '</div>';
+document.addEventListener('DOMContentLoaded', function() {
+  const loginForm = document.getElementById('loginForm');
+  const loginBtn = document.getElementById('loginBtn');
+
+
+  loginForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const phone = document.getElementById('phoneNumber').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!phone || !password) {
+      alert('Please fill in all fields');
+      return;
     }
-  } catch (err) {
-    msg.innerHTML = '<div class="alert alert-danger">Network error</div>';
-  }
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Logging in...';
+
+    try {
+      const res = await fetch('/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone, password })
+      });
+      const data = await res.json();
+
+      if (res.ok) {
+        // Handle both old format ({token}) and new format ({success: true, data: {token}})
+        const token = data.token || (data.data && data.data.token);
+        
+        if (token) {
+          localStorage.setItem('authToken', token);
+          // Redirect to the redirect URL or home
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/';
+          
+          // If redirecting to the same page we're on, reload to trigger navigation update
+          if (window.location.pathname === redirect || redirect === '/') {
+            window.location.reload();
+          } else {
+            window.location.href = redirect;
+          }
+        } else {
+          alert('Login failed: ' + (data.message || 'Unknown error'));
+        }
+      } else {
+        alert('Login failed: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Network error: ' + error.message);
+    } finally {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Login';
+    }
+  });
 });
 </script>
 {% endblock %}

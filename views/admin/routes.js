@@ -391,6 +391,32 @@ router.get('/debug', (req, res) => {
   }
 })
 
+router.post('/customers/:id/reset-password', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters long' });
+    }
+
+    const user = await db.User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    // Hash the new password
+    const hashedPassword = require('crypto').createHash('sha256').update(newPassword).digest('hex');
+
+    await user.update({ password: hashedPassword });
+
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/customers/:id', async (req, res) => {
   try {
     const id = req.params.id

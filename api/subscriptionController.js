@@ -77,18 +77,17 @@ async function createSubscription(req, res) {
 async function getAllSubscriptions(req, res) {
   try {
     console.log('DEBUG: getAllSubscriptions called with query:', req.query)
-    const { 
-      page = 1, 
-      limit = 50, 
-      userId, 
-      status, 
+    const {
+      cursor,
+      limit = 50,
+      userId,
+      status,
       paymentStatus,
       planId,
       sortBy = 'createdAt',
       sortOrder = 'DESC'
     } = req.query
 
-    const offset = (page - 1) * limit
     const whereClause = {}
 
     // Apply filters
@@ -97,8 +96,13 @@ async function getAllSubscriptions(req, res) {
     if (paymentStatus) whereClause.paymentStatus = paymentStatus
     if (planId) whereClause.planId = planId
 
+    // If cursor is provided, get items after that cursor
+    if (cursor) {
+      whereClause.id = { [db.Op.gt]: cursor }
+    }
+
     console.log('DEBUG: About to query subscriptions with whereClause:', whereClause)
-    const { count, rows } = await db.Subscription.findAndCountAll({
+    const rows = await db.Subscription.findAll({
       where: whereClause,
       include: [
         {
@@ -117,21 +121,23 @@ async function getAllSubscriptions(req, res) {
         }
       ],
       order: [[sortBy, sortOrder]],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
+      limit: parseInt(limit) + 1 // Fetch one extra to check if there are more
     })
 
-    console.log('DEBUG: Found', count, 'subscriptions, returning', rows.length, 'rows')
+    let hasNextPage = false
+    let nextToken = null
+    if (rows.length > parseInt(limit)) {
+      hasNextPage = true
+      nextToken = rows[rows.length - 2].id // The last item before the extra one
+      rows.pop() // Remove the extra item
+    }
+
+    console.log('DEBUG: Found subscriptions, returning', rows.length, 'rows, hasNextPage:', hasNextPage)
     res.status(200).json({
       success: true,
       data: {
         subscriptions: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit)
-        }
+        nextToken: nextToken
       }
     })
   } catch (error) {

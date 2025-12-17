@@ -145,36 +145,55 @@ const jwt = require('jsonwebtoken')
 const authenticateViewUser = async (req, res, next) => {
   try {
     // Check for token in various places
-    const token = req.headers.authorization?.split(' ')[1] || 
-                  req.query.token || 
-                  req.cookies?.authToken ||
-                  req.query.authToken // Add authToken from query params
+    const token = req.headers.authorization?.split(' ')[1] ||
+                  req.query.token ||
+                  req.query.authToken ||
+                  req.cookies?.authToken
     
     if (!token) {
+      console.log('🔴 No token found in authentication check');
       return null // No token found
     }
+     
+    console.log('🟢 Token found, attempting verification:', token.substring(0, 20) + '...');
+    console.log('🔑 Using JWT secret:', process.env.JWT_SECRET || 'your_jwt_secret_key');
+      
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key')
+    console.log('🟢 Token verified successfully, decoded:', decoded);
     
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
     const user = await db.User.findByPk(decoded.id)
+    if (!user) {
+      console.log('🔴 User not found for ID:', decoded.id);
+      return null;
+    }
+    
+    console.log('🟢 User found:', user.id, user.email);
     return user
   } catch (error) {
-    console.error('Authentication error:', error)
+    console.error('🔴 Authentication error:', error.message);
+    console.error('🔴 Error details:', error);
     return null
   }
 }
 
 router.get('/subscription/confirm', async (req, res) => {
-  const { productId, planId } = req.query
+  const { productId, planId, token } = req.query
   console.log('🎯 Subscription confirm route - productId:', productId, 'planId:', planId)
+  console.log('🎯 Subscription confirm route - token param:', token ? token.substring(0, 20) + '...' : 'NOT FOUND')
   
   try {
     // Get authenticated user
     const authUser = await authenticateViewUser(req, res)
     
     if (!authUser) {
-      // Redirect to login if not authenticated
-      return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl))
+      console.log('🔴 Authentication failed - user not authenticated');
+      return res.status(401).render('userpanel/error.njk', {
+        title: 'Authentication Required',
+        error: 'Please authenticate to access this page'
+      })
     }
+    
+    console.log('🟢 Authentication successful, user:', authUser.id, authUser.email);
     
     // Fetch product and plan details from database
     const product = await db.Product.findByPk(productId)
@@ -247,10 +266,11 @@ router.get('/payment/retry', async (req, res) => {
   try {
     // Get authenticated user
     const user = await authenticateViewUser(req, res)
+    
     if (!user) {
       return res.redirect('/login?redirect=' + encodeURIComponent(req.originalUrl))
     }
-
+    
     // Validate that the subscription belongs to this user and has failed payment
     const subscription = await db.Subscription.findByPk(subscriptionId, {
       include: [

@@ -224,22 +224,50 @@ const userController = {
   async loginAdmin(req, res) {
     try {
       let { email, password } = req.body
+      console.log('Admin login attempt for email:', email);
+      
       if (!email || !password) {
+        console.log('Admin login failed: missing credentials');
         return res.status(400).json({ message: 'Email and password are required' })
       }
       email = String(email).trim().toLowerCase()
       if (email === 'admin') email = 'admin@demo.com'
+      
       const user = await db.User.findOne({ where: { email } })
+      console.log('User found:', user ? 'yes' : 'no');
+      
       if (!user || user.role !== 'admin') {
+        console.log('Admin login failed: invalid credentials or not admin');
         return res.status(401).json({ message: 'Invalid credentials' })
       }
+      
       const isMatch = await bcrypt.compare(password, user.password)
+      console.log('Password match:', isMatch);
+      
       if (!isMatch) {
+        console.log('Admin login failed: invalid password');
         return res.status(401).json({ message: 'Invalid credentials' })
       }
+      
       const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '1h' })
-      res.json({ token })
+      console.log('Admin login successful, token generated:', token.substring(0, 20) + '...');
+
+      // Return consistent response format with user data
+      res.json({
+        success: true,
+        message: 'Admin login successful',
+        data: {
+          token,
+          user: {
+            id: user.id,
+            email: user.email,
+            fullName: user.fullName,
+            role: user.role
+          }
+        }
+      })
     } catch (error) {
+      console.error('Admin login server error:', error);
       res.status(500).json({ message: 'Server error' })
     }
   },

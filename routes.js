@@ -67,40 +67,18 @@ router.get('/product/:name', async (req, res) => {
         const db = require('./models');
         const plans = await db.Plan.findAll({
             where: {
-                productName: product.name,
+                productId: product.id,
                 isActive: true
             },
             order: [['numberOfDays', 'ASC']]
         });
         
         console.log(`📋 Found ${plans.length} plans for product: ${product.name}`);
-        
-        // Format plans for the template
-        const pricingResolved = {
-            trial: '0',
-            monthly: '0',
-            quarterly: '0',
-            yearly: '0'
-        };
-        
-        plans.forEach(plan => {
-            if (plan.planName.toLowerCase().includes('trial')) {
-                pricingResolved.trial = plan.cost.toString();
-            } else if (plan.numberOfDays <= 31) {
-                pricingResolved.monthly = plan.cost.toString();
-            } else if (plan.numberOfDays <= 93) {
-                pricingResolved.quarterly = plan.cost.toString();
-            } else if (plan.numberOfDays >= 365) {
-                pricingResolved.yearly = plan.cost.toString();
-            }
-        });
-        
-        console.log(`💰 Pricing resolved:`, pricingResolved);
-        
+
         console.log(`✅ Rendering product detail for: ${product.name}`);
-        res.render('userpanel/product-detail.njk', { 
+        res.render('userpanel/product-detail.njk', {
             product: product,
-            pricingResolved: pricingResolved,
+            plans: plans,
             title: `${product.name} Trading Signals - SimpleIncome`
         });
     } catch (error) {
@@ -110,6 +88,22 @@ router.get('/product/:name', async (req, res) => {
             error: error.message
         });
     }
+});
+
+// Login page route
+router.get('/login', (req, res) => {
+    console.log('🎯 Login route hit');
+    res.render('userpanel/login.njk', {
+        title: 'Login - SimpleIncome'
+    });
+});
+
+// Register page route
+router.get('/register', (req, res) => {
+    console.log('🎯 Register route hit');
+    res.render('userpanel/register.njk', {
+        title: 'Register - SimpleIncome'
+    });
 });
 
 // Subscription confirmation page route

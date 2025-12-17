@@ -6,154 +6,101 @@
 <section class="py-5" style="padding-top: 100px;">
   <div class="container">
     <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card shadow-sm">
+      <div class="col-lg-6">
+        <div class="card shadow-lg">
+          <div class="card-header bg-primary text-white text-center">
+            <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Register for SimpleIncome</h3>
+          </div>
           <div class="card-body">
-            <h4 class="mb-3">Create Account</h4>
             <form id="registerForm">
               <div class="mb-3">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" name="fullName" id="fullName" required>
-                <div class="invalid-feedback">Please enter your full name</div>
+                <label for="fullName" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="fullName" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Phone Number</label>
-                <input type="text" class="form-control" name="phoneNumber" id="phoneNumber" required>
-                <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control" id="email" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Email (optional)</label>
-                <input type="email" class="form-control" name="email" id="email">
-                <div class="invalid-feedback">Please enter a valid email address</div>
+                <label for="phoneNumber" class="form-label">Phone Number</label>
+                <input type="text" class="form-control" id="phoneNumber" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Password</label>
-                <input type="password" class="form-control" name="password" id="password" required>
-                <div class="invalid-feedback">Password must be at least 8 characters long</div>
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" required>
               </div>
               <div class="mb-3">
-                <label class="form-label">Confirm Password</label>
-                <input type="password" class="form-control" name="confirmPassword" id="confirmPassword" required>
-                <div class="invalid-feedback">Passwords do not match</div>
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirmPassword" required>
               </div>
-              <button type="submit" class="btn btn-primary">Register</button>
+              <button type="submit" class="btn btn-primary w-100" id="registerBtn">
+                <i class="fas fa-user-plus me-2"></i>Register
+              </button>
             </form>
-            <div class="mt-3" id="registerMsg"></div>
+            <div class="text-center mt-3">
+              <p>Already have an account? <a href="/login">Login here</a></p>
+            </div>
           </div>
         </div>
-        <p class="mt-3">Already have an account? <a href="/login">Login</a></p>
       </div>
     </div>
   </div>
-}</section>
-{% endblock %}
+</section>
 
-{% block scripts %}
 <script>
-// Validation functions
-function validateFullName(name) {
-  return name && name.trim().length >= 2;
-}
+document.addEventListener('DOMContentLoaded', function() {
+  const registerForm = document.getElementById('registerForm');
+  const registerBtn = document.getElementById('registerBtn');
 
-function validatePhoneNumber(phone) {
-  return phone && /^[0-9]{10}$/.test(phone);
-}
+  registerForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const fullName = document.getElementById('fullName').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
 
-function validateEmail(email) {
-  if (!email) return true; // Email is optional
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+    if (!fullName || !email || !phoneNumber || !password || !confirmPassword) {
+      alert('Please fill in all fields');
+      return;
+    }
 
-function validatePassword(password) {
-  return password && password.length >= 8;
-}
+    if (password !== confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
 
-function validatePasswordMatch(password, confirmPassword) {
-  return password === confirmPassword;
-}
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters long');
+      return;
+    }
 
-// Real-time validation
-document.addEventListener('DOMContentLoaded', () => {
-  const fullNameInput = document.getElementById('fullName');
-  const phoneNumberInput = document.getElementById('phoneNumber');
-  const emailInput = document.getElementById('email');
-  const passwordInput = document.getElementById('password');
-  const confirmPasswordInput = document.getElementById('confirmPassword');
+    registerBtn.disabled = true;
+    registerBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Registering...';
 
-  // Add event listeners for real-time validation
-  fullNameInput.addEventListener('blur', () => validateField('fullName', validateFullName));
-  phoneNumberInput.addEventListener('blur', () => validateField('phoneNumber', validatePhoneNumber));
-  emailInput.addEventListener('blur', () => validateField('email', validateEmail));
-  passwordInput.addEventListener('blur', () => validateField('password', validatePassword));
-  confirmPasswordInput.addEventListener('blur', () => validateField('confirmPassword', () => validatePasswordMatch(passwordInput.value, confirmPasswordInput.value)));
+    try {
+      const res = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, phoneNumber, password })
+      });
+      const data = await res.json();
 
-  // Password confirmation also needs to validate when password changes
-  passwordInput.addEventListener('blur', () => {
-    if (confirmPasswordInput.value) {
-      validateField('confirmPassword', () => validatePasswordMatch(passwordInput.value, confirmPasswordInput.value));
+      if (res.ok && data.token) {
+        localStorage.setItem('authToken', data.token);
+        alert('Registration successful! Welcome to SimpleIncome!');
+        window.location.href = '/';
+      } else {
+        alert('Registration failed: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Network error: ' + error.message);
+    } finally {
+      registerBtn.disabled = false;
+      registerBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Register';
     }
   });
-});
-
-function validateField(fieldId, validator) {
-  const field = document.getElementById(fieldId);
-  const feedback = field.parentElement.querySelector('.invalid-feedback');
-
-  if (validator(field.value)) {
-    field.classList.remove('is-invalid');
-    field.classList.add('is-valid');
-    feedback.style.display = 'none';
-    return true;
-  } else {
-    field.classList.remove('is-valid');
-    field.classList.add('is-invalid');
-    feedback.style.display = 'block';
-    return false;
-  }
-}
-
-// Form submission validation
-document.getElementById('registerForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const form = e.target;
-
-  // Validate all fields on submit
-  const isFullNameValid = validateField('fullName', validateFullName);
-  const isPhoneValid = validateField('phoneNumber', validatePhoneNumber);
-  const isEmailValid = validateField('email', validateEmail);
-  const isPasswordValid = validateField('password', validatePassword);
-  const isConfirmPasswordValid = validateField('confirmPassword', () => validatePasswordMatch(form.password.value, form.confirmPassword.value));
-
-  // If any validation fails, stop submission
-  if (!isFullNameValid || !isPhoneValid || !isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
-    return;
-  }
-
-  const payload = {
-    fullName: form.fullName.value,
-    phoneNumber: form.phoneNumber.value,
-    email: form.email.value,
-    password: form.password.value
-  };
-
-  const msg = document.getElementById('registerMsg');
-  try {
-    const res = await fetch('/api/users/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-    const data = await res.json();
-    if (res.status === 201 && data.success) {
-      localStorage.setItem('authToken', data.data.token);
-      msg.innerHTML = '<div class="alert alert-success">Registration successful</div>';
-      setTimeout(() => window.location.href = '/', 800);
-    } else {
-      msg.innerHTML = '<div class="alert alert-danger">' + (data.error || data.message || 'Registration failed') + '</div>';
-    }
-  } catch (err) {
-    msg.innerHTML = '<div class="alert alert-danger">Network error</div>';
-  }
 });
 </script>
 {% endblock %}

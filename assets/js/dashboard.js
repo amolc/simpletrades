@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const subsEmpty=document.getElementById('subsEmpty');
   const fmt=(d)=>new Date(d).toLocaleDateString('en-IN',{timeZone:'Asia/Kolkata'});
   const loadProfile=async()=>{
-    const res=await fetch(`/api/users/${user.id}`);
+    const res=await fetch(`/api/users/${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     const data=await res.json();
     if(res.ok&&data.success){
       const u=data.data;
@@ -16,13 +16,13 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   const loadSubs=async()=>{
-    const res=await fetch(`/api/subscriptions?userId=${user.id}`);
+    const res=await fetch(`/api/subscriptions?userId=${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     const data=await res.json();
     const subs=data.data?.subscriptions || data.data || data || [];
     if(!subs.length){subsEmpty.style.display='block';return}
-    
+
     // Fetch payment transactions for each subscription
-    const paymentRes=await fetch(`/api/transactions?userId=${user.id}`);
+    const paymentRes=await fetch(`/api/transactions?userId=${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
     const paymentData=await paymentRes.json();
     const transactions=paymentData.data?.transactions || paymentData.data || paymentData || [];
     

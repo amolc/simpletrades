@@ -26,78 +26,27 @@
                     
                     <div class="pricing-cards mt-5">
                         <div class="row justify-content-center g-4">
+                            {% for plan in plans %}
                             <div class="col-lg-3 col-md-6">
-                                <div class="card pricing-card h-100">
+                                <div class="card pricing-card h-100 {% if loop.index == 2 %}featured{% endif %}">
                                     <div class="card-body text-center">
-                                        <h5 class="card-title">Trial</h5>
+                                        <h5 class="card-title">{{ plan.planName }}</h5>
                                         <div class="price">
                                             <span class="currency">Rs</span>
-                                            <span class="amount">{{ pricingResolved.trial }}</span>
+                                            <span class="amount">{{ plan.cost }}</span>
                                         </div>
-                                        <p class="period">7 days</p>
-                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
-                                                data-product-id="{{ product.id }}" 
-                                                data-plan-name="trial"
-                                                data-plan-days="7">
-                                            Start Trial
+                                        <p class="period">{{ plan.numberOfDays }} days</p>
+                                        <button class="btn {% if loop.index == 2 %}btn-primary{% else %}btn-outline-primary{% endif %} btn-sm subscribe-btn"
+                                                data-product-id="{{ product.id }}"
+                                                data-plan-id="{{ plan.id }}"
+                                                data-plan-name="{{ plan.planName }}"
+                                                data-plan-days="{{ plan.numberOfDays }}">
+                                            {% if plan.planName|lower == 'trial' %}Start Trial{% else %}Subscribe{% endif %}
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card pricing-card h-100 featured">
-                                    <div class="card-body text-center">
-                                        <h5 class="card-title">Monthly</h5>
-                                        <div class="price">
-                                            <span class="currency">Rs</span>
-                                            <span class="amount">{{ pricingResolved.monthly }}</span>
-                                        </div>
-                                        <p class="period">per month</p>
-                                        <button class="btn btn-primary btn-sm subscribe-btn" 
-                                                data-product-id="{{ product.id }}" 
-                                                data-plan-name="monthly"
-                                                data-plan-days="30">
-                                            Subscribe Now
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card pricing-card h-100">
-                                    <div class="card-body text-center">
-                                        <h5 class="card-title">Quarterly</h5>
-                                        <div class="price">
-                                            <span class="currency">Rs</span>
-                                            <span class="amount">{{ pricingResolved.quarterly }}</span>
-                                        </div>
-                                        <p class="period">per quarter</p>
-                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
-                                                data-product-id="{{ product.id }}" 
-                                                data-plan-name="quarterly"
-                                                data-plan-days="90">
-                                            Save 33%
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-3 col-md-6">
-                                <div class="card pricing-card h-100">
-                                    <div class="card-body text-center">
-                                        <h5 class="card-title">Yearly</h5>
-                                        <div class="price">
-                                            <span class="currency">Rs</span>
-                                            <span class="amount">{{ pricingResolved.yearly }}</span>
-                                        </div>
-                                        <p class="period">per year</p>
-                                        <button class="btn btn-outline-primary btn-sm subscribe-btn" 
-                                                data-product-id="{{ product.id }}" 
-                                                data-plan-name="yearly"
-                                                data-plan-days="365">
-                                            Best Value
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            {% endfor %}
                         </div>
                     </div>
                     
@@ -429,34 +378,26 @@ document.addEventListener('DOMContentLoaded', function() {
     subscribeButtons.forEach(button => {
         button.addEventListener('click', function() {
             const productId = this.getAttribute('data-product-id');
+            const planId = this.getAttribute('data-plan-id');
             const planName = this.getAttribute('data-plan-name');
             const planDays = this.getAttribute('data-plan-days');
-            
+
             // Check if user is logged in
             const authToken = localStorage.getItem('authToken');
             
             if (!authToken) {
-                // User is not logged in, show login modal
-                const loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
-                loginModal.show();
-                
-                // Store the intended action in sessionStorage for after login
-                sessionStorage.setItem('pendingSubscription', JSON.stringify({
-                    productId: productId,
-                    planName: planName,
-                    planDays: planDays
-                }));
-                
-                return;
+              // User is not logged in, redirect to login without alert
+              window.location.href = '/login?redirect=' + encodeURIComponent(window.location.href);
+              return;
             }
             
             // User is logged in, proceed to confirmation page with loading animation
             showSubscriptionLoader();
-            
+        
             // Simulate processing time for premium feel
             setTimeout(async () => {
-                hideSubscriptionLoader();
-                await handleSubscription(productId, planName, planDays);
+              hideSubscriptionLoader();
+              await handleSubscription(productId, planId, planName, planDays);
             }, 2000 + Math.random() * 1000); // 2-3 seconds delay
         });
     });
@@ -486,71 +427,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Function to handle subscription redirection
-    async function handleSubscription(productId, planName, planDays) {
+    async function handleSubscription(productId, planId, planName, planDays) {
         try {
-            // Get the product name from the page
-            const productName = '{{ product.name }}';
-            
-            // Dynamically load plans for this product
-            const plansResponse = await fetch(`/api/plans/product/${productName}`);
-            const plansData = await plansResponse.json();
-            
-            if (plansData.success && plansData.data.length > 0) {
-                // Find the plan that matches the plan name (trial, monthly, quarterly, yearly)
-                const targetPlan = plansData.data.find(plan => {
-                    const planNameLower = planName.toLowerCase();
-                    if (planNameLower === 'trial') return plan.planName.toLowerCase().includes('trial');
-                    if (planNameLower === 'monthly') return plan.planName.toLowerCase().includes('monthly');
-                    if (planNameLower === 'quarterly') return plan.planName.toLowerCase().includes('quarterly');
-                    if (planNameLower === 'yearly') return plan.planName.toLowerCase().includes('yearly');
-                    return false;
-                });
-                
-                if (targetPlan) {
-                    const planId = targetPlan.id;
-                    
-                    // Get auth token
-                    const authToken = localStorage.getItem('authToken');
-                    
-                    // Redirect to confirmation page with auth token
-                    if (authToken) {
-                        window.location.href = `/subscription/confirm?productId=${productId}&planId=${planId}&authToken=${authToken}`;
-                    } else {
-                        // Store the intended action in sessionStorage for after login
-                        sessionStorage.setItem('pendingSubscription', JSON.stringify({
-                            productId: productId,
-                            planName: planName,
-                            planDays: planDays
-                        }));
-                        
-                        // Redirect to login
-                        window.location.href = '/login?redirect=' + encodeURIComponent(`/subscription/confirm?productId=${productId}&planId=${planId}`);
-                    }
-                } else {
-                    alert('Selected plan not found for this product. Please try again.');
-                }
+            // Get auth token
+            const authToken = localStorage.getItem('authToken');
+
+            // Redirect to confirmation page with auth token
+            if (authToken) {
+                // Pass token as query parameter - the route will validate it
+                window.location.href = `/subscription/confirm?productId=${productId}&planId=${planId}&token=${encodeURIComponent(authToken)}`;
             } else {
-                alert('No plans available for this product. Please contact support.');
+                // Store the intended action in sessionStorage for after login
+                sessionStorage.setItem('pendingSubscription', JSON.stringify({
+                    productId: productId,
+                    planId: planId,
+                    planName: planName,
+                    planDays: planDays
+                }));
+
+                // Redirect to login
+                window.location.href = '/login?redirect=' + encodeURIComponent(`/subscription/confirm?productId=${productId}&planId=${planId}`);
             }
         } catch (error) {
-            console.error('Error loading plans:', error);
-            alert('Error loading plans. Please try again.');
+            console.error('Error handling subscription:', error);
+            alert('Error processing subscription. Please try again.');
         }
     }
     
-    // Check for pending subscription after login
-    if (sessionStorage.getItem('pendingSubscription')) {
-        const pending = JSON.parse(sessionStorage.getItem('pendingSubscription'));
-        sessionStorage.removeItem('pendingSubscription');
-        
-        // Show loader for pending subscriptions too
-        showSubscriptionLoader();
-        
-        setTimeout(async () => {
-            hideSubscriptionLoader();
-            await handleSubscription(pending.productId, pending.planName, pending.planDays);
-        }, 2000);
-    }
 });
 </script>
 {% endblock %}
