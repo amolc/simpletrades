@@ -20,17 +20,6 @@
     <small class="text-muted">Key metrics and products overview</small>
   </div>
 
-  <!-- Product Filter Section -->
-  <div class="mb-4">
-    <h4 class="mb-3">Filter by Product</h4>
-    <div class="btn-group flex-wrap" role="group" id="productFilter">
-      <button type="button" class="btn btn-outline-primary active" data-product="">All</button>
-      {% for product in products %}
-      <button type="button" class="btn btn-outline-primary" data-product="{{ product.name }}">{{ product.name }}</button>
-      {% endfor %}
-    </div>
-  </div>
-
   <!-- Overall Stats Row -->
   <div class="row g-3 mb-4" id="metricsRow">
     <div class="col-md-4">
@@ -64,6 +53,19 @@
           </div>
           <i class="fas fa-rupee-sign text-warning fs-3"></i>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Filter Section -->
+  <div class="mb-4">
+    <h4 class="mb-3">Filter by Product</h4>
+    <div class="d-flex justify-content-center">
+      <div class="btn-group flex-wrap" role="group" id="productFilter">
+        <button type="button" class="btn btn-outline-primary active" data-product="">All</button>
+        {% for product in products %}
+        <button type="button" class="btn btn-outline-primary" data-product="{{ product.name }}">{{ product.name }}</button>
+        {% endfor %}
       </div>
     </div>
   </div>
@@ -141,8 +143,8 @@
               <th>Stock</th>
               <th>Exchange</th>
               <th>Product</th>
-              <th>Live Price</th>
               <th>Type</th>
+              <th>Live Price</th>
               <th>Entry</th>
               <th>Target</th>
               <th>Stop</th>
@@ -169,8 +171,8 @@
               </td>
               <td>{{ signal.exchange or '-' }}</td>
               <td>{{ signal.product or '-' }}</td>
-              <td class="live-price">Rs -</td>
               <td>{{ signal.signalType or signal.type }}</td>
+              <td class="live-price">Rs -</td>
               <td>Rs {{ signal.entry.toFixed(2) }}</td>
               <td>Rs {{ signal.target.toFixed(2) }}</td>
               <td>Rs {{ signal.stopLoss.toFixed(2) }}</td>
@@ -567,15 +569,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 const rowExchange = exchangeCell.textContent.trim() || 'NSE';
 
                 if (rowSymbol === symbol && rowExchange === exchange) {
-                    // Find the live price cell (column 5)
-                    const priceCell = row.querySelector('td:nth-child(5)');
+                    // Find the live price cell (column 6)
+                    const priceCell = row.querySelector('td:nth-child(6)');
                     if (priceCell) {
                         priceCell.textContent = 'Rs ' + price.toFixed(2);
                         priceCell.classList.add('live-price');
                     }
 
                     // Calculate and update live P&L (column 12)
-                    const typeCell = row.querySelector('td:nth-child(6)'); // Type column
+                    const typeCell = row.querySelector('td:nth-child(5)'); // Type column
                     const entryCell = row.querySelector('td:nth-child(7)'); // Entry column
                     const pnlCell = row.querySelector('td:nth-child(12)'); // P&L column
 
@@ -593,8 +595,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
 
                             const pnlText = pnl >= 0 ?
-                                `<span class="text-success">+Rs ${pnl.toFixed(2)}</span>` :
-                                `<span class="text-danger">-Rs ${Math.abs(pnl).toFixed(2)}</span>`;
+                                `<span class="text-success">+${pnl.toFixed(2)}</span>` :
+                                `<span class="text-danger">-${Math.abs(pnl).toFixed(2)}</span>`;
 
                             pnlCell.innerHTML = pnlText;
                         }
