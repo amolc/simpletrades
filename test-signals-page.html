@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signals Page WebSocket Test</title>
+    <style>
+        .price-updated {
+            background-color: #d4edda !important;
+            transition: background-color 0.5s ease;
+        }
+        .text-primary {
+            color: #007bff !important;
+        }
+        .fw-bold {
+            font-weight: bold !important;
+        }
+        table {
+            margin: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .status {
+            padding: 10px;
+            margin: 20px;
+            border-radius: 5px;
+        }
+        .status.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status.disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>Signals Page WebSocket Test</h1>
+    
+    <div id="connectionStatus" class="status disconnected">
+        <strong>Connection Status:</strong> <span id="statusText">Disconnected</span>
+    </div>
+    
+    <h2>Signals Table</h2>
+    <table id="signalsTable">
+        <thead>
+            <tr>
+                <th>Signal Name</th>
+                <th>Symbol</th>
+                <th>Exchange</th>
+                <th>Live Price</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="signalsBody">
+            <tr>
+                <td>Buy Signal</td>
+                <td>RELIANCE</td>
+                <td>NSE</td>
+                <td>Rs <span class="text-primary fw-bold">--</span></td>
+                <td>Active</td>
+            </tr>
+            <tr>
+                <td>Sell Signal</td>
+                <td>TCS</td>
+                <td>NSE</td>
+                <td>Rs <span class="text-primary fw-bold">--</span></td>
+                <td>Pending</td>
+            </tr>
+            <tr>
+                <td>Hold Signal</td>
+                <td>INFY</td>
+                <td>NSE</td>
+                <td>Rs <span class="text-primary fw-bold">--</span></td>
+                <td>Active</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <h2>Watchlist Table</h2>
+    <table id="watchlistTable">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Live Price</th>
+                <th>Exchange</th>
+                <th>Change</th>
+            </tr>
+        </thead>
+        <tbody id="watchlistBody">
+            <tr>
+                <td>HDFC</td>
+                <td>Rs <span class="text-primary fw-bold">--</span></td>
+                <td>NSE</td>
+                <td>--</td>
+            </tr>
+            <tr>
+                <td>ICICIBANK</td>
+                <td>Rs <span class="text-primary fw-bold">--</span></td>
+                <td>NSE</td>
+                <td>--</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <div id="priceUpdates" style="margin: 20px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+        <h3>Price Updates Log</h3>
+        <div id="updatesLog"></div>
+    </div>
+
+    <!-- Load WebSocketManager first -->
+    <script src="/assets/js/websocketManager.js"></script>
+    <!-- Then load the signals integration -->
+    <script src="/assets/admin/js/signals-websocket.js"></script>
+    
+    <script>
+        // Override the signals-websocket.js behavior for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Testing WebSocket integration for signals page...');
+            
+            const statusElement = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            const updatesLog = document.getElementById('updatesLog');
+            
+            function addLog(message) {
+                const timestamp = new Date().toLocaleTimeString();
+                updatesLog.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+                updatesLog.scrollTop = updatesLog.scrollHeight;
+            }
+            
+            // Monitor connection status
+            if (window.wsManager) {
+                window.wsManager.on('connect', function() {
+                    statusElement.className = 'status connected';
+                    statusText.textContent = 'Connected to TradingView (Fallback)';
+                    addLog('✅ Connected to WebSocket server');
+                });
+                
+                window.wsManager.on('disconnect', function() {
+                    statusElement.className = 'status disconnected';
+                    statusText.textContent = 'Disconnected';
+                    addLog('❌ Disconnected from WebSocket server');
+                });
+                
+                window.wsManager.on('error', function(error) {
+                    addLog(`❌ WebSocket error: ${error.message || error}`);
+                });
+            }
+            
+            // Monitor price updates
+            const originalConsoleLog = console.log;
+            console.log = function(...args) {
+                originalConsoleLog.apply(console, args);
+                const message = args.join(' ');
+                if (message.includes('Price update for')) {
+                    addLog(`💰 ${message}`);
+                }
+            };
+            
+            addLog('🔄 WebSocket integration test started...');
+        });
+    </script>
+</body>
+</html>

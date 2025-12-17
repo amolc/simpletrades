@@ -73,6 +73,17 @@ document.addEventListener('DOMContentLoaded', () => {
       const json = await res.json();
       
       if (json && json.success) { 
+        // Subscribe to live prices via WebSocket after adding to watchlist
+        if (window.wsManager) {
+          try {
+            await window.wsManager.connect();
+            const subscribed = window.wsManager.subscribe([{ symbol: stockName, exchange: exchange }]);
+            console.log(`Subscribed to live prices for ${exchange}:${stockName}`, subscribed);
+          } catch (wsError) {
+            console.warn('Failed to subscribe to WebSocket for live prices:', wsError);
+          }
+        }
+        
         watchModal.hide(); 
         window.location.reload(); 
       } else { 
@@ -349,6 +360,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const result = await response.json();
         
         if (result.success) {
+          // Subscribe to live prices via WebSocket after creating signal
+          if (window.wsManager) {
+            try {
+              await window.wsManager.connect();
+              const subscribed = window.wsManager.subscribe([{ symbol: stock, exchange: exchangeName }]);
+              console.log(`Subscribed to live prices for signal ${exchangeName}:${stock}`, subscribed);
+            } catch (wsError) {
+              console.warn('Failed to subscribe to WebSocket for live prices:', wsError);
+            }
+          }
+          
           const signalModal = bootstrap.Modal.getInstance(document.getElementById('signalCreateModal'));
           signalModal.hide();
           window.location.reload(); // Reload to show updated data

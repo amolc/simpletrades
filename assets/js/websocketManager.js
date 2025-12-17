@@ -1,3 +1,6 @@
+// Enhanced WebSocket Manager with TradingView fallback support
+// This version connects to our server endpoint for TradingView data
+
 class WebSocketManager {
     constructor() {
         this.ws = null;
@@ -8,6 +11,8 @@ class WebSocketManager {
         this.maxReconnectAttempts = 10;
         this.isConnecting = false;
         this.messageQueue = [];
+        this.currentProvider = 'data.simpleincome.co'; // Track current provider
+        this.fallbackProvider = 'tradingview'; // Fallback provider
         
         // Bind methods
         this.connect = this.connect.bind(this);
@@ -27,20 +32,49 @@ class WebSocketManager {
         this.isConnecting = true;
         
         return new Promise((resolve, reject) => {
+            this._attemptConnection(this.currentProvider)
+                .then(resolve)
+                .catch((error) => {
+                    console.error(`Failed to connect to ${this.currentProvider}:`, error.message);
+                    
+                    if (this.currentProvider !== this.fallbackProvider) {
+                        console.log(`Attempting fallback connection to ${this.fallbackProvider}...`);
+                        this.currentProvider = this.fallbackProvider;
+                        this._attemptConnection(this.fallbackProvider)
+                            .then(resolve)
+                            .catch((fallbackError) => {
+                                console.error(`Fallback connection to ${this.fallbackProvider} also failed:`, fallbackError.message);
+                                this.isConnecting = false;
+                                reject(fallbackError);
+                            });
+                    } else {
+                        this.isConnecting = false;
+                        reject(error);
+                    }
+                });
+        });
+    }
+    
+    _attemptConnection(provider) {
+        return new Promise((resolve, reject) => {
             try {
-                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-                // Allow configuration of WebSocket host via global variable or environment
-                const wsHost = (typeof window.WEBSOCKET_HOST !== 'undefined') ? window.WEBSOCKET_HOST : window.location.host;
-                const wsUrl = `${protocol}//${wsHost}/ws/stream`;
+                let wsUrl;
                 
-                console.log('Attempting WebSocket connection to:', wsUrl);
-                console.log('WebSocket host configuration:', wsHost);
-                console.log('Protocol:', protocol);
+                if (provider === 'data.simpleincome.co') {
+                    wsUrl = 'wss://data.simpleincome.co/ws/stream/';
+                } else if (provider === 'tradingview') {
+                    // Connect to our server endpoint that uses tradingview-ws
+                    wsUrl = 'ws://localhost:3000/ws/tradingview';
+                } else {
+                    throw new Error(`Unknown provider: ${provider}`);
+                }
+                
+                console.log(`Attempting connection to ${provider} at ${wsUrl}...`);
                 
                 this.ws = new WebSocket(wsUrl);
                 
                 this.ws.onopen = () => {
-                    console.log('WebSocket connected');
+                    console.log(`✅ Connected to ${provider}!`);
                     this.isConnecting = false;
                     this.reconnectAttempts = 0;
                     
@@ -48,15 +82,6 @@ class WebSocketManager {
                     while (this.messageQueue.length > 0) {
                         const message = this.messageQueue.shift();
                         this.sendMessage(message);
-                    }
-                    
-                    // Resubscribe to existing subscriptions
-                    if (this.subscriptions.size > 0) {
-                        const symbols = Array.from(this.subscriptions).map(sub => {
-                            const [exchange, ...symbolParts] = sub.split(':');
-                            return { symbol: symbolParts.join(':'), exchange };
-                        });
-                        this.sendMessage({ type: 'subscribe', symbols });
                     }
                     
                     resolve();
@@ -72,27 +97,20 @@ class WebSocketManager {
                 };
                 
                 this.ws.onclose = () => {
-                    console.log('WebSocket disconnected');
+                    console.log(`WebSocket disconnected from ${provider}`);
                     this.ws = null;
                     this.isConnecting = false;
                     
-                    // Attempt reconnection
+                    // Attempt reconnection with same provider
                     if (this.reconnectAttempts < this.maxReconnectAttempts) {
                         this.reconnectAttempts++;
-                        console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
-                        setTimeout(() => this.connect(), this.reconnectInterval);
+                        console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} to ${provider}`);
+                        setTimeout(() => this._attemptConnection(provider), this.reconnectInterval);
                     }
                 };
                 
                 this.ws.onerror = (error) => {
-                    console.error('WebSocket error:', error);
-                    console.error('WebSocket connection failed to:', wsUrl);
-                    console.error('Connection details:', {
-                        protocol: protocol,
-                        host: wsHost,
-                        fullUrl: wsUrl,
-                        timestamp: new Date().toISOString()
-                    });
+                    console.error(`WebSocket error with ${provider}:`, error);
                     this.isConnecting = false;
                     reject(error);
                 };
@@ -104,115 +122,290 @@ class WebSocketManager {
         });
     }
     
+    handleMessage(data) {
+        try {
+            console.log('📡 WebSocket message received:', data);
+            
+            if (this.currentProvider === 'tradingview') {
+                this._handleTradingViewMessage(data);
+            } else {
+                this._handleDataSimpleIncomeMessage(data);
+            }
+        } catch (error) {
+            console.error('Error handling WebSocket message:', error);
+        }
+    }
+    
+    _handleTradingViewMessage(data) {
+        try {
+            console.log('📡 TradingView WebSocket message received:', data);
+            
+            // Handle TradingView quote data format
+            if (data.name === 'qsd' && data.params && data.params.length >= 2) {
+                const [sessionId, quoteData] = data.params;
+                
+                if (quoteData && quoteData.n && quoteData.v) {
+                    const symbol = quoteData.n;
+                    const values = quoteData.v;
+                    
+                    // Extract price and other data
+                    const price = values.lp || values.lastPrice;
+                    const timestamp = Date.now();
+                    
+                    if (price !== undefined) {
+                        const [exchange, symbolName] = symbol.split(':');
+                        
+                        console.log(`💰 TradingView price update: ${symbol} = ${price}`);
+                        
+                        // Trigger callbacks for specific symbol
+                        const symbolKey = `price:${symbol}`;
+                        if (this.callbacks.has(symbolKey)) {
+                            this.callbacks.get(symbolKey).forEach(callback => {
+                                try {
+                                    callback({ 
+                                        price, 
+                                        timestamp, 
+                                        symbol: symbolName, 
+                                        exchange, 
+                                        seriesKey: symbol,
+                                        bid: values.bid,
+                                        ask: values.ask,
+                                        change: values.ch,
+                                        changePercent: values.chp,
+                                        volume: values.volume,
+                                        high: values.high,
+                                        low: values.low,
+                                        open: values.open
+                                    });
+                                } catch (error) {
+                                    console.error('Error in TradingView price update callback:', error);
+                                }
+                            });
+                        }
+                        
+                        // Trigger general price update callback
+                        if (this.callbacks.has('price_update')) {
+                            this.callbacks.get('price_update').forEach(callback => {
+                                try {
+                                    callback({ 
+                                        price, 
+                                        timestamp, 
+                                        symbol: symbolName, 
+                                        exchange, 
+                                        seriesKey: symbol,
+                                        bid: values.bid,
+                                        ask: values.ask,
+                                        change: values.ch,
+                                        changePercent: values.chp,
+                                        volume: values.volume,
+                                        high: values.high,
+                                        low: values.low,
+                                        open: values.open
+                                    });
+                                } catch (error) {
+                                    console.error('Error in general TradingView price update callback:', error);
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+            
+            // Handle simple price updates (alternative format)
+            if (data.symbol && data.lp !== undefined) {
+                const symbol = data.symbol;
+                const price = data.lp;
+                const timestamp = data.ts || Date.now();
+                const exchange = data.exchange || 'NSE';
+                const seriesKey = `${exchange}:${symbol}`;
+                
+                console.log(`💰 TradingView price update: ${seriesKey} = ${price}`);
+                
+                const symbolKey = `price:${seriesKey}`;
+                if (this.callbacks.has(symbolKey)) {
+                    this.callbacks.get(symbolKey).forEach(callback => {
+                        try {
+                            callback({ 
+                                price, 
+                                timestamp, 
+                                symbol, 
+                                exchange, 
+                                seriesKey 
+                            });
+                        } catch (error) {
+                            console.error('Error in TradingView price update callback:', error);
+                        }
+                    });
+                }
+                
+                if (this.callbacks.has('price_update')) {
+                    this.callbacks.get('price_update').forEach(callback => {
+                        try {
+                            callback({ 
+                                price, 
+                                timestamp, 
+                                symbol, 
+                                exchange, 
+                                seriesKey 
+                            });
+                        } catch (error) {
+                            console.error('Error in general TradingView price update callback:', error);
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error handling TradingView message:', error);
+        }
+    }
+    
+    _handleDataSimpleIncomeMessage(data) {
+        try {
+            console.log('📡 data.simpleincome.co message received:', data);
+            
+            // Handle data.simpleincome.co format
+            if (data.symbol && data.price !== undefined) {
+                const symbol = data.symbol;
+                const price = data.price;
+                const timestamp = data.timestamp || Date.now();
+                const exchange = data.exchange || 'NSE';
+                const seriesKey = `${exchange}:${symbol}`;
+                
+                console.log(`💰 data.simpleincome.co price update: ${seriesKey} = ${price}`);
+                
+                // Trigger callbacks for specific symbol
+                const symbolKey = `price:${seriesKey}`;
+                if (this.callbacks.has(symbolKey)) {
+                    this.callbacks.get(symbolKey).forEach(callback => {
+                        try {
+                            callback({ 
+                                price, 
+                                timestamp, 
+                                symbol, 
+                                exchange, 
+                                seriesKey 
+                            });
+                        } catch (error) {
+                            console.error('Error in price update callback:', error);
+                        }
+                    });
+                }
+                
+                // Trigger general price update callback
+                if (this.callbacks.has('price_update')) {
+                    this.callbacks.get('price_update').forEach(callback => {
+                        try {
+                            callback({ 
+                                price, 
+                                timestamp, 
+                                symbol, 
+                                exchange, 
+                                seriesKey 
+                            });
+                        } catch (error) {
+                            console.error('Error in general price update callback:', error);
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error handling data.simpleincome.co message:', error);
+        }
+    }
+    
     disconnect() {
-        this.reconnectAttempts = this.maxReconnectAttempts; // Prevent reconnection
         if (this.ws) {
             this.ws.close();
             this.ws = null;
         }
         this.subscriptions.clear();
         this.messageQueue = [];
+        this.reconnectAttempts = 0;
+    }
+    
+    subscribe(symbols) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            console.warn('Cannot subscribe - WebSocket not connected');
+            return [];
+        }
+        
+        const subscribedSymbols = [];
+        
+        symbols.forEach(symbolData => {
+            const { symbol, exchange } = symbolData;
+            const seriesKey = `${exchange}:${symbol}`;
+            
+            if (this.currentProvider === 'data.simpleincome.co') {
+                // Send subscription message for data.simpleincome.co
+                const message = {
+                    action: 'subscribe',
+                    client_id: `client_${Date.now()}`,
+                    symbols: [seriesKey]
+                };
+                
+                this.sendMessage(message);
+                subscribedSymbols.push(seriesKey);
+                console.log(`📈 Subscribed to ${seriesKey}`);
+                
+            } else if (this.currentProvider === 'tradingview') {
+                // Send subscription message for TradingView
+                const message = {
+                    method: 'subscribe',
+                    params: {
+                        symbols: [seriesKey]
+                    }
+                };
+                
+                this.sendMessage(message);
+                subscribedSymbols.push(seriesKey);
+                console.log(`📈 Subscribed to ${seriesKey} via TradingView`);
+            }
+        });
+        
+        return subscribedSymbols;
+    }
+    
+    unsubscribe(symbols) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+            console.warn('Cannot unsubscribe - WebSocket not connected');
+            return;
+        }
+        
+        symbols.forEach(symbolData => {
+            const { symbol, exchange } = symbolData;
+            const seriesKey = `${exchange}:${symbol}`;
+            
+            if (this.currentProvider === 'data.simpleincome.co') {
+                const message = {
+                    action: 'unsubscribe',
+                    client_id: `client_${Date.now()}`,
+                    symbols: [seriesKey]
+                };
+                
+                this.sendMessage(message);
+                console.log(`📈 Unsubscribed from ${seriesKey}`);
+                
+            } else if (this.currentProvider === 'tradingview') {
+                const message = {
+                    method: 'unsubscribe',
+                    params: {
+                        symbols: [seriesKey]
+                    }
+                };
+                
+                this.sendMessage(message);
+                console.log(`📈 Unsubscribed from ${seriesKey} via TradingView`);
+            }
+        });
     }
     
     sendMessage(message) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
             this.ws.send(JSON.stringify(message));
         } else {
-            // Queue message for when connection is established
+            // Queue message for later
             this.messageQueue.push(message);
-        }
-    }
-    
-    subscribe(symbols) {
-        if (!Array.isArray(symbols)) {
-            symbols = [symbols];
-        }
-        
-        const validSymbols = [];
-        symbols.forEach(symbolData => {
-            let { symbol, exchange = 'NSE' } = symbolData;
-            if (symbol) {
-                // Sanitize input
-                symbol = String(symbol).toUpperCase().trim();
-                exchange = String(exchange).toUpperCase().trim();
-
-                const seriesKey = `${exchange}:${symbol}`.replace(/\s+/g, '');
-                this.subscriptions.add(seriesKey);
-                validSymbols.push({ symbol, exchange });
-            }
-        });
-        
-        if (validSymbols.length > 0) {
-            this.sendMessage({ type: 'subscribe', symbols: validSymbols });
-        }
-        
-        return validSymbols;
-    }
-    
-    unsubscribe(symbols) {
-        if (!Array.isArray(symbols)) {
-            symbols = [symbols];
-        }
-        
-        const validSymbols = [];
-        symbols.forEach(symbolData => {
-            let { symbol, exchange = 'NSE' } = symbolData;
-            if (symbol) {
-                // Sanitize input
-                symbol = String(symbol).toUpperCase().trim();
-                exchange = String(exchange).toUpperCase().trim();
-
-                const seriesKey = `${exchange}:${symbol}`.replace(/\s+/g, '');
-                this.subscriptions.delete(seriesKey);
-                validSymbols.push({ symbol, exchange });
-            }
-        });
-        
-        if (validSymbols.length > 0) {
-            this.sendMessage({ type: 'unsubscribe', symbols: validSymbols });
-        }
-        
-        return validSymbols;
-    }
-    
-    handleMessage(data) {
-        // Trigger callbacks for specific event types
-        if (data.type && this.callbacks.has(data.type)) {
-            this.callbacks.get(data.type).forEach(callback => {
-                try {
-                    callback(data);
-                } catch (error) {
-                    console.error('Error in WebSocket callback:', error);
-                }
-            });
-        }
-        
-        // Handle price updates specifically
-        if (data.type === 'price_update' && data.data) {
-            const { seriesKey, symbol, exchange, lp: price, ts: timestamp } = data.data;
-            
-            // Trigger symbol-specific callbacks
-            const symbolKey = `price:${seriesKey}`;
-            if (this.callbacks.has(symbolKey)) {
-                this.callbacks.get(symbolKey).forEach(callback => {
-                    try {
-                        callback({ price, timestamp, symbol, exchange, seriesKey });
-                    } catch (error) {
-                        console.error('Error in price update callback:', error);
-                    }
-                });
-            }
-            
-            // Trigger general price update callbacks
-            if (this.callbacks.has('price_update')) {
-                this.callbacks.get('price_update').forEach(callback => {
-                    try {
-                        callback({ price, timestamp, symbol, exchange, seriesKey });
-                    } catch (error) {
-                        console.error('Error in general price update callback:', error);
-                    }
-                });
-            }
+            console.log('Message queued - WebSocket not connected');
         }
     }
     
@@ -221,17 +414,6 @@ class WebSocketManager {
             this.callbacks.set(event, []);
         }
         this.callbacks.get(event).push(callback);
-        
-        // Return unsubscribe function
-        return () => {
-            if (this.callbacks.has(event)) {
-                const callbacks = this.callbacks.get(event);
-                const index = callbacks.indexOf(callback);
-                if (index > -1) {
-                    callbacks.splice(index, 1);
-                }
-            }
-        };
     }
     
     off(event, callback) {
@@ -244,27 +426,6 @@ class WebSocketManager {
         }
     }
     
-    // Helper method to subscribe to multiple symbols from signals
-    subscribeToSignals(signals) {
-        const symbols = signals.map(signal => ({
-            symbol: signal.symbol,
-            exchange: signal.exchange || 'NSE'
-        })).filter(item => item.symbol);
-        
-        return this.subscribe(symbols);
-    }
-    
-    // Helper method to subscribe to watchlist items
-    subscribeToWatchlist(watchlistItems) {
-        const symbols = watchlistItems.map(item => ({
-            symbol: item.stockName,
-            exchange: item.exchange || 'NSE'
-        })).filter(item => item.symbol);
-        
-        return this.subscribe(symbols);
-    }
-    
-    // Get current connection status
     getConnectionStatus() {
         if (!this.ws) return 'disconnected';
         switch (this.ws.readyState) {
@@ -276,11 +437,17 @@ class WebSocketManager {
         }
     }
     
-    // Check if WebSocket is connected
-    isConnected() {
-        return this.ws && this.ws.readyState === WebSocket.OPEN;
+    getCurrentProvider() {
+        return this.currentProvider;
     }
 }
 
-// Create global instance
-window.wsManager = new WebSocketManager();
+// Create global instance (browser only)
+if (typeof window !== 'undefined') {
+    window.wsManager = new WebSocketManager();
+}
+
+// Export for Node.js environments
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = WebSocketManager;
+}

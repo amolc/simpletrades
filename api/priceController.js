@@ -1,6 +1,7 @@
 const TradingView = require('@alandlguo/tradingview-api')
 const db = require('../models')
 const tvWsAdapter = require('./tvWsAdapterController')
+const axios = require('axios')
 
 function createTvClient() {
   const token = process.env.TV_SESSION || process.env.TW_SESSION || ''
@@ -61,7 +62,7 @@ async function getQuote(req, res) {
 
     const debugMode = (typeof req.query.debug !== 'undefined')
     console.log(`[Price API] Fetching price for ${exchange}:${symbol}`)
-    if (debugMode) console.log('WebSocket Price API called:', { symbol, exchange })
+    if (debugMode) console.log('data.simpleincome.co Price API called:', { symbol, exchange })
 
     // Check cache first
     const cacheMap = (req.app && req.app.locals) ? req.app.locals.priceCache : null
@@ -87,9 +88,51 @@ async function getQuote(req, res) {
       return res.json(base)
     }
 
-    console.log(`[Price API] No cache found for ${seriesKey}, attempting real-time fetch`)
+    console.log(`[Price API] No cache found for ${seriesKey}, attempting fetch from data.simpleincome.co`)
 
-    // Try to get real price via WebSocket first (blocking for accuracy)
+    // Try to get price from data.simpleincome.co REST API
+    try {
+      const apiUrl = `https://data.simpleincome.co/api/price?symbol=${encodeURIComponent(symbol)}&exchange=${encodeURIComponent(exchange)}`
+      console.log(`[Price API] Calling data.simpleincome.co: ${apiUrl}`)
+      
+      const response = await axios.get(apiUrl, {
+        timeout: 5000,
+        headers: {
+          'User-Agent': 'stockagent/1.0',
+          'Accept': 'application/json'
+        }
+      })
+      
+      if (response.data && response.data.success && response.data.price !== null && response.data.price !== undefined) {
+        const price = Number(response.data.price)
+        console.log(`[Price API] Price received from data.simpleincome.co: ${price}`)
+        
+        // Update cache for next time
+        if (cacheMap) {
+          cacheMap.set(seriesKey, { lp: price, timestamp: Date.now() })
+          console.log(`[Price API] Updated cache for ${seriesKey}`)
+        }
+        
+        const result = { 
+          success: true, 
+          symbol, 
+          exchange, 
+          price: price,
+          source: 'data.simpleincome.co',
+          timestamp: Date.now()
+        }
+        if (debugMode) result.debug = { message: 'api-success' }
+        
+        return res.json(result)
+      } else {
+        console.log(`[Price API] Invalid response from data.simpleincome.co`, response.data)
+      }
+    } catch (apiError) {
+      console.log(`[Price API] data.simpleincome.co API error: ${apiError.message}`)
+    }
+
+    // Fallback: Try WebSocket if data.simpleincome.co fails
+    console.log(`[Price API] data.simpleincome.co failed, trying WebSocket fallback`)
     try {
       const wsInitialized = await tvWsAdapter.initializeConnection()
       if (wsInitialized) {
@@ -143,11 +186,11 @@ async function getQuote(req, res) {
       console.log(`[Price API] WebSocket error: ${wsError.message}`)
     }
 
-    // If WebSocket fails or not available, return proper error
+    // If both APIs fail, return error
     console.log(`[Price API] Price not available for ${exchange}:${symbol}`)
     const errorResult = { 
       success: false, 
-      error: `Price not available for ${exchange}:${symbol}`,
+      error: `Price not available for ${exchange}:${symbol} - both data.simpleincome.co and WebSocket failed`,
       symbol, 
       exchange 
     }

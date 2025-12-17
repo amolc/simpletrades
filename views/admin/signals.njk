@@ -2,6 +2,16 @@
 {% block title %}Admin Signals{% endblock %}
 {% block head %}
 <link rel="stylesheet" href="/assets/admin/css/styles.css">
+<style>
+.price-updated {
+    background-color: #d1ecf1 !important;
+    transition: background-color 0.5s ease;
+}
+.live-price {
+    font-weight: bold;
+    color: #0d6efd;
+}
+</style>
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
@@ -464,4 +474,144 @@
 <script src="/assets/js/websocket-config.js"></script>
 <script src="/assets/js/websocketManager.js?v=1.3"></script>
 <script src="/assets/admin/js/signals-dashboard.js?v=1.3"></script>
+<script src="/assets/admin/js/signals-websocket.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Collect symbols from signals table
+    const symbols = [];
+    const rows = document.querySelectorAll('#signalsBody tr');
+    rows.forEach(row => {
+        const symbolCell = row.querySelector('td:nth-child(2) a');
+        const exchangeCell = row.querySelector('td:nth-child(3)');
+        if (symbolCell && exchangeCell) {
+            const symbol = symbolCell.textContent.trim();
+            const exchange = exchangeCell.textContent.trim() || 'NSE';
+            const fullSymbol = exchange + ':' + symbol;
+            if (!symbols.includes(fullSymbol)) {
+                symbols.push(fullSymbol);
+            }
+        }
+    });
+
+    console.log('📊 Collected symbols for subscription:', symbols);
+
+    // Initialize WebSocket connection
+    const ws = new WebSocket('wss://data.simpleincome.co/ws/stream/');
+
+    ws.onopen = function(event) {
+        console.log('Connected to StockData WebSocket');
+
+        // Subscribe to symbols
+        if (symbols.length > 0) {
+            ws.send(JSON.stringify({
+                action: 'subscribe',
+                symbols: symbols
+            }));
+        }
+    };
+
+    ws.onmessage = function(event) {
+        const message = JSON.parse(event.data);
+
+        switch(message.type) {
+            case 'connection':
+                console.log('Connected:', message.client_id);
+                break;
+
+            case 'subscription':
+                if (message.status === 'success') {
+                    console.log('Subscribed to:', message.symbols);
+                }
+                break;
+
+            case 'data':
+                const symbol = message.symbol;
+                const latestPeriod = message.data.latest_period;
+
+                if (latestPeriod && latestPeriod.close) {
+                    const price = latestPeriod.close;
+                    const volume = latestPeriod.volume;
+
+                    console.log(`${symbol}: Rs ${price.toFixed(2)} (Vol: ${volume})`);
+
+                    // Update UI with live price
+                    updateLivePrice(symbol, price);
+                }
+                break;
+
+            case 'error':
+                console.error('WebSocket error:', message.message);
+                break;
+        }
+    };
+
+    ws.onerror = function(error) {
+        console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = function(event) {
+        console.log('WebSocket connection closed');
+    };
+
+    // Function to update live price in UI
+    function updateLivePrice(fullSymbol, price) {
+        const [exchange, symbol] = fullSymbol.split(':');
+
+        // Find the symbol in the signals table and update price
+        const tableRows = document.querySelectorAll('#signalsBody tr');
+        tableRows.forEach(row => {
+            const symbolCell = row.querySelector('td:nth-child(2) a');
+            const exchangeCell = row.querySelector('td:nth-child(3)');
+            if (symbolCell && exchangeCell) {
+                const rowSymbol = symbolCell.textContent.trim();
+                const rowExchange = exchangeCell.textContent.trim() || 'NSE';
+
+                if (rowSymbol === symbol && rowExchange === exchange) {
+                    // Find the live price cell (column 4)
+                    const priceCell = row.querySelector('td:nth-child(4)');
+                    if (priceCell) {
+                        priceCell.textContent = 'Rs ' + price.toFixed(2);
+                        priceCell.classList.add('live-price');
+                    }
+
+                    // Calculate and update live P&L (column 11)
+                    const typeCell = row.querySelector('td:nth-child(5)'); // Type column
+                    const entryCell = row.querySelector('td:nth-child(6)'); // Entry column
+                    const pnlCell = row.querySelector('td:nth-child(11)'); // P&L column
+
+                    if (typeCell && entryCell && pnlCell) {
+                        const signalType = typeCell.textContent.trim().toUpperCase();
+                        const entryText = entryCell.textContent.trim().replace('Rs ', '');
+                        const entryPrice = parseFloat(entryText);
+
+                        if (!isNaN(entryPrice)) {
+                            let pnl = 0;
+                            if (signalType === 'BUY') {
+                                pnl = price - entryPrice;
+                            } else if (signalType === 'SELL') {
+                                pnl = entryPrice - price;
+                            }
+
+                            const pnlText = pnl >= 0 ?
+                                `<span class="text-success">+Rs ${pnl.toFixed(2)}</span>` :
+                                `<span class="text-danger">-Rs ${Math.abs(pnl).toFixed(2)}</span>`;
+
+                            pnlCell.innerHTML = pnlText;
+                        }
+                    }
+
+                    row.classList.add('price-updated');
+
+                    // Remove highlight after animation
+                    setTimeout(() => {
+                        row.classList.remove('price-updated');
+                    }, 1000);
+
+                    console.log('🔄 Updated price and P&L for', fullSymbol, 'to', price);
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
