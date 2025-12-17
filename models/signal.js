@@ -22,6 +22,10 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'RESTRICT'
     },
+    product: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
     symbol: {
       type: DataTypes.STRING,
       allowNull: true

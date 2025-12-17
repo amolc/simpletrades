@@ -17,6 +17,7 @@ const getSignals = async (filters = {}) => {
   return signals.map(signal => ({
     id: signal.id,
     productId: signal.productId,
+    product: signal.product,
     symbol: signal.symbol,
     exchange: signal.exchange,
     signalType: signal.signalType,
@@ -44,6 +45,7 @@ const getSignalById = async (id) => {
   return {
     id: signal.id,
     productId: signal.productId,
+    product: signal.product,
     symbol: signal.symbol,
     exchange: signal.exchange,
     signalType: signal.signalType,
@@ -76,8 +78,10 @@ const createSignal = async (signalData) => {
   }
   const prod = await db.Product.findByPk(signalData.productId)
   const typeCat = prod ? String(prod.category||'').toLowerCase() : null
+  const productName = prod ? prod.name : null
   const newSignal = await db.Signal.create({
     productId: signalData.productId,
+    product: productName,
     symbol: (typeof (signalData.symbol || signalData.product) === 'string' ? (signalData.symbol || signalData.product).trim() : (signalData.symbol || signalData.product)),
     exchange: signalData.exchange || null,
     signalType: signalData.signalType || 'BUY',
@@ -99,6 +103,7 @@ const createSignal = async (signalData) => {
   return {
     id: newSignal.id,
     productId: newSignal.productId,
+    product: newSignal.product,
     symbol: newSignal.symbol,
     exchange: newSignal.exchange,
     signalType: newSignal.signalType,
@@ -137,7 +142,10 @@ const updateSignal = async (id, updateData) => {
     signal.productId = updateData.productId
     try {
       const prod = await db.Product.findByPk(updateData.productId)
-      if (prod && prod.category) signal.type = String(prod.category).toLowerCase()
+      if (prod) {
+        signal.product = prod.name
+        if (prod.category) signal.type = String(prod.category).toLowerCase()
+      }
     } catch(e){}
   }
   if (updateData.symbol !== undefined) signal.symbol = (typeof updateData.symbol === 'string' ? updateData.symbol.trim() : updateData.symbol)
@@ -172,6 +180,7 @@ const updateSignal = async (id, updateData) => {
   return {
     id: signal.id,
     productId: signal.productId,
+    product: signal.product,
     symbol: signal.symbol,
     exchange: signal.exchange,
     signalType: signal.signalType,
@@ -219,6 +228,7 @@ const activateSignal = async (id) => {
   return {
     id: signal.id,
     productId: signal.productId,
+    product: signal.product,
     symbol: signal.symbol,
     exchange: signal.exchange,
     signalType: signal.signalType,
@@ -296,6 +306,7 @@ const closeSignal = async (id, exitPrice = null, notes = undefined) => {
   return {
     id: signal.id,
     productId: signal.productId,
+    product: signal.product,
     symbol: signal.symbol,
     exchange: signal.exchange,
     signalType: signal.signalType,

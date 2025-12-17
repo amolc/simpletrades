@@ -143,8 +143,8 @@ router.get('/signals', async (req, res) => {
     let signalsData = []
     try {
       console.log('Attempting to fetch signals data directly...') // Debug log
-      const signalsList = await db.Signal.findAll({ 
-        order: [['createdAt', 'DESC']] 
+      const signalsList = await db.Signal.findAll({
+        order: [['createdAt', 'DESC']]
       })
       console.log('Raw signals database result:', signalsList.length, 'signals') // Debug log
       
