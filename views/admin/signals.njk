@@ -200,10 +200,16 @@
               <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
               <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-primary" data-saction="edit" data-sid="{{ signal.id }}">Edit</button>
-                  <button class="btn btn-outline-secondary" data-saction="close" data-sid="{{ signal.id }}">Close</button>
-                  <button class="btn btn-outline-danger" data-saction="delete" data-sid="{{ signal.id }}">Delete</button>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary" data-saction="edit" data-sid="{{ signal.id }}" title="Edit">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-warning" data-saction="close" data-sid="{{ signal.id }}" title="Close">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-danger" data-saction="delete" data-sid="{{ signal.id }}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                  </button>
                 </div>
               </td>
             </tr>
