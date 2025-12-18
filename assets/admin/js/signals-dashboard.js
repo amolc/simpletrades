@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
       
-      if (json && json.success) { 
+      if (json && json.success) {
         // Subscribe to live prices via WebSocket after adding to watchlist
         if (window.wsManager) {
           try {
@@ -83,11 +83,34 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('Failed to subscribe to WebSocket for live prices:', wsError);
           }
         }
-        
-        watchModal.hide(); 
-        window.location.reload(); 
-      } else { 
-        alert('Error: ' + (json.error||'Unknown')); 
+
+        // Add the new item to the watchlist table
+        const tbody = document.getElementById('watchlistBody');
+        if (tbody) {
+          const row = document.createElement('tr');
+          row.setAttribute('data-product', sel.name || 'Stocks');
+          row.innerHTML = `
+            <td><a href="https://www.tradingview.com/chart/?symbol=${exchange}:${stockName}" target="_blank" rel="noopener"><strong>${stockName}</strong></a></td>
+            <td>${sel.name || 'Stocks'}</td>
+            <td>${exchange}</td>
+            <td class="live-price">Rs -</td>
+            <td>Rs ${price.toFixed(2)}</td>
+            <td>Rs ${price.toFixed(2)}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-success" data-action="buy" data-id="${json.data.id}" data-stock="${stockName}">Buy</button>
+                <button class="btn btn-outline-warning" data-action="sell" data-id="${json.data.id}" data-stock="${stockName}">Sell</button>
+                <button class="btn btn-outline-primary" data-action="edit" data-id="${json.data.id}">Edit</button>
+                <button class="btn btn-outline-danger" data-action="delete" data-id="${json.data.id}">Delete</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(row);
+        }
+
+        watchModal.hide();
+      } else {
+        alert('Error: ' + (json.error||'Unknown'));
       }
     } catch(e){ 
       console.error('Add stock error:', e);
@@ -153,11 +176,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
       
-      if (json && json.success) { 
-        watchModal.hide(); 
-        window.location.reload(); 
-      } else { 
-        alert('Error: ' + (json.error||'Unknown')); 
+      if (json && json.success) {
+        // Add the new item to the watchlist table
+        const tbody = document.getElementById('watchlistBody');
+        if (tbody) {
+          const row = document.createElement('tr');
+          row.setAttribute('data-product', sel.name || 'Options');
+          row.innerHTML = `
+            <td><a href="https://www.tradingview.com/chart/?symbol=${exchange}:${sym}" target="_blank" rel="noopener"><strong>${sym}</strong></a></td>
+            <td>${sel.name || 'Options'}</td>
+            <td>${exchange}</td>
+            <td class="live-price">Rs -</td>
+            <td>Rs ${cp.toFixed(2)}</td>
+            <td>Rs ${cp.toFixed(2)}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <button class="btn btn-outline-success" data-action="buy" data-id="${json.data.id}" data-stock="${sym}">Buy</button>
+                <button class="btn btn-outline-warning" data-action="sell" data-id="${json.data.id}" data-stock="${sym}">Sell</button>
+                <button class="btn btn-outline-primary" data-action="edit" data-id="${json.data.id}">Edit</button>
+                <button class="btn btn-outline-danger" data-action="delete" data-id="${json.data.id}">Delete</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(row);
+        }
+
+        watchModal.hide();
+      } else {
+        alert('Error: ' + (json.error||'Unknown'));
       }
     } catch(e){ 
       console.error('Add option error:', e);
