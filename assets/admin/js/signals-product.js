@@ -75,8 +75,8 @@ class ProductSignalsManager {
                 // Get watchlist item data from the row
                 const row = e.target.closest('tr');
                 const cells = row.querySelectorAll('td');
-                const stockName = cells[0].textContent;
-                const exchangeName = cells[1] ? cells[1].textContent : '';
+                const stockName = cells[0].textContent.trim();
+                const exchangeName = cells[1] ? cells[1].textContent.trim() : '';
                 let currentPrice = parseFloat(cells[2].textContent.replace(/Rs\s?|₹/g, ''));
                 
                 // Populate and show the signal creation modal

@@ -15,14 +15,15 @@
 {% endblock %}
 {% block content %}
 <div class="container-fluid">
-  <div class="mt-4 mb-3">
+  <div class="mt-4 mb-3 text-center">
     <h2 class="mb-1">Signal Management Dashboard</h2>
     <small class="text-muted">Key metrics and products overview</small>
   </div>
 
   <!-- Overall Stats Row -->
   <div class="row g-3 mb-4" id="metricsRow">
-    <div class="col-md-4">
+    <div class="col-3"></div>
+    <div class="col-2">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
@@ -33,7 +34,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-2">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
@@ -44,7 +45,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-2">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
@@ -55,11 +56,12 @@
         </div>
       </div>
     </div>
+    <div class="col-3"></div>
   </div>
 
   <!-- Product Filter Section -->
   <div class="mb-4">
-    <h4 class="mb-3">Filter by Product</h4>
+    <h4 class="mb-3 text-center">Filter by Product</h4>
     <div class="d-flex justify-content-center">
       <div class="btn-group flex-wrap" role="group" id="productFilter">
         <button type="button" class="btn btn-outline-primary active" data-product="">All</button>
@@ -76,17 +78,17 @@
       <h5 class="mb-0">Watchlist</h5>
       <button class="btn btn-primary btn-sm" id="addWatchBtn"><i class="fas fa-plus me-1"></i>Add Watchlist Item</button>
     </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0" id="watchlistTable">
+    <div class="card-body p-1">
+      <div class="table-responsive mx-auto" style="max-width: 95%;">
+        <table class="table table-hover table-sm mb-0" id="watchlistTable">
           <thead>
             <tr>
-              <th>Symbol</th>
               <th>Product</th>
+              <th>Symbol</th>
               <th>Exchange</th>
               <th>Live Price</th>
-              <th>Current Price</th>
               <th>Alert Price</th>
+              <th>Difference (%)</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -105,21 +107,19 @@
                   {% set ex = 'OANDA' %}
                 {% endif %}
               {% endif %}
+              <td>{{ item.product }}</td>
               <td>
                 <a href="https://www.tradingview.com/chart/?symbol={{ ex }}:{{ item.stockName|trim }}" target="_blank" rel="noopener"><strong>{{ item.stockName|trim }}</strong></a>
               </td>
-              <td>{{ item.product }}</td>
               <td>{{ item.exchange or '-' }}</td>
               <td class="live-price">Rs -</td>
-              <td>Rs {{ (item.currentPrice|float).toFixed(2) }}</td>
               <td>Rs {{ (item.alertPrice|float).toFixed(2) }}</td>
+              <td class="difference">-</td>
               <td>
-                <div class="btn-group btn-group-sm">
-                  <button class="btn btn-outline-success" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Buy</button>
-                  <button class="btn btn-outline-warning" data-action="sell" data-id="{{ item.id }}" data-stock="{{ item.stockName }}">Sell</button>
-                  <button class="btn btn-outline-primary" data-action="edit" data-id="{{ item.id }}">Edit</button>
-                  <button class="btn btn-outline-danger" data-action="delete" data-id="{{ item.id }}">Delete</button>
-                </div>
+                <span class="badge bg-success me-1" style="cursor:pointer;" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}" title="Buy">Buy</span>
+                <span class="badge bg-warning me-1" style="cursor:pointer;" data-action="sell" data-id="{{ item.id }}" data-stock="{{ item.stockName }}" title="Sell">Sell</span>
+                <i class="fas fa-pencil-alt text-primary me-1" style="cursor:pointer;" data-action="edit" data-id="{{ item.id }}" title="Edit"></i>
+                <button class="btn btn-outline-danger btn-sm" data-action="delete" data-id="{{ item.id }}" title="Delete"><i class="fas fa-trash"></i></button>
               </td>
             </tr>
             {% endfor %}
@@ -140,17 +140,16 @@
           <thead>
             <tr>
               <th>ID</th>
+              <th>Product</th>
               <th>Stock</th>
               <th>Exchange</th>
-              <th>Product</th>
-              <th>Type</th>
-              <th>Live Price</th>
               <th>Entry</th>
+              <th>Live Price</th>
+              <th>Exit Price</th>
+              <th>P&L</th>
               <th>Target</th>
               <th>Stop</th>
               <th>Entry Time</th>
-              <th>Exit Price</th>
-              <th>P&L</th>
               <th>Exit Time</th>
               <th>Status</th>
               <th>Actions</th>
@@ -158,31 +157,39 @@
           </thead>
           <tbody id="signalsBody">
             {% for signal in signals %}
-            <tr data-product="{{ signal.product or '' }}">
+            <tr data-product="{{ signal.product or '' }}" data-type="{{ signal.signalType or signal.type }}" data-status="{{ signal.status }}">
               {% set ex2 = signal.exchange or '-' %}
               {% if ex2 == '-' or ex2 == '' %}
                 {% set ex2 = 'NSE' %}
               {% endif %}
               <td>{{ signal.id }}</td>
+              <td>{{ signal.product or '-' }}</td>
               <td>
                 <a href="https://www.tradingview.com/chart/?symbol={{ ex2 }}:{{ signal.symbol }}" target="_blank" rel="noopener">
                   <strong>{{ signal.symbol }}</strong>
                 </a>
               </td>
               <td>{{ signal.exchange or '-' }}</td>
-              <td>{{ signal.product or '-' }}</td>
-              <td>{{ signal.signalType or signal.type }}</td>
-              <td class="live-price">Rs -</td>
-              <td>Rs {{ signal.entry.toFixed(2) }}</td>
-              <td>Rs {{ signal.target.toFixed(2) }}</td>
-              <td>Rs {{ signal.stopLoss.toFixed(2) }}</td>
-              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
+              <td>{{ signal.entry.toFixed(2) }}</td>
+              <td class="live-price">-</td>
               <td>{% if signal.exitPrice %}Rs {{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
               <td>
-                {% if signal.status == 'PROFIT' %}
-                  <span class="text-success">PROFIT</span>
-                {% elif signal.status == 'LOSS' %}
-                  <span class="text-danger">LOSS</span>
+                {% if signal.status == 'PROFIT' or signal.status == 'LOSS' %}
+                  {% if signal.exitPrice %}
+                    {% set pnl = 0 %}
+                    {% if (signal.signalType or signal.type) == 'BUY' %}
+                      {% set pnl = signal.exitPrice - signal.entry %}
+                    {% elif (signal.signalType or signal.type) == 'SELL' %}
+                      {% set pnl = signal.entry - signal.exitPrice %}
+                    {% endif %}
+                    {% if pnl >= 0 %}
+                      <span class="text-success">+Rs {{ pnl.toFixed(2) }}</span>
+                    {% else %}
+                      <span class="text-danger">-Rs {{ (-pnl).toFixed(2) }}</span>
+                    {% endif %}
+                  {% else %}
+                    -
+                  {% endif %}
                 {% elif signal.status == 'IN_PROGRESS' %}
                   {% if signal.profitLoss %}
                     {% if signal.profitLoss >= 0 %}
@@ -197,6 +204,9 @@
                   -
                 {% endif %}
               </td>
+              <td>{{ signal.target.toFixed(2) }}</td>
+              <td>{{ signal.stopLoss.toFixed(2) }}</td>
+              <td>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</td>
               <td><span class="badge {% if signal.status == 'IN_PROGRESS' %}bg-primary{% elif signal.status == 'PROFIT' %}bg-success{% elif signal.status == 'LOSS' %}bg-danger{% endif %}">{{ signal.status }}</span></td>
               <td>
@@ -267,8 +277,14 @@
                     <option value="BINANCE">BINANCE</option>
                     <option value="NASDAQ">NASDAQ</option>
                     <option value="NYSE">NYSE</option>
+                    <option value="PEPPERSTONE">PEPPERSTONE</option>
+                    <option value="OANDA">OANDA</option>
                   </select>
                 </div>
+              </div>
+              <div class="mb-3">
+                <label class="form-label" for="watchAlertPrice">Alert Price</label>
+                <input class="form-control" id="watchAlertPrice" type="number" step="0.01">
               </div>
             </div>
             <div id="watchOptionsSection" class="mb-3" data-section="option">
@@ -286,6 +302,8 @@
                     <option value="BINANCE">BINANCE</option>
                     <option value="NASDAQ">NASDAQ</option>
                     <option value="NYSE">NYSE</option>
+                    <option value="PEPPERSTONE">PEPPERSTONE</option>
+                    <option value="OANDA">OANDA</option>
                   </select>
                 </div>
               </div>
@@ -356,14 +374,14 @@
               <label class="form-label" for="signalTarget">Target <small class="text-muted"><span id="targetPctSign">+</span><span id="targetPctLabel">0.5</span>%</small></label>
               <div class="d-flex align-items-center gap-2">
                 <input class="form-control" id="signalTarget" type="number" step="0.01" required>
-                <input type="range" id="targetPct" min="0" max="3" step="0.25" value="0.5" style="width:140px">
+                <input type="range" id="targetPct" min="0" max="10" step="0.25" value="0.5" style="width:140px">
               </div>
             </div>
             <div class="mb-3">
               <label class="form-label" for="signalStop">Stop Loss <small class="text-muted"><span id="stopPctSign">-</span><span id="stopPctLabel">0.5</span>%</small></label>
               <div class="d-flex align-items-center gap-2">
                 <input class="form-control" id="signalStop" type="number" step="0.01" required>
-                <input type="range" id="stopPct" min="0" max="3" step="0.25" value="0.5" style="width:140px">
+                <input type="range" id="stopPct" min="0" max="10" step="0.25" value="0.5" style="width:140px">
               </div>
             </div>
             <div class="mb-3">
@@ -486,8 +504,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const symbols = [];
     const signalRows = document.querySelectorAll('#signalsBody tr');
     signalRows.forEach(row => {
-        const symbolCell = row.querySelector('td:nth-child(2) a');
-        const exchangeCell = row.querySelector('td:nth-child(3)');
+        const symbolCell = row.querySelector('td:nth-child(3) a');
+        const exchangeCell = row.querySelector('td:nth-child(4)');
         if (symbolCell && exchangeCell) {
             const symbol = symbolCell.textContent.trim();
             const exchange = exchangeCell.textContent.trim() || 'NSE';
@@ -501,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Collect symbols from watchlist table
     const watchlistRows = document.querySelectorAll('#watchlistBody tr');
     watchlistRows.forEach(row => {
-        const symbolCell = row.querySelector('td:nth-child(1) a');
+        const symbolCell = row.querySelector('td:nth-child(2) a');
         const exchangeCell = row.querySelector('td:nth-child(3)');
         if (symbolCell && exchangeCell) {
             const symbol = symbolCell.textContent.trim();
@@ -580,8 +598,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update signals table
         const signalRows = document.querySelectorAll('#signalsBody tr');
         signalRows.forEach(row => {
-            const symbolCell = row.querySelector('td:nth-child(2) a');
-            const exchangeCell = row.querySelector('td:nth-child(3)');
+            const symbolCell = row.querySelector('td:nth-child(3) a');
+            const exchangeCell = row.querySelector('td:nth-child(4)');
             if (symbolCell && exchangeCell) {
                 const rowSymbol = symbolCell.textContent.trim();
                 const rowExchange = exchangeCell.textContent.trim() || 'NSE';
@@ -590,33 +608,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Find the live price cell (column 6)
                     const priceCell = row.querySelector('td:nth-child(6)');
                     if (priceCell) {
-                        priceCell.textContent = 'Rs ' + price.toFixed(2);
+                        priceCell.textContent = price.toFixed(2);
                         priceCell.classList.add('live-price');
                     }
 
-                    // Calculate and update live P&L (column 12)
-                    const typeCell = row.querySelector('td:nth-child(5)'); // Type column
-                    const entryCell = row.querySelector('td:nth-child(7)'); // Entry column
-                    const pnlCell = row.querySelector('td:nth-child(12)'); // P&L column
+                    // Calculate and update live P&L (column 8) only for IN_PROGRESS signals
+                    const status = row.getAttribute('data-status');
+                    if (status === 'IN_PROGRESS') {
+                        const signalType = row.getAttribute('data-type').toUpperCase();
+                        const entryCell = row.querySelector('td:nth-child(5)'); // Entry column
+                        const pnlCell = row.querySelector('td:nth-child(8)'); // P&L column
 
-                    if (typeCell && entryCell && pnlCell) {
-                        const signalType = typeCell.textContent.trim().toUpperCase();
-                        const entryText = entryCell.textContent.trim().replace('Rs ', '');
-                        const entryPrice = parseFloat(entryText);
+                        if (entryCell && pnlCell) {
+                            const entryText = entryCell.textContent.trim().replace('Rs ', '');
+                            const entryPrice = parseFloat(entryText);
 
-                        if (!isNaN(entryPrice)) {
-                            let pnl = 0;
-                            if (signalType === 'BUY') {
-                                pnl = price - entryPrice;
-                            } else if (signalType === 'SELL') {
-                                pnl = entryPrice - price;
+                            if (!isNaN(entryPrice)) {
+                                let pnl = 0;
+                                if (signalType === 'BUY') {
+                                    pnl = price - entryPrice;
+                                } else if (signalType === 'SELL') {
+                                    pnl = entryPrice - price;
+                                }
+
+                                const pnlText = pnl >= 0 ?
+                                    `<span class="text-success">+${pnl.toFixed(2)}</span>` :
+                                    `<span class="text-danger">-${Math.abs(pnl).toFixed(2)}</span>`;
+
+                                pnlCell.innerHTML = pnlText;
                             }
-
-                            const pnlText = pnl >= 0 ?
-                                `<span class="text-success">+${pnl.toFixed(2)}</span>` :
-                                `<span class="text-danger">-${Math.abs(pnl).toFixed(2)}</span>`;
-
-                            pnlCell.innerHTML = pnlText;
                         }
                     }
 
@@ -635,7 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update watchlist table
         const watchlistRows = document.querySelectorAll('#watchlistBody tr');
         watchlistRows.forEach(row => {
-            const symbolCell = row.querySelector('td:nth-child(1) a');
+            const symbolCell = row.querySelector('td:nth-child(2) a');
             const exchangeCell = row.querySelector('td:nth-child(3)');
             if (symbolCell && exchangeCell) {
                 const rowSymbol = symbolCell.textContent.trim();
@@ -649,6 +669,25 @@ document.addEventListener('DOMContentLoaded', function() {
                         priceCell.classList.add('live-price');
                     }
 
+                    // Update difference (column 6) = alert - live with percentage
+                    const alertCell = row.querySelector('td:nth-child(5)');
+                    const differenceCell = row.querySelector('td:nth-child(6)');
+                    if (alertCell && differenceCell) {
+                        const alertText = alertCell.textContent.trim().replace('Rs ', '');
+                        const alertPrice = parseFloat(alertText);
+                        if (!isNaN(alertPrice)) {
+                            const diff = price - alertPrice;
+                            let pct = 0;
+                            if (alertPrice !== 0) {
+                                pct = (diff / alertPrice) * 100;
+                            }
+                            const diffText = diff >= 0 ? `+${diff.toFixed(2)}` : `${diff.toFixed(2)}`;
+                            const pctText = pct >= 0 ? `(+${pct.toFixed(2)}%)` : `(${pct.toFixed(2)}%)`;
+                            differenceCell.textContent = `${diffText} ${pctText}`;
+                            differenceCell.className = diff >= 0 ? 'text-success' : 'text-danger';
+                        }
+                    }
+
                     row.classList.add('price-updated');
 
                     // Remove highlight after animation
@@ -656,7 +695,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         row.classList.remove('price-updated');
                     }, 1000);
 
-                    console.log('🔄 Updated live price for watchlist', fullSymbol, 'to', price);
+                    console.log('🔄 Updated live price and difference for watchlist', fullSymbol, 'to', price);
                 }
             }
         });

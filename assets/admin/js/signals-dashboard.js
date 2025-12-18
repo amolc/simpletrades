@@ -37,38 +37,40 @@ document.addEventListener('DOMContentLoaded', () => {
       if (modeStock) modeStock.checked = true;
       updateWatchMode();
       updateSubmitLabel();
+      document.querySelector('#watchModal .modal-title').textContent = 'Add Watchlist Item';
       watchModal.show();
     });
   }
 
-  async function addStockSimple(){
+  async function addStockSimple(alertPriceOverride){
     showInlineLoader();
     try {
       const stockName = (document.getElementById('watchStock')?.value || '').trim();
       const exchange = (document.getElementById('stockExchange')?.value || '').trim();
       const sel = getSelectedProduct();
-      if (!stockName || !exchange) { 
-        alert('Please enter stock and exchange'); 
-        return; 
+      if (!stockName || !exchange) {
+        alert('Please enter stock and exchange');
+        return;
       }
-      
+
       let price = 0;
-      try { 
+      try {
         // Use a timeout for price fetch so it doesn't hang forever
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 3000);
-        
+
         const r = await fetch(`/api/price?symbol=${encodeURIComponent(stockName)}&exchange=${encodeURIComponent(exchange)}`, {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        const d = await r.json(); 
-        if (d && d.success && typeof d.price === 'number') price = d.price; 
+        const d = await r.json();
+        if (d && d.success && typeof d.price === 'number') price = d.price;
       } catch(e){
         console.warn('Price fetch failed, proceeding with 0:', e);
       }
 
-      const body = { stockName, product: sel.name || 'Stocks', exchange, currentPrice: price, alertPrice: price };
+      const alertPrice = alertPriceOverride !== undefined ? alertPriceOverride : parseFloat(document.getElementById('watchAlertPrice').value) || price;
+      const body = { stockName, product: sel.name || 'Stocks', exchange, currentPrice: price, alertPrice };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
       
@@ -97,12 +99,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>Rs ${price.toFixed(2)}</td>
             <td>Rs ${price.toFixed(2)}</td>
             <td>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-success" data-action="buy" data-id="${json.data.id}" data-stock="${stockName}">Buy</button>
-                <button class="btn btn-outline-warning" data-action="sell" data-id="${json.data.id}" data-stock="${stockName}">Sell</button>
-                <button class="btn btn-outline-primary" data-action="edit" data-id="${json.data.id}">Edit</button>
-                <button class="btn btn-outline-danger" data-action="delete" data-id="${json.data.id}">Delete</button>
-              </div>
+              <span class="badge bg-success me-1" style="cursor:pointer;" data-action="buy" data-id="${json.data.id}" data-stock="${stockName}" title="Buy">Buy</span>
+              <span class="badge bg-warning me-1" style="cursor:pointer;" data-action="sell" data-id="${json.data.id}" data-stock="${stockName}" title="Sell">Sell</span>
+              <i class="fas fa-pencil-alt text-primary me-1" style="cursor:pointer;" data-action="edit" data-id="${json.data.id}" title="Edit"></i>
+              <button class="btn btn-outline-danger btn-sm" data-action="delete" data-id="${json.data.id}" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
           `;
           tbody.appendChild(row);
@@ -143,9 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Underlying price fetch error:', e);
       }
       
-      if (isNaN(price)) { 
-        alert('Could not fetch underlying price. Cannot calculate ATM strike.'); 
-        return; 
+      if (isNaN(price) || price <= 0) {
+        alert('Could not fetch valid underlying price. Cannot calculate ATM strike.');
+        return;
       }
       
       const step = (() => {
@@ -166,13 +166,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const sym = `${underlying.toUpperCase()}${fmt(expiry)}${cpLetter}${strike}`;
       
       let cp = 0;
-      try { 
-        const r2 = await fetch(`/api/price?symbol=${encodeURIComponent(sym)}&exchange=${encodeURIComponent(exchange)}`); 
-        const d2 = await r2.json(); 
-        if (d2 && d2.success && typeof d2.price === 'number') cp = d2.price; 
+      try {
+        const r2 = await fetch(`/api/price?symbol=${encodeURIComponent(sym)}&exchange=${encodeURIComponent(exchange)}`);
+        const d2 = await r2.json();
+        if (d2 && d2.success && typeof d2.price === 'number') cp = d2.price;
       } catch(e){}
       
-      const body = { stockName: sym, product: sel.name || 'Options', exchange, currentPrice: cp, alertPrice: cp };
+      const alertPrice = parseFloat(document.getElementById('watchAlertPrice').value) || cp;
+      const body = { stockName: sym, product: sel.name || 'Options', exchange, currentPrice: cp, alertPrice };
       const res = await fetch('/api/watchlist', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
       const json = await res.json();
       
@@ -190,12 +191,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>Rs ${cp.toFixed(2)}</td>
             <td>Rs ${cp.toFixed(2)}</td>
             <td>
-              <div class="btn-group btn-group-sm">
-                <button class="btn btn-outline-success" data-action="buy" data-id="${json.data.id}" data-stock="${sym}">Buy</button>
-                <button class="btn btn-outline-warning" data-action="sell" data-id="${json.data.id}" data-stock="${sym}">Sell</button>
-                <button class="btn btn-outline-primary" data-action="edit" data-id="${json.data.id}">Edit</button>
-                <button class="btn btn-outline-danger" data-action="delete" data-id="${json.data.id}">Delete</button>
-              </div>
+              <span class="badge bg-success me-1" style="cursor:pointer;" data-action="buy" data-id="${json.data.id}" data-stock="${sym}" title="Buy">Buy</span>
+              <span class="badge bg-warning me-1" style="cursor:pointer;" data-action="sell" data-id="${json.data.id}" data-stock="${sym}" title="Sell">Sell</span>
+              <i class="fas fa-pencil-alt text-primary me-1" style="cursor:pointer;" data-action="edit" data-id="${json.data.id}" title="Edit"></i>
+              <button class="btn btn-outline-danger btn-sm" data-action="delete" data-id="${json.data.id}" title="Delete"><i class="fas fa-trash"></i></button>
             </td>
           `;
           tbody.appendChild(row);
@@ -212,12 +211,34 @@ document.addEventListener('DOMContentLoaded', () => {
       hideInlineLoader();
     }
   }
-  addStockBtn?.addEventListener('click', addStockSimple);
+  addStockBtn?.addEventListener('click', () => addStockSimple());
   addOptionStockBtn?.addEventListener('click', addOptionATM);
   watchSubmitBtn?.addEventListener('click', () => {
-    const isStock = modeStock?.checked;
-    if (isStock) return addStockSimple();
-    return addOptionATM();
+    const id = document.getElementById('watchId').value;
+    if (id) {
+      // update
+      const alertPrice = parseFloat(document.getElementById('watchAlertPrice').value);
+      if (!alertPrice || isNaN(alertPrice)) return alert('Enter valid alert price');
+      fetch(`/api/watchlist/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ alertPrice }) })
+      .then(r => r.json())
+      .then(json => {
+        if (json.success) {
+          // update the row
+          const alertCell = document.querySelector(`[data-id="${id}"]`).closest('tr').querySelector('td:nth-child(5)');
+          alertCell.textContent = 'Rs ' + alertPrice.toFixed(2);
+          watchModal.hide();
+        } else {
+          alert('Error updating watchlist item');
+        }
+      }).catch(err => {
+        console.error('Update error:', err);
+        alert('Error updating watchlist item');
+      });
+    } else {
+      const isStock = modeStock?.checked;
+      if (isStock) return addStockSimple();
+      return addOptionATM();
+    }
   });
 
   function updateWatchMode(){
@@ -240,25 +261,27 @@ document.addEventListener('DOMContentLoaded', () => {
   // Handle watchlist actions (buy, sell, edit, delete)
   if (watchlistBody) {
     watchlistBody.addEventListener('click', async (e) => {
-      const btn = e.target.closest('button');
-      if (!btn) return;
-      const action = btn.dataset.action;
-      const id = btn.dataset.id;
-      const stock = btn.dataset.stock;
+      const element = e.target.closest('[data-action]');
+      if (!element) return;
+      const action = element.dataset.action;
+      const id = element.dataset.id;
+      const stock = element.dataset.stock;
 
       if (action === 'edit') {
         // Find the row data and populate the modal
         const row = e.target.closest('tr');
         const cells = row.querySelectorAll('td');
-        
+
         document.getElementById('watchId').value = id;
-        const marketVal = cells[1].textContent;
+        const marketVal = cells[0].textContent;
         const exchangeVal = cells[2].textContent;
         const currentPriceVal = parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, ''));
         const alertPriceVal = parseFloat(cells[4].textContent.replace(/Rs\s?|₹/g, ''));
         document.getElementById('watchProduct').value = marketVal;
         document.getElementById('stockExchange').value = exchangeVal;
-        document.getElementById('watchStock').value = cells[0].textContent;
+        document.getElementById('watchStock').value = cells[1].textContent.trim();
+        document.getElementById('watchAlertPrice').value = alertPriceVal;
+        document.querySelector('#watchModal .modal-title').textContent = 'Edit Alert Price';
         watchModal.show();
       } else if (action === 'delete') {
         if (confirm('Are you sure you want to delete this watchlist item?')) {
@@ -289,9 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Get watchlist item data from the row
         const row = e.target.closest('tr');
         const cells = row.querySelectorAll('td');
-        const stockName = cells[0].textContent;
-        const marketName = cells[1].textContent;
-        const exchangeName = cells[2].textContent;
+        const stockName = cells[1].textContent.trim();
+        const marketName = cells[0].textContent.trim();
+        const exchangeName = cells[2].textContent.trim();
         const currentPriceCell = parseFloat(cells[3].textContent.replace(/Rs\s?|₹/g, ''));
         
         // Populate and show the signal creation modal
@@ -628,8 +651,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const rows = Array.from(watchlistTbl.querySelectorAll('tr'));
       rows.forEach(row => {
         const cells = row.querySelectorAll('td');
-        const symbol = String(cells[0]?.textContent || '').trim();
-        const product = String(cells[1]?.textContent || '').trim();
+        const symbol = String(cells[1]?.textContent || '').trim();
+        const product = String(cells[0]?.textContent || '').trim();
         const exCell = String(cells[2]?.textContent || '').trim();
         const exchange = exCell && exCell !== '-' ? exCell : mapDefaultExchange(product);
         const priceCell = cells[3];
@@ -668,20 +691,20 @@ document.addEventListener('DOMContentLoaded', () => {
            symbolMap.get(key).push((data) => {
               const price = data.price;
               if (Number.isFinite(price)) {
-                priceCell.textContent = `Rs ${price.toFixed(2)}`;
-                
+                priceCell.textContent = price.toFixed(2);
+
                 // Update P&L
                 const typeTxt = String(cells[4]?.textContent || '').trim().toUpperCase();
                 const entryVal = parseFloat(String(cells[5]?.textContent || '').replace(/Rs\s?|₹/g, ''));
                 const plCell = cells[10];
-                
+
                 if (Number.isFinite(entryVal) && plCell) {
                    let pl = 0;
                    if (typeTxt === 'BUY') pl = price - entryVal;
                    else if (typeTxt === 'SELL') pl = entryVal - price;
-                   
+
                    const abs = Math.abs(pl).toFixed(2);
-                   plCell.innerHTML = pl >= 0 
+                   plCell.innerHTML = pl >= 0
                      ? `<span class="text-success">+Rs ${abs}</span>`
                      : `<span class="text-danger">-Rs ${abs}</span>`;
                 }

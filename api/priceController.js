@@ -103,8 +103,8 @@ async function getQuote(req, res) {
         }
       })
       
-      if (response.data && response.data.success && response.data.price !== null && response.data.price !== undefined) {
-        const price = Number(response.data.price)
+      if (response.data && response.data.success && response.data.data && response.data.data.length > 0 && response.data.data[0].close !== null && response.data.data[0].close !== undefined) {
+        const price = Number(response.data.data[0].close)
         console.log(`[Price API] Price received from data.simpleincome.co: ${price}`)
         
         // Update cache for next time
