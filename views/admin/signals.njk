@@ -80,7 +80,7 @@
     </div>
     <div class="card-body p-1">
       <div class="table-responsive mx-auto" style="max-width: 95%;">
-        <table class="table table-hover table-sm mb-0" id="watchlistTable">
+        <table class="table table-hover table-sm mb-0 text-start" id="watchlistTable">
           <thead>
             <tr>
               <th>Product</th>
@@ -112,8 +112,8 @@
                 <a href="https://www.tradingview.com/chart/?symbol={{ ex }}:{{ item.stockName|trim }}" target="_blank" rel="noopener"><strong>{{ item.stockName|trim }}</strong></a>
               </td>
               <td>{{ item.exchange or '-' }}</td>
-              <td class="live-price">Rs -</td>
-              <td>Rs {{ (item.alertPrice|float).toFixed(2) }}</td>
+              <td class="live-price">-</td>
+              <td>{{ (item.alertPrice|float).toFixed(2) }}</td>
               <td class="difference">-</td>
               <td>
                 <span class="badge bg-success me-1" style="cursor:pointer;" data-action="buy" data-id="{{ item.id }}" data-stock="{{ item.stockName }}" title="Buy">Buy</span>
@@ -550,10 +550,11 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             console.log('📈 Initial prices fetched:', data);
-            if (data && Array.isArray(data)) {
-                data.forEach(item => {
-                    if (item.data && item.data.length > 0 && item.data[0].close !== undefined && item.data[0].close !== null) {
+            if (data && data.results && Array.isArray(data.results)) {
+                data.results.forEach(item => {
+                    if (item.status === 'success' && item.data && item.data.length > 0 && item.data[0].close !== undefined && item.data[0].close !== null) {
                         const fullSymbol = item.exchange + ':' + item.symbol;
+                        console.log('🔄 Updating price for', fullSymbol, 'to', item.data[0].close);
                         updateLivePrice(fullSymbol, Number(item.data[0].close));
                     }
                 });
@@ -692,11 +693,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (rowSymbol === symbol && rowExchange === exchange) {
                     // Find the live price cell (column 4)
-                    const priceCell = row.querySelector('td:nth-child(4)');
-                    if (priceCell) {
-                        priceCell.textContent = 'Rs ' + price.toFixed(2);
-                        priceCell.classList.add('live-price');
-                    }
+                     const priceCell = row.querySelector('td:nth-child(4)');
+                     if (priceCell) {
+                         priceCell.textContent = price.toFixed(2);
+                         priceCell.classList.add('live-price');
+                     }
 
                     // Update difference (column 6) = alert - live with percentage
                     const alertCell = row.querySelector('td:nth-child(5)');
