@@ -1,6 +1,7 @@
 module.exports = (db) => {
 console.log('API routes initialized from', __filename)
 const express = require('express')
+const axios = require('axios')
 const planController = require('./planController')
 const { userController } = require('./userController')
 const { authenticate } = require('./user')
@@ -66,6 +67,42 @@ router.get('/subscriptions/:id', subscriptionController.getSubscriptionById)
 router.put('/subscriptions/:id', subscriptionController.updateSubscription)
 router.delete('/subscriptions/:id', subscriptionController.deleteSubscription)
 router.get('/subscriptions/:id/payment-qrcode', subscriptionController.generatePaymentQrCode)
+
+// Proxy to data.simpleincome.co group price API
+router.post('/external-price', async (req, res) => {
+  const symbolObjects = req.body
+  console.log(`[External Price] Requesting prices for ${symbolObjects.length} symbols`)
+  if (!Array.isArray(symbolObjects) || symbolObjects.length === 0) {
+    return res.status(400).json({ success: false, error: 'array of symbol objects required' })
+  }
+  try {
+    const response = await axios.post('https://data.simpleincome.co/api/groupprice', symbolObjects, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'stockagent/1.0',
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    console.log(`[External Price] Response status: ${response.status}`)
+    console.log(`[External Price] Response data:`, JSON.stringify(response.data, null, 2))
+    if (typeof response.data === 'object' && response.data !== null) {
+      console.log(`[External Price] Sending response for ${symbolObjects.length} symbols`)
+      res.json(response.data)
+    } else {
+      console.error(`[External Price] Invalid response type:`, typeof response.data)
+      res.status(500).json({ success: false, error: 'Invalid response from external API' })
+    }
+  } catch (error) {
+    console.error(`[External Price] Error:`, error.message)
+    if (error.response) {
+      console.error(`[External Price] Error response status: ${error.response.status}`)
+      console.error(`[External Price] Error response data:`, error.response.data)
+    }
+    res.status(500).json({ success: false, error: error.message })
+  }
+})
+console.log('Registered /api/external-price route')
 
 // Price (TradingView adapter)
 router.get('/price', priceController.getQuote)

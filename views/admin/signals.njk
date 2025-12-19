@@ -535,6 +535,33 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('📊 Collected symbols for subscription:', symbols);
 
+    // Fetch initial prices
+    if (symbols.length > 0) {
+        const symbolObjects = symbols.map(fullSymbol => {
+            const [exchange, symbol] = fullSymbol.split(':');
+            return { symbol, exchange };
+        });
+
+        fetch('/api/external-price', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(symbolObjects)
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('📈 Initial prices fetched:', data);
+            if (data && Array.isArray(data)) {
+                data.forEach(item => {
+                    if (item.data && item.data.length > 0 && item.data[0].close !== undefined && item.data[0].close !== null) {
+                        const fullSymbol = item.exchange + ':' + item.symbol;
+                        updateLivePrice(fullSymbol, Number(item.data[0].close));
+                    }
+                });
+            }
+        })
+        .catch(error => console.error('❌ Error fetching initial prices:', error));
+    }
+
     // Initialize WebSocket connection
     const ws = new WebSocket('wss://data.simpleincome.co/ws/stream/');
 
