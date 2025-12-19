@@ -141,8 +141,9 @@
             <tr>
               <th>ID</th>
               <th>Product</th>
-              <th>Stock</th>
               <th>Exchange</th>
+              <th>Stock</th>
+              <th>Type</th>
               <th>Entry</th>
               <th>Live Price</th>
               <th>Exit Price</th>
@@ -164,12 +165,13 @@
               {% endif %}
               <td>{{ signal.id }}</td>
               <td>{{ signal.product or '-' }}</td>
+              <td>{{ signal.exchange or '-' }}</td>
               <td>
                 <a href="https://www.tradingview.com/chart/?symbol={{ ex2 }}:{{ signal.symbol }}" target="_blank" rel="noopener">
                   <strong>{{ signal.symbol }}</strong>
                 </a>
               </td>
-              <td>{{ signal.exchange or '-' }}</td>
+              <td>{{ signal.signalType or signal.type or '-' }}</td>
               <td>{{ signal.entry.toFixed(2) }}</td>
               <td class="live-price">-</td>
               <td>{% if signal.exitPrice %}Rs {{ signal.exitPrice.toFixed(2) }}{% else %}-{% endif %}</td>
@@ -504,8 +506,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const symbols = [];
     const signalRows = document.querySelectorAll('#signalsBody tr');
     signalRows.forEach(row => {
-        const symbolCell = row.querySelector('td:nth-child(3) a');
-        const exchangeCell = row.querySelector('td:nth-child(4)');
+        const symbolCell = row.querySelector('td:nth-child(4) a');
+        const exchangeCell = row.querySelector('td:nth-child(3)');
         if (symbolCell && exchangeCell) {
             const symbol = symbolCell.textContent.trim();
             const exchange = exchangeCell.textContent.trim() || 'NSE';
@@ -598,26 +600,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update signals table
         const signalRows = document.querySelectorAll('#signalsBody tr');
         signalRows.forEach(row => {
-            const symbolCell = row.querySelector('td:nth-child(3) a');
-            const exchangeCell = row.querySelector('td:nth-child(4)');
+            const symbolCell = row.querySelector('td:nth-child(4) a');
+            const exchangeCell = row.querySelector('td:nth-child(3)');
             if (symbolCell && exchangeCell) {
                 const rowSymbol = symbolCell.textContent.trim();
                 const rowExchange = exchangeCell.textContent.trim() || 'NSE';
 
                 if (rowSymbol === symbol && rowExchange === exchange) {
-                    // Find the live price cell (column 6)
-                    const priceCell = row.querySelector('td:nth-child(6)');
+                    // Find the live price cell (column 7)
+                    const priceCell = row.querySelector('td:nth-child(7)');
                     if (priceCell) {
                         priceCell.textContent = price.toFixed(2);
                         priceCell.classList.add('live-price');
                     }
 
-                    // Calculate and update live P&L (column 8) only for IN_PROGRESS signals
+                    // Calculate and update live P&L (column 9) only for IN_PROGRESS signals
                     const status = row.getAttribute('data-status');
                     if (status === 'IN_PROGRESS') {
                         const signalType = row.getAttribute('data-type').toUpperCase();
-                        const entryCell = row.querySelector('td:nth-child(5)'); // Entry column
-                        const pnlCell = row.querySelector('td:nth-child(8)'); // P&L column
+                        const entryCell = row.querySelector('td:nth-child(6)'); // Entry column
+                        const pnlCell = row.querySelector('td:nth-child(9)'); // P&L column
 
                         if (entryCell && pnlCell) {
                             const entryText = entryCell.textContent.trim().replace('Rs ', '');
