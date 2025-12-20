@@ -69,19 +69,27 @@ document.addEventListener('DOMContentLoaded', function() {
       if (res.ok) {
         // Handle both old format ({token}) and new format ({success: true, data: {token}})
         const token = data.token || (data.data && data.data.token);
-        
+
         if (token) {
           localStorage.setItem('authToken', token);
-          // Redirect to the redirect URL or home
-          const urlParams = new URLSearchParams(window.location.search);
-          const redirect = urlParams.get('redirect') || '/';
-          
-          // If redirecting to the same page we're on, reload to trigger navigation update
-          if (window.location.pathname === redirect || redirect === '/') {
-            window.location.reload();
-          } else {
-            window.location.href = redirect;
+
+          // Check for pending subscription and handle it
+          if (sessionStorage.getItem('pendingSubscription')) {
+            const pending = JSON.parse(sessionStorage.getItem('pendingSubscription'));
+            sessionStorage.removeItem('pendingSubscription');
+
+            console.log('Processing pending subscription after login:', pending);
+
+            // Redirect to confirmation page
+            window.location.href = `/subscription/confirm?productId=${pending.productId}&planId=${pending.planId}&authToken=${token}`;
+            return;
           }
+
+          // Redirect to the redirect URL or dashboard
+          const urlParams = new URLSearchParams(window.location.search);
+          const redirect = urlParams.get('redirect') || '/dashboard';
+
+          window.location.href = redirect;
         } else {
           alert('Login failed: ' + (data.message || 'Unknown error'));
         }

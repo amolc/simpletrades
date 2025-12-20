@@ -148,6 +148,7 @@ const userController = {
   async loginUser(req, res) {
     try {
       const { phoneNumber, password } = req.body;
+      console.log('loginUser called with phone:', phoneNumber);
 
       // Validation
       if (!phoneNumber || !password) {

@@ -29,9 +29,9 @@
             </ul>
             
             <div class="d-flex ms-lg-3" id="guestActions">
-                <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">
+                <a href="/login" class="btn btn-outline-primary me-2">
                     <i class="fas fa-sign-in-alt me-1"></i>Login
-                </button>
+                </a>
                 <a href="/register" class="btn btn-primary">
                     <i class="fas fa-user-plus me-1"></i>Register
                 </a>
@@ -48,170 +48,47 @@
     </div>
 </nav>
 
-<!-- Login Modal -->
-<div class="modal fade" id="loginModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title"><i class="fas fa-sign-in-alt me-2"></i>Login to SimpleIncome</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form>
-                    <div class="mb-3">
-                        <label for="loginPhoneNumber" class="form-label">Phone Number</label>
-                        <input type="text" class="form-control" id="loginPhoneNumber" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="loginPassword" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="loginPassword" required>
-                    </div>
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="rememberMe">
-                        <label class="form-check-label" for="rememberMe">Remember me</label>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="modalLoginBtn">Login</button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
-  (function(){
+(function(){
+  console.log('Header script loaded');
+  const guest = document.getElementById('guestActions');
+  const auth = document.getElementById('authActions');
+  const navDash = document.getElementById('navDashboard');
+  const updateUI = ()=>{
     const token = localStorage.getItem('authToken');
-    const guest = document.getElementById('guestActions');
-    const auth = document.getElementById('authActions');
-    const navDash = document.getElementById('navDashboard');
-    const updateUI = ()=>{
-      const token = localStorage.getItem('authToken');
-      const logged = !!token;
-      console.log('=== updateUI called ===');
-      console.log('Token found:', token ? token.substring(0, 20) + '...' : 'none');
-      console.log('Logged status:', logged);
-      console.log('guestActions element:', guest);
-      console.log('authActions element:', auth);
-      console.log('navDashboard element:', navDash);
-      
-      if (!guest || !auth || !navDash) {
-        console.error('One or more UI elements not found!');
-        return;
-      }
-      
-      if (logged){
-        console.log('Applying logged-in UI state');
-        guest.classList.add('d-none');
-        auth.classList.remove('d-none');
-        navDash.classList.remove('d-none');
-        console.log('UI updated for logged-in user');
-      } else {
-        console.log('Applying logged-out UI state');
-        guest.classList.remove('d-none');
-        auth.classList.add('d-none');
-        navDash.classList.add('d-none');
-        console.log('UI updated for logged-out user');
-      }
-    };
-    updateUI();
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn){
-      logoutBtn.addEventListener('click',()=>{
-        localStorage.removeItem('authToken');
-        updateUI();
-        window.location.href = '/';
-      });
+    const logged = !!token;
+    console.log('=== updateUI called ===');
+    console.log('Token found:', token ? token.substring(0, 20) + '...' : 'none');
+    console.log('Logged status:', logged);
+
+    if (!guest || !auth || !navDash) {
+      console.error('One or more UI elements not found!');
+      return;
     }
-    const modalBtn = document.getElementById('modalLoginBtn');
-    
-    // Function to properly close the modal
-    const closeLoginModal = () => {
-      const modal = document.getElementById('loginModal');
-      const backdrop = document.querySelector('.modal-backdrop');
-      
-      // First, blur any focused element to prevent aria-hidden issues
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
-      
-      // Remove backdrop
-      if (backdrop) {
-        backdrop.remove();
-      }
-      
-      // Remove modal classes
-      modal.classList.remove('show');
-      modal.style.display = 'none';
-      
-      // Remove body classes
-      document.body.classList.remove('modal-open');
-      
-      // Reset aria attributes
-      modal.setAttribute('aria-hidden', 'true');
-      modal.removeAttribute('aria-modal');
-      
-      console.log('Modal closed manually');
-    };
-    
-    if (modalBtn){
-      modalBtn.addEventListener('click', async ()=>{
-        const phone = document.getElementById('loginPhoneNumber').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        
-        console.log('Attempting login with phone:', phone);
-        
-        try{
-          const res = await fetch('/api/users/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phoneNumber:phone,password})});
-          const data = await res.json();
-          
-          console.log('Login response:', data);
-          console.log('Response status:', res.status);
-          console.log('Response ok:', res.ok);
-          
-          if(res.ok && data.token){
-            console.log('Login successful! Token received:', data.token.substring(0, 20) + '...');
-            
-            // Store token
-            localStorage.setItem('authToken', data.token);
-            console.log('Token stored in localStorage');
-            
-            // Close modal first
-            closeLoginModal();
 
-            // Update UI immediately
-            updateUI();
-
-            // Check for pending subscription and handle it
-            if (sessionStorage.getItem('pendingSubscription')) {
-              const pending = JSON.parse(sessionStorage.getItem('pendingSubscription'));
-              sessionStorage.removeItem('pendingSubscription');
-
-              console.log('Processing pending subscription after login:', pending);
-
-              // Small delay to ensure UI is updated
-              setTimeout(async () => {
-                // Simulate the subscription process
-                const productId = pending.productId;
-                const planId = pending.planId;
-                const planName = pending.planName;
-                const planDays = pending.planDays;
-
-                // Redirect to confirmation page
-                window.location.href = `/subscription/confirm?productId=${productId}&planId=${planId}&authToken=${data.token}`;
-              }, 500);
-            }
-            
-          } else {
-            console.log('Login failed:', data.message || 'Unknown error');
-            // Could show error message here if needed
-          }
-        }catch(e){
-          console.error('Login error:', e);
-          // alert('Network error');
-        }
-      });
+    if (logged){
+      console.log('Applying logged-in UI state');
+      guest.classList.add('d-none');
+      auth.classList.remove('d-none');
+      navDash.classList.remove('d-none');
+      console.log('UI updated for logged-in user');
+    } else {
+      console.log('Applying logged-out UI state');
+      guest.classList.remove('d-none');
+      auth.classList.add('d-none');
+      navDash.classList.add('d-none');
+      console.log('UI updated for logged-out user');
     }
-  })();
+  };
+  updateUI();
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn){
+    logoutBtn.addEventListener('click',()=>{
+      localStorage.removeItem('authToken');
+      updateUI();
+      window.location.href = '/';
+    });
+  }
+})();
 </script>
