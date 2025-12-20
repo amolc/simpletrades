@@ -77,7 +77,7 @@ router.post('/external-price', async (req, res) => {
   }
   try {
     const response = await axios.post('https://data.simpleincome.co/api/groupprice', symbolObjects, {
-      timeout: 10000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'stockagent/1.0',
         'Content-Type': 'application/json',
@@ -87,6 +87,20 @@ router.post('/external-price', async (req, res) => {
     console.log(`[External Price] Response status: ${response.status}`)
     console.log(`[External Price] Response data:`, JSON.stringify(response.data, null, 2))
     if (typeof response.data === 'object' && response.data !== null) {
+      // Update local price cache with received prices
+      const cacheMap = req.app && req.app.locals ? req.app.locals.priceCache : null
+      if (cacheMap && Array.isArray(response.data)) {
+        let updatedCount = 0
+        for (const item of response.data) {
+          if (item.symbol && item.price !== undefined && item.price !== null) {
+            const exchange = item.exchange || 'NSE'
+            const key = `${exchange}:${item.symbol}`
+            cacheMap.set(key, { lp: Number(item.price), timestamp: Date.now() })
+            updatedCount++
+          }
+        }
+        console.log(`[External Price] Updated cache for ${updatedCount} symbols`)
+      }
       console.log(`[External Price] Sending response for ${symbolObjects.length} symbols`)
       res.json(response.data)
     } else {

@@ -6,8 +6,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   const form=document.getElementById('customerForm')
   const modalEl=document.getElementById('customerModal')
   const detailsModalEl=document.getElementById('customerDetailsModal')
+  const resetPasswordModalEl=document.getElementById('resetPasswordModal')
   const modal=new bootstrap.Modal(modalEl)
   const detailsModal=new bootstrap.Modal(detailsModalEl)
+  const resetPasswordModal=new bootstrap.Modal(resetPasswordModalEl)
+  const confirmResetBtn=document.getElementById('confirmResetPasswordBtn')
   const load=async()=>{
     // Keep the original approach - data is already rendered in template
     // No need to reload data via JavaScript
@@ -74,6 +77,18 @@ document.addEventListener('DOMContentLoaded',()=>{
       return
     }
 
+    // Check for reset-password class
+    if(btn.classList.contains('reset-password')){
+      const id=btn.dataset.userId
+      const userName=btn.dataset.userName||'Unknown User'
+
+      document.getElementById('resetUserId').value=id
+      document.getElementById('resetUserName').textContent=userName
+      document.getElementById('resetPasswordForm').reset()
+      resetPasswordModal.show()
+      return
+    }
+
     // Check for view-user class (details)
     if(btn.classList.contains('view-user')){
       const id=btn.dataset.userId
@@ -81,7 +96,7 @@ document.addEventListener('DOMContentLoaded',()=>{
       const res=await fetch(`/api/users/${id}`,{headers:{'Authorization':`Bearer ${token}`}})
       const data=await res.json()
       const u=data.data||data
-      
+
       document.getElementById('customerDetailsBody').innerHTML=`
         <div class="row">
           <div class="col-md-6">
@@ -106,5 +121,50 @@ document.addEventListener('DOMContentLoaded',()=>{
       return
     }
   })
+
+  // Handle reset password confirmation
+  confirmResetBtn.addEventListener('click',async()=>{
+    const userId=document.getElementById('resetUserId').value
+    const newPassword=document.getElementById('newPassword').value
+    const confirmPassword=document.getElementById('confirmPassword').value
+
+    // Validate passwords
+    if(!newPassword || newPassword.length < 6){
+      alert('Password must be at least 6 characters long.')
+      return
+    }
+
+    if(newPassword !== confirmPassword){
+      alert('Passwords do not match.')
+      return
+    }
+
+    try{
+      const res=await fetch(`/api/users/${userId}/change-password`,{
+        method:'PUT',
+        headers:{
+          'Content-Type':'application/json',
+          'Authorization':`Bearer ${token}`
+        },
+        body:JSON.stringify({
+          currentPassword:'admin_reset_override',
+          newPassword
+        })
+      })
+
+      const data=await res.json()
+
+      if(res.ok){
+        alert('Password reset successfully!')
+        resetPasswordModal.hide()
+      }else{
+        alert(`Error: ${data.error || 'Failed to reset password'}`)
+      }
+    }catch(error){
+      console.error('Reset password error:',error)
+      alert('An error occurred while resetting the password.')
+    }
+  })
+
   load()
 })

@@ -1,5 +1,17 @@
 {% extends "layout.njk" %}
 {% block title %}My Signals - SimpleIncome{% endblock %}
+{% block head %}
+<style>
+.price-updated {
+    background-color: #d1ecf1 !important;
+    transition: background-color 0.5s ease;
+}
+.live-price {
+    font-weight: bold;
+    color: #0d6efd;
+}
+</style>
+{% endblock %}
 {% block content %}
 <section class="py-5" style="padding-top: 100px;">
   <div class="container">
@@ -11,13 +23,19 @@
           <table class="table table-hover mb-0" id="signalsTable">
             <thead>
               <tr>
+                <th>Product</th>
+                <th>Exchange</th>
                 <th>Stock</th>
                 <th>Type</th>
                 <th>Entry</th>
+                <th>Live Price</th>
+                <th>Exit Price</th>
+                <th>P&L</th>
                 <th>Target</th>
                 <th>Stop</th>
+                <th>Entry Time</th>
+                <th>Exit Time</th>
                 <th>Status</th>
-                <th>Created</th>
               </tr>
             </thead>
             <tbody id="signalsBody"></tbody>

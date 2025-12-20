@@ -92,6 +92,16 @@
             background: rgba(107, 114, 128, 0.1);
             color: var(--text-muted);
         }
+
+        .status-profit {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-loss {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+        }
         
         .signal-type-buy {
             background: rgba(16, 185, 129, 0.1);
@@ -261,17 +271,16 @@
                             <table class="table table-hover mb-0" id="signalsTable">
                                 <thead>
                                     <tr>
-                                        <th><i class="fas fa-chart-bar me-2"></i>Stock</th>
+                                        <th><i class="fas fa-chart-bar me-2"></i>Symbol</th>
                                         <th><i class="fas fa-arrow-right me-2"></i>Type</th>
                                         <th><i class="fas fa-sign-in-alt me-2"></i>Entry</th>
-                                        <th><i class="fas fa-bullseye me-2"></i>Target</th>
-                                        <th><i class="fas fa-shield-alt me-2"></i>Stop Loss</th>
+                                        <th><i class="fas fa-calendar me-2"></i>Entry Time</th>
                                         <th><i class="fas fa-sign-out-alt me-2"></i>Exit</th>
+                                        <th><i class="fas fa-calendar me-2"></i>Exit Time</th>
+                                        <th><i class="fas fa-clock me-2"></i>Duration</th>
                                         <th><i class="fas fa-chart-line me-2"></i>P&L</th>
                                         <th><i class="fas fa-info-circle me-2"></i>Status</th>
-                                        <th><i class="fas fa-calendar me-2"></i>Entry DateTime</th>
-                                        <th><i class="fas fa-clock me-2"></i>Duration</th>
-                                        <th><i class="fas fa-sticky-note me-2"></i>Notes</th>
+                                        <th><i class="fas fa-box me-2"></i>Product</th>
                                     </tr>
                                 </thead>
                                 <tbody id="signalsTableBody">
@@ -279,8 +288,7 @@
                                         {% for signal in signals %}
                                         <tr class="fade-in">
                                             <td>
-                                                <div class="fw-bold">{{ signal.product }}</div>
-                                                <small class="text-muted">{{ signal.symbol or '' }}</small>
+                                                <div class="fw-bold">{{ signal.symbol or '' }}</div>
                                             </td>
                                             <td>
                                                 <span class="signal-badge signal-type-{{ signal.signalType | lower }}">
@@ -289,56 +297,49 @@
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="fw-bold">Rs {{ signal.entry }}</span>
+                                                <span class="fw-bold">{{ signal.entry }}</span>
                                             </td>
                                             <td>
-                                                <span class="text-success fw-bold">Rs {{ signal.target }}</span>
-                                            </td>
-                                            <td>
-                                                <span class="text-danger">Rs {{ signal.stopLoss }}</span>
+                                                <small>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</small>
                                             </td>
                                             <td>
                                                 {% if signal.exitPrice %}
-                                                    <span class="fw-bold">Rs {{ signal.exitPrice }}</span>
+                                                    <span class="fw-bold">{{ signal.exitPrice }}</span>
                                                 {% else %}
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td>
+                                                <small>{% if signal.exitDateTime %}{{ signal.exitDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ signal.duration or '-' }}</span>
+                                            </td>
+                                            <td>
                                                 {% if signal.profitLoss !== null %}
                                                     <span class="{{ 'profit-positive' if signal.profitLoss >= 0 else 'profit-negative' }}">
-                                                        {{ '+' if signal.profitLoss >= 0 }}Rs {{ signal.profitLoss }}
+                                                        {{ '+' if signal.profitLoss >= 0 }}{{ signal.profitLoss }}
                                                     </span>
                                                 {% else %}
                                                     <span class="text-muted">-</span>
                                                 {% endif %}
                                             </td>
                                             <td>
-                                                <span class="signal-badge status-{{ signal.status | lower }}">
-                                                    <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
-                                                    {{ signal.status }}
+                                                <span class="signal-badge {{ 'status-profit' if signal.profitLoss >= 0 else 'status-loss' }}">
+                                                    {{ 'Profit' if signal.profitLoss >= 0 else 'Loss' }}
                                                 </span>
                                             </td>
                                             <td>
-                                                <small>{% if signal.entryDateTime %}{{ signal.entryDateTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false, day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '') }}{% else %}-{% endif %}</small>
-                                            </td>
-                                            <td>
-                                                <span class="badge bg-info">{{ signal.duration or '-' }}</span>
-                                            </td>
-                                            <td>
-                                                {% if signal.notes %}
-                                                    <small class="text-muted" title="{{ signal.notes }}">
-                                                        {{ signal.notes | truncate(30) }}
-                                                    </small>
-                                                {% else %}
-                                                    <span class="text-muted">-</span>
-                                                {% endif %}
+                                                <a href="/product/{{ signal.product | urlencode }}">
+                                                    <div class="fw-bold">{{ signal.product }}</div>
+                                                </a>
+                                                <small class="badge bg-success">Subscribe</small>
                                             </td>
                                         </tr>
                                         {% endfor %}
                                     {% else %}
                                         <tr>
-                                            <td colspan="11" class="text-center">
+                                            <td colspan="10" class="text-center">
                                                 <div class="empty-state">
                                                     <i class="fas fa-chart-line"></i>
                                                     <h5>No Signals Found</h5>
@@ -416,8 +417,7 @@
             tbody.innerHTML = signals.map(signal => `
                 <tr class="fade-in">
                     <td>
-                        <div class="fw-bold">${signal.product}</div>
-                        <small class="text-muted">${signal.symbol || ''}</small>
+                        <div class="fw-bold">${signal.symbol || ''}</div>
                     </td>
                     <td>
                         <span class="signal-badge signal-type-${signal.signalType.toLowerCase()}">
@@ -426,44 +426,38 @@
                         </span>
                     </td>
                     <td>
-                        <span class="fw-bold">Rs ${signal.entry}</span>
-                    </td>
-                    <td>
-                        <span class="text-success fw-bold">Rs ${signal.target}</span>
-                    </td>
-                    <td>
-                        <span class="text-danger">Rs ${signal.stopLoss}</span>
-                    </td>
-                    <td>
-                        ${signal.exitPrice ? `<span class="fw-bold">Rs ${signal.exitPrice}</span>` : '<span class="text-muted">-</span>'}
-                    </td>
-                    <td>
-                        ${signal.profitLoss !== null ? 
-                            `<span class="${signal.profitLoss >= 0 ? 'profit-positive' : 'profit-negative'}">
-                                ${signal.profitLoss >= 0 ? '+' : ''}Rs ${signal.profitLoss}
-                            </span>` : 
-                            '<span class="text-muted">-</span>'
-                        }
-                    </td>
-                    <td>
-                        <span class="signal-badge status-${signal.status.toLowerCase()}">
-                            <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
-                            ${signal.status}
-                        </span>
+                        <span class="fw-bold">${signal.entry}</span>
                     </td>
                     <td>
                         <small>${signal.entryDateTime ? new Date(signal.entryDateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) : '-'}</small>
                     </td>
                     <td>
+                        ${signal.exitPrice ? `<span class="fw-bold">${signal.exitPrice}</span>` : '<span class="text-muted">-</span>'}
+                    </td>
+                    <td>
+                        <small>${signal.exitDateTime ? new Date(signal.exitDateTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) : '-'}</small>
+                    </td>
+                    <td>
                         <span class="badge bg-info">${signal.duration || '-'}</span>
                     </td>
                     <td>
-                        ${signal.notes ? 
-                            `<small class="text-muted" title="${signal.notes}">
-                                ${signal.notes.length > 30 ? signal.notes.substring(0, 30) + '...' : signal.notes}
-                            </small>` : 
+                        ${signal.profitLoss !== null ?
+                            `<span class="${signal.profitLoss >= 0 ? 'profit-positive' : 'profit-negative'}">
+                                ${signal.profitLoss >= 0 ? '+' : ''}${signal.profitLoss}
+                            </span>` :
                             '<span class="text-muted">-</span>'
                         }
+                    </td>
+                    <td>
+                        <span class="signal-badge ${signal.profitLoss >= 0 ? 'status-profit' : 'status-loss'}">
+                            ${signal.profitLoss >= 0 ? 'Profit' : 'Loss'}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/product/${encodeURIComponent(signal.product)}">
+                            <div class="fw-bold">${signal.product}</div>
+                        </a>
+                        <small class="badge bg-success">Subscribe</small>
                     </td>
                 </tr>
             `).join('');
@@ -474,7 +468,7 @@
             const tbody = document.getElementById('signalsTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" class="text-center">
+                    <td colspan="10" class="text-center">
                         <div class="empty-state">
                             <i class="fas fa-chart-line"></i>
                             <h5>No Signals Found</h5>
@@ -491,7 +485,7 @@
             const tbody = document.getElementById('signalsTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" class="text-center text-danger">
+                    <td colspan="10" class="text-center text-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Error loading signals. Please try again later.
                     </td>
