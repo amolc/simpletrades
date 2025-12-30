@@ -86,6 +86,7 @@ class SignalsManager {
     }
 
     handlePriceUpdate(data) {
+        console.log('handlePriceUpdate received data:', data);
         const { symbol, exchange, price, seriesKey } = data;
         
         // Store the price update
@@ -101,6 +102,7 @@ class SignalsManager {
     }
 
     updateSignalPrices(seriesKey, currentPrice) {
+        console.log('updateSignalPrices called for seriesKey:', seriesKey, 'currentPrice:', currentPrice);
         // Find signals that match this series key
         const matchingSignals = this.signals.filter(signal => {
             const signalSeriesKey = `${signal.exchange || 'NSE'}:${signal.symbol}`.toUpperCase().replace(/\s+/g, '');
@@ -115,25 +117,6 @@ class SignalsManager {
             if (row) {
                 // Update current price display if it exists, or add it
                 let priceCell = row.querySelector('.current-price-cell');
-                if (!priceCell) {
-                    // Add current price cell after entry price
-                    const entryCell = row.querySelector('td:nth-child(2)');
-                    if (entryCell) {
-                        priceCell = document.createElement('td');
-                        priceCell.className = 'current-price-cell';
-                        entryCell.parentNode.insertBefore(priceCell, entryCell.nextSibling);
-                        
-                        // Update header if needed
-                        const headerRow = document.querySelector('#signalsTable thead tr');
-                        if (headerRow && !headerRow.querySelector('.current-price-header')) {
-                            const currentPriceHeader = document.createElement('th');
-                            currentPriceHeader.className = 'current-price-header';
-                            currentPriceHeader.textContent = 'Current Price';
-                            const headerEntry = headerRow.querySelector('th:nth-child(2)');
-                            headerRow.insertBefore(currentPriceHeader, headerEntry.nextSibling);
-                        }
-                    }
-                }
                 
                 if (priceCell) {
                     const profitLoss = this.calculateSignalPL(signal, currentPrice);
@@ -253,6 +236,7 @@ class SignalsManager {
             <tr data-signal-id="${signal.id}">
                 <td><strong>${signal.symbol}</strong><br><small class="text-muted">${signal.exchange || 'NSE'}</small></td>
                 <td>Rs ${signal.entry.toFixed(2)}</td>
+                <td class="current-price-cell live-price">-</td>
                 <td>Rs ${signal.target.toFixed(2)}</td>
                 <td>Rs ${signal.stopLoss.toFixed(2)}</td>
                 <td>${typeBadge}</td>

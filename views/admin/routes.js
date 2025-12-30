@@ -66,6 +66,13 @@ router.get('/clients', (req, res) => {
   res.render('admin/clients.njk', { title: 'Clients - Admin' })
 })
 
+router.get('/test-websocket', (req, res) => {
+  res.render('admin/test-websocket.njk', {
+    title: 'WebSocket Test - Admin'
+  })
+})
+
+// Signals routes
 router.get('/signals', async (req, res) => {
   try {
     // Fetch active clients count

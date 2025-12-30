@@ -77,7 +77,7 @@ router.post('/external-price', async (req, res) => {
   }
   try {
     const response = await axios.post('https://data.simpleincome.co/api/groupprice', symbolObjects, {
-      timeout: 30000,
+      timeout: 80000,
       headers: {
         'User-Agent': 'stockagent/1.0',
         'Content-Type': 'application/json',

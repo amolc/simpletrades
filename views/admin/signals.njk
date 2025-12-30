@@ -1,5 +1,6 @@
 {% extends "admin/layout.njk" %}
 {% block title %}Admin Signals{% endblock %}
+
 {% block head %}
 <link rel="stylesheet" href="/assets/admin/css/styles.css">
 <style>
@@ -13,6 +14,7 @@
 }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="container-fluid">
   <div class="mt-4 mb-3 text-center">
@@ -403,51 +405,7 @@
     </div>
   </div>
 
-  <!-- Signal Close Modal -->
-  <div class="modal fade" id="signalCloseModal" tabindex="-1">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Close Signal</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="signalCloseForm">
-            <div class="mb-3">
-              <label class="form-label" for="closeSignalStock">Stock Name</label>
-              <input class="form-control" id="closeSignalStock" type="text" readonly>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="closeSignalType">Signal Type</label>
-              <input class="form-control" id="closeSignalType" type="text" readonly>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="closeSignalEntry">Entry Price</label>
-              <input class="form-control" id="closeSignalEntry" type="number" step="0.01" readonly>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="closeSignalTarget">Target Price</label>
-              <input class="form-control" id="closeSignalTarget" type="number" step="0.01" readonly>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="closeExitPrice">Exit Price <span class="text-danger">*</span></label>
-              <input class="form-control" id="closeExitPrice" type="number" step="0.01" required>
-              <div class="form-text">Enter the actual market price at which the signal is being closed</div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="closeSignalNotes">Closing Notes</label>
-              <textarea class="form-control" id="closeSignalNotes" rows="2" placeholder="Reason for closing the signal..."></textarea>
-            </div>
-            <input type="hidden" id="closeSignalId">
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button type="button" class="btn btn-warning" id="closeSignalBtn">Close Signal</button>
-        </div>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Signal Edit Modal -->
   <div class="modal fade" id="signalEditModal" tabindex="-1">
@@ -621,115 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('WebSocket connection closed');
     };
 
-    // Function to update live price in UI
-    function updateLivePrice(fullSymbol, price) {
-        const [exchange, symbol] = fullSymbol.split(':');
 
-        // Update signals table
-        const signalRows = document.querySelectorAll('#signalsBody tr');
-        signalRows.forEach(row => {
-            const symbolCell = row.querySelector('td:nth-child(4) a');
-            const exchangeCell = row.querySelector('td:nth-child(3)');
-            if (symbolCell && exchangeCell) {
-                const rowSymbol = symbolCell.textContent.trim();
-                const rowExchange = exchangeCell.textContent.trim() || 'NSE';
-
-                if (rowSymbol === symbol && rowExchange === exchange) {
-                    // Find the live price cell (column 7)
-                    const priceCell = row.querySelector('td:nth-child(7)');
-                    if (priceCell) {
-                        priceCell.textContent = price.toFixed(2);
-                        priceCell.classList.add('live-price');
-                    }
-
-                    // Calculate and update live P&L (column 9) only for IN_PROGRESS signals
-                    const status = row.getAttribute('data-status');
-                    if (status === 'IN_PROGRESS') {
-                        const signalType = row.getAttribute('data-type').toUpperCase();
-                        const entryCell = row.querySelector('td:nth-child(6)'); // Entry column
-                        const pnlCell = row.querySelector('td:nth-child(9)'); // P&L column
-
-                        if (entryCell && pnlCell) {
-                            const entryText = entryCell.textContent.trim().replace('Rs ', '');
-                            const entryPrice = parseFloat(entryText);
-
-                            if (!isNaN(entryPrice)) {
-                                let pnl = 0;
-                                if (signalType === 'BUY') {
-                                    pnl = price - entryPrice;
-                                } else if (signalType === 'SELL') {
-                                    pnl = entryPrice - price;
-                                }
-
-                                const pnlText = pnl >= 0 ?
-                                    `<span class="text-success">+${pnl.toFixed(2)}</span>` :
-                                    `<span class="text-danger">-${Math.abs(pnl).toFixed(2)}</span>`;
-
-                                pnlCell.innerHTML = pnlText;
-                            }
-                        }
-                    }
-
-                    row.classList.add('price-updated');
-
-                    // Remove highlight after animation
-                    setTimeout(() => {
-                        row.classList.remove('price-updated');
-                    }, 1000);
-
-                    console.log('🔄 Updated price and P&L for signal', fullSymbol, 'to', price);
-                }
-            }
-        });
-
-        // Update watchlist table
-        const watchlistRows = document.querySelectorAll('#watchlistBody tr');
-        watchlistRows.forEach(row => {
-            const symbolCell = row.querySelector('td:nth-child(2) a');
-            const exchangeCell = row.querySelector('td:nth-child(3)');
-            if (symbolCell && exchangeCell) {
-                const rowSymbol = symbolCell.textContent.trim();
-                const rowExchange = exchangeCell.textContent.trim() || 'NSE';
-
-                if (rowSymbol === symbol && rowExchange === exchange) {
-                    // Find the live price cell (column 4)
-                     const priceCell = row.querySelector('td:nth-child(4)');
-                     if (priceCell) {
-                         priceCell.textContent = price.toFixed(2);
-                         priceCell.classList.add('live-price');
-                     }
-
-                    // Update difference (column 6) = alert - live with percentage
-                    const alertCell = row.querySelector('td:nth-child(5)');
-                    const differenceCell = row.querySelector('td:nth-child(6)');
-                    if (alertCell && differenceCell) {
-                        const alertText = alertCell.textContent.trim().replace('Rs ', '');
-                        const alertPrice = parseFloat(alertText);
-                        if (!isNaN(alertPrice)) {
-                            const diff = price - alertPrice;
-                            let pct = 0;
-                            if (alertPrice !== 0) {
-                                pct = (diff / alertPrice) * 100;
-                            }
-                            const diffText = diff >= 0 ? `+${diff.toFixed(2)}` : `${diff.toFixed(2)}`;
-                            const pctText = pct >= 0 ? `(+${pct.toFixed(2)}%)` : `(${pct.toFixed(2)}%)`;
-                            differenceCell.textContent = `${diffText} ${pctText}`;
-                            differenceCell.className = diff >= 0 ? 'text-success' : 'text-danger';
-                        }
-                    }
-
-                    row.classList.add('price-updated');
-
-                    // Remove highlight after animation
-                    setTimeout(() => {
-                        row.classList.remove('price-updated');
-                    }, 1000);
-
-                    console.log('🔄 Updated live price and difference for watchlist', fullSymbol, 'to', price);
-                }
-            }
-        });
-    }
 
     // Product filter functionality
     document.getElementById('productFilter').addEventListener('click', function(e) {

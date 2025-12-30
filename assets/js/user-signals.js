@@ -187,66 +187,7 @@ document.addEventListener('DOMContentLoaded',()=>{
         });
       }, 2000); // Wait 2 seconds for WebSocket to update
 
-      // Function to update live price and P&L in UI
-      function updateLivePrice(fullSymbol, price) {
-        const [exchange, symbol] = fullSymbol.split(':');
 
-        // Update signals table
-        const rows = document.querySelectorAll('#signalsBody tr');
-        rows.forEach(row => {
-          const symbolCell = row.querySelector('td:nth-child(3)'); // Stock column
-          const exchangeCell = row.querySelector('td:nth-child(2)'); // Exchange column
-          if (symbolCell && exchangeCell) {
-            const rowSymbol = symbolCell.textContent.trim();
-            const rowExchange = (exchangeCell.textContent.trim() === '—') ? 'NSE' : exchangeCell.textContent.trim();
-
-            if (rowSymbol === symbol && rowExchange === exchange) {
-              // Update live price cell (column 6)
-              const priceCell = row.querySelector('td:nth-child(6)');
-              if (priceCell) {
-                priceCell.textContent = `Rs ${price.toFixed(2)}`;
-              }
-
-              // Calculate and update live P&L (column 8) only for IN_PROGRESS signals
-              const statusCell = row.querySelector('td:nth-child(13)'); // Status column
-              if (statusCell && statusCell.textContent.includes('IN_PROGRESS')) {
-                const signalTypeCell = row.querySelector('td:nth-child(4)'); // Type column
-                const entryCell = row.querySelector('td:nth-child(5)'); // Entry column
-                const pnlCell = row.querySelector('td:nth-child(8)'); // P&L column
-
-                if (signalTypeCell && entryCell && pnlCell) {
-                  const signalType = signalTypeCell.textContent.trim().toUpperCase();
-                  const entryText = entryCell.textContent.trim().replace('Rs ', '');
-                  const entryPrice = parseFloat(entryText);
-
-                  if (!isNaN(entryPrice)) {
-                    let pnl = 0;
-                    if (signalType === 'BUY') {
-                      pnl = price - entryPrice;
-                    } else if (signalType === 'SELL') {
-                      pnl = entryPrice - price;
-                    }
-
-                    const pnlText = pnl >= 0 ?
-                      `<span class="text-success">Rs ${pnl.toFixed(2)}</span>` :
-                      `<span class="text-danger">Rs ${Math.abs(pnl).toFixed(2)}</span>`;
-
-                    pnlCell.innerHTML = pnlText;
-                  }
-                }
-              }
-
-              // Add highlight effect
-              row.classList.add('price-updated');
-              setTimeout(() => {
-                row.classList.remove('price-updated');
-              }, 1000);
-
-              console.log('🔄 Updated price and P&L for signal', fullSymbol, 'to', price);
-            }
-          }
-        });
-      }
     }catch(error){
       console.error('Error loading signals:',error);
       document.getElementById('signalsBody').innerHTML='<tr><td colspan="13" class="text-center text-danger">Error loading signals</td></tr>';

@@ -124,7 +124,7 @@ class WebSocketManager {
     
     handleMessage(data) {
         try {
-            console.log('📡 WebSocket message received:', data);
+            // console.log('📡 WebSocket message received:', data);
             
             if (this.currentProvider === 'tradingview') {
                 this._handleTradingViewMessage(data);
@@ -225,11 +225,11 @@ class WebSocketManager {
                 if (this.callbacks.has(symbolKey)) {
                     this.callbacks.get(symbolKey).forEach(callback => {
                         try {
-                            callback({ 
-                                price, 
-                                timestamp, 
-                                symbol, 
-                                exchange, 
+                            callback({
+                                price,
+                                timestamp,
+                                symbol: finalSymbol,
+                                exchange: extractedExchange, 
                                 seriesKey 
                             });
                         } catch (error) {
@@ -261,15 +261,40 @@ class WebSocketManager {
     
     _handleDataSimpleIncomeMessage(data) {
         try {
-            console.log('📡 data.simpleincome.co message received:', data);
+            // console.log('📡 data.simpleincome.co message received:', data);
             
             // Handle data.simpleincome.co format
-            if (data.symbol && data.price !== undefined) {
-                const symbol = data.symbol;
-                const price = data.price;
-                const timestamp = data.timestamp || Date.now();
-                const exchange = data.exchange || 'NSE';
-                const seriesKey = `${exchange}:${symbol}`;
+            if (data.type === 'data' && data.data && data.data.symbol && data.data.price !== undefined) {
+                let rawSymbol = data.data.symbol;
+                const price = data.data.price;
+                const timestamp = data.data.timestamp || Date.now();
+
+                let extractedExchange = 'NSE'; // Default exchange
+                let finalSymbol = rawSymbol;
+
+                // Check if rawSymbol contains an explicit exchange prefix (e.g., "OANDA:XAUUSD")
+                const firstColonIndex = rawSymbol.indexOf(':');
+                if (firstColonIndex > 0) {
+                    const potentialExchange = rawSymbol.substring(0, firstColonIndex);
+                    // Basic validation: check if it looks like an exchange (e.g., all caps, no spaces)
+                    if (potentialExchange === potentialExchange.toUpperCase() && !potentialExchange.includes(' ')) {
+                        extractedExchange = potentialExchange;
+                        finalSymbol = rawSymbol.substring(firstColonIndex + 1);
+                    }
+                }
+
+                // If data.data.exchange is provided and different, use it (prioritize over default 'NSE' if not from rawSymbol)
+                if (data.data.exchange && data.data.exchange !== extractedExchange) {
+                    extractedExchange = data.data.exchange;
+                }
+
+                // Ensure symbol doesn't have multiple colons if it was already processed
+                if (finalSymbol.includes(':')) {
+                    const lastColonIndex = finalSymbol.lastIndexOf(':');
+                    finalSymbol = finalSymbol.substring(lastColonIndex + 1);
+                }
+
+                const seriesKey = `${extractedExchange}:${finalSymbol}`;
                 
                 console.log(`💰 data.simpleincome.co price update: ${seriesKey} = ${price}`);
                 
@@ -278,12 +303,12 @@ class WebSocketManager {
                 if (this.callbacks.has(symbolKey)) {
                     this.callbacks.get(symbolKey).forEach(callback => {
                         try {
-                            callback({ 
-                                price, 
-                                timestamp, 
-                                symbol, 
-                                exchange, 
-                                seriesKey 
+                            callback({
+                                price,
+                                timestamp,
+                                symbol: finalSymbol,
+                                exchange: extractedExchange,
+                                seriesKey
                             });
                         } catch (error) {
                             console.error('Error in price update callback:', error);

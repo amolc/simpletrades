@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #output { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Stock Data WebSocket Debug</h1>
+    <label for="symbols">Symbols (comma-separated):</label>
+    <input type="text" id="symbols" value="BINANCE:BTCUSDT,NSE:RELIANCE">
+    <button onclick="connect()">Connect and Subscribe</button>
+    <div id="output"></div>
+
+    <script>
+        let ws;
+
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function connect() {
+            const symbolsInput = document.getElementById('symbols').value;
+            const symbols = symbolsInput.split(',').map(s => s.trim());
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+
+            ws = new WebSocket('wss://data.simpleincome.co/ws/stream/');
+
+            ws.onopen = function(event) {
+                log('Connected to StockData WebSocket');
+
+                // Subscribe to symbols
+                ws.send(JSON.stringify({
+                    action: 'subscribe',
+                    symbols: symbols
+                }));
+            };
+
+            ws.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+
+                switch(message.type) {
+                    case 'connection':
+                        log('Connected: ' + message.client_id);
+                        break;
+
+                    case 'subscription':
+                        if (message.status === 'success') {
+                            log('Subscribed to: ' + message.symbols.join(', '));
+                        } else {
+                            log('Subscription failed: ' + JSON.stringify(message));
+                        }
+                        break;
+
+                    case 'data':
+                        const symbol = message.symbol;
+                        const periods = message.data.periods;
+
+                        if (periods && periods.length > 0) {
+                            const latestPeriod = periods[periods.length - 1];
+                            const price = latestPeriod[4]; // Close price
+                            const volume = latestPeriod[5];
+
+                            log(`${symbol}: $${price.toFixed(2)} (Vol: ${volume})`);
+                        }
+                        break;
+
+                    case 'error':
+                        log('WebSocket error: ' + message.message);
+                        break;
+
+                    default:
+                        log('Unknown message type: ' + JSON.stringify(message));
+                }
+            };
+
+            ws.onerror = function(error) {
+                log('WebSocket error: ' + error);
+            };
+
+            ws.onclose = function(event) {
+                log('WebSocket connection closed');
+            };
+        }
+    </script>
+</body>
+</html>

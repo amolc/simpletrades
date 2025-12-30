@@ -1,0 +1,119 @@
+{% extends "admin/layout.njk" %}
+
+{% block head %}
+    <link rel="stylesheet" href="/assets/admin/css/styles.css">
+    <style>
+        .price-updated {
+            background-color: #d1ecf1 !important;
+            transition: background-color 0.5s ease;
+        }
+        .live-price {
+            font-weight: bold;
+            color: #0d6efd;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="container mt-4">
+        <h1>WebSocket Test Page</h1>
+        <p>This page tests live price updates via WebSocket.</p>
+
+        <div class="card mt-3">
+            <div class="card-header">Live Prices</div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Exchange</th>
+                            <th>Symbol</th>
+                            <th>Live Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="livePricesBody">
+                        <!-- Live prices will be inserted here by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/assets/js/websocket-config.js"></script>
+    <script src="/assets/js/websocketManager.js?v=1.3"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Example symbols to subscribe to
+            const testSymbols = [
+                { exchange: 'NSE', symbol: 'RELIANCE' },
+                { exchange: 'NSE', symbol: 'TCS' },
+                { exchange: 'BSE', symbol: 'INFY' },
+                { exchange: 'NSE', symbol: 'HDFCBANK' },
+                { exchange: 'NSE', symbol: 'ICICIBANK' },
+                { exchange: 'NSE', symbol: 'SBIN' },
+                { exchange: 'NSE', symbol: 'LT' },
+                { exchange: 'NSE', symbol: 'BAJFINANCE' }
+            ];
+
+            // Initialize WebSocket Manager and subscribe to symbols
+            if (window.wsManager) {
+                console.log('WebSocketManager found. Attempting to connect...');
+                window.wsManager.connect().then(() => {
+                    console.log('WebSocket connected. Subscribing to symbols...');
+                    window.wsManager.subscribe(testSymbols);
+                    console.log('Subscription requests sent for:', testSymbols);
+
+                    // Listen for price updates and call the test update function
+                    testSymbols.forEach(s => {
+                        const seriesKey = `${s.exchange}:${s.symbol}`;
+                        if (window.wsManager) {
+                            window.wsManager.on(`price:${seriesKey}`, function(data) {
+                                console.log(`Event listener triggered for ${seriesKey}`); // Debug log
+                                console.log(`Test Page: Price update for ${seriesKey}: ${data.price}`);
+                                updateTestPrice(seriesKey, data.price);
+                            });
+                        }
+                    });
+                }).catch(error => {
+                    console.error('Failed to connect to WebSocket:', error);
+                });
+            } else {
+                console.error('WebSocketManager not found.');
+            }
+
+            // Function to update the test table
+            function updateTestPrice(fullSymbol, price) {
+                const [exchange, symbol] = fullSymbol.split(':');
+                const rowId = `price-row-${exchange}-${symbol}`;
+                console.log(`Attempting to update row with ID: ${rowId}`); // Debug log
+                let row = document.getElementById(rowId);
+                if (row) { // Ensure the row exists before attempting to update
+                    const priceCell = row.querySelector('.live-price');
+                    if (priceCell) {
+                        priceCell.textContent = price.toFixed(2);
+                        row.classList.add('price-updated');
+                        setTimeout(() => {
+                            row.classList.remove('price-updated');
+                        }, 1000);
+                    }
+                }
+            }
+
+            // Pre-populate table with symbols and initial prices
+            const livePricesBody = document.getElementById('livePricesBody');
+            testSymbols.forEach(s => {
+                const fullSymbol = `${s.exchange}:${s.symbol}`;
+                let row = document.createElement('tr');
+                row.id = `price-row-${s.exchange}-${s.symbol}`;
+                console.log(`Created row with ID: ${row.id}`); // Debug log
+                row.innerHTML = `
+                    <td>${s.exchange}</td>
+                    <td>${s.symbol}</td>
+                    <td class="live-price">--.--</td> <!-- Placeholder price -->
+                `;
+                livePricesBody.appendChild(row);
+            });
+        });
+    </script>
+{% endblock %}

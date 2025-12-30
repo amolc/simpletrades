@@ -1,5 +1,6 @@
 const db = require('../models')
 const { Op } = require('sequelize')
+const axios = require('axios')
 
 const getSignals = async (filters = {}) => {
   const whereClause = {}
@@ -520,19 +521,24 @@ const signalsController = {
         }
         const ex = (sig.exchange || 'NSE')
         const sy = (sig.symbol || '')
-        const key = `${String(ex).toUpperCase().trim()}:${String(sy).toUpperCase().trim()}`.replace(/\s+/g,'')
-        const cache = req.app?.locals?.priceCache
-        if (cache && cache.get) {
-          const d = cache.get(key)
-          try { console.log('closeSignal cache lookup', { key, has: !!d, lp: d && d.lp }) } catch(e){}
-          if (d && d.lp !== undefined) {
-            const p = Number(d.lp)
-            if (Number.isFinite(p)) exitPrice = p
-          }
-        }
         if (exitPrice === undefined || exitPrice === null || Number.isNaN(Number(exitPrice))) exitPrice = null
       }
       try { console.log('closeSignal route computed exitPrice', { id: req.params.id, exitPrice }) } catch(e){}
+      if (exitPrice === null) {
+        try {
+          const apiUrl = `https://data.simpleincome.co/api/price?symbol=${encodeURIComponent(sy)}&exchange=${encodeURIComponent(ex)}`
+          const response = await axios.get(apiUrl, { timeout: 5000, headers: { 'User-Agent': 'stockagent/1.0', 'Accept': 'application/json' } })
+          if (response.data && response.data.success && response.data.data && response.data.data.length > 0 && response.data.data[0].close !== null && response.data.data[0].close !== undefined) {
+            exitPrice = Number(response.data.data[0].close)
+            if (cache) {
+              cache.set(key, { lp: exitPrice, timestamp: Date.now() })
+            }
+            try { console.log('closeSignal fetched live price', { id: req.params.id, exitPrice }) } catch(e){}
+          }
+        } catch(e) {
+          try { console.log('closeSignal fetch live price failed', e.message) } catch(e){}
+        }
+      }
       const signal = await closeSignal(req.params.id, exitPrice, notes)
       if (!signal) {
         return res.status(404).json({ success: false, error: 'Signal not found' })
